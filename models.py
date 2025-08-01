@@ -106,6 +106,7 @@ class SamerExpenseTransaction(db.Model):
 class DailyClose(db.Model):
     """Model for storing daily close transactions"""
     id = db.Column(db.Integer, primary_key=True)
+    close_date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date())
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Input fields

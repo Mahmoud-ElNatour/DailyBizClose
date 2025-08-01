@@ -17,6 +17,7 @@ const DailyCloseApp = {
         this.initializeFormHandlers();
         this.initializeExpenseCategories();
         this.initializeExpenseSections();
+        this.initializeDateHandling();
     },
 
     // Initialize dropdown functionality
@@ -332,33 +333,86 @@ const DailyCloseApp = {
         return data.inputs.mainReading > 0;
     },
 
-    // Simulate daily close submission (prepare for Flask backend)
-    simulateDailyCloseSubmission(data) {
-        // Simulate network delay
-        setTimeout(() => {
-            console.log('Daily close submitted (simulated):', data);
-            this.showStatusMessage('Daily close saved successfully!', 'success');
-        }, 1500);
+    // Submit daily close form
+    async submitDailyClose() {
+        try {
+            const closeDate = document.getElementById('closeDate')?.value;
+            
+            // Collect basic inputs
+            const basicInputs = {
+                close_date: closeDate,
+                main_reading: parseFloat(document.getElementById('mainReading')?.value) || 0,
+                dr_smashed: parseFloat(document.getElementById('drSmashed')?.value) || 0,
+                ahmad_expenses: parseFloat(document.getElementById('ahmadExpenses')?.value) || 0
+            };
 
-        // Future Flask integration point:
-        /*
-        fetch('/api/daily-close', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            console.log('Daily close saved:', result);
-            this.showStatusMessage('Daily close saved successfully!', 'success');
-        })
-        .catch(error => {
-            console.error('Error saving daily close:', error);
+            // Collect expense data
+            const expenses = this.collectSectionData('.expense-item', '.expense-category', '.expense-amount');
+            const advances = this.collectSectionData('.advance-item', '.advance-category', '.advance-amount');
+            const credits = this.collectSectionData('.credit-item', '.credit-category', '.credit-amount');
+            const cashbacks = this.collectSectionData('.cashback-item', '.cashback-category', '.cashback-amount');
+            const samer_expenses = this.collectSectionData('.samer-expense-item', '.samer-expense-category', '.samer-expense-amount');
+
+            // Calculate totals and calculated fields
+            const calculations = {
+                adjusted_reading: parseFloat(document.getElementById('adjustedReading')?.textContent.replace('$', '').replace(',', '')) || 0,
+                five_percent: parseFloat(document.getElementById('fivePercent')?.textContent.replace('$', '').replace(',', '')) || 0,
+                actual_cash: parseFloat(document.getElementById('actualCash')?.textContent.replace('$', '').replace(',', '')) || 0
+            };
+
+            const formData = {
+                ...basicInputs,
+                ...calculations,
+                expenses,
+                advances,
+                credits,
+                cashbacks,
+                samer_expenses
+            };
+
+            this.showStatusMessage('Saving daily close data...', 'info');
+
+            const response = await fetch('/api/daily-close', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                this.showStatusMessage('Daily close saved successfully', 'success');
+                this.clearDailyCloseForm();
+            } else {
+                this.showStatusMessage('Error saving daily close: ' + (data.message || 'Unknown error'), 'danger');
+            }
+        } catch (error) {
+            console.error('Error submitting daily close:', error);
             this.showStatusMessage('Error saving daily close', 'danger');
+        }
+    },
+
+    // Collect section data for submission
+    collectSectionData(itemSelector, categorySelector, amountSelector) {
+        const items = document.querySelectorAll(itemSelector);
+        const data = [];
+        
+        items.forEach(item => {
+            const categorySelect = item.querySelector(categorySelector);
+            const amountInput = item.querySelector(amountSelector);
+            
+            if (categorySelect && amountInput && categorySelect.value && amountInput.value) {
+                data.push({
+                    category_id: parseInt(categorySelect.value),
+                    amount: parseFloat(amountInput.value) || 0,
+                    description: ''
+                });
+            }
         });
-        */
+        
+        return data;
     },
 
     // Clear the daily close form
@@ -368,6 +422,17 @@ const DailyCloseApp = {
         inputs.forEach(input => {
             input.value = '';
         });
+
+        // Reset date to today and lock it
+        const dateInput = document.getElementById('closeDate');
+        const editBtn = document.getElementById('editDateBtn');
+        if (dateInput && editBtn) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+            dateInput.setAttribute('readonly', 'readonly');
+            editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+            editBtn.onclick = () => this.showAdminPasswordModal();
+        }
 
         // Clear all category selections
         const selects = document.querySelectorAll('#dailyCloseForm select');
@@ -783,6 +848,86 @@ const DailyCloseApp = {
                 this.calculateValues();
             }
         });
+    },
+
+    // Initialize date handling
+    initializeDateHandling() {
+        if (!document.getElementById('closeDate')) return;
+
+        // Set today's date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('closeDate').value = today;
+
+        // Add event listener for edit date button
+        const editDateBtn = document.getElementById('editDateBtn');
+        if (editDateBtn) {
+            editDateBtn.addEventListener('click', () => {
+                this.showAdminPasswordModal();
+            });
+        }
+
+        // Handle enter key in password field
+        const adminPasswordInput = document.getElementById('adminPassword');
+        if (adminPasswordInput) {
+            adminPasswordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.verifyAdminPassword();
+                }
+            });
+        }
+    },
+
+    // Show admin password modal
+    showAdminPasswordModal() {
+        const modal = new bootstrap.Modal(document.getElementById('adminPasswordModal'));
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('passwordError').classList.add('d-none');
+        modal.show();
+        
+        // Focus on password field when modal is shown
+        setTimeout(() => {
+            document.getElementById('adminPassword').focus();
+        }, 500);
+    },
+
+    // Verify admin password
+    verifyAdminPassword() {
+        const password = document.getElementById('adminPassword').value;
+        const adminPassword = 'admin123'; // This should be stored securely in production
+        
+        if (password === adminPassword) {
+            // Correct password - unlock date field
+            const dateInput = document.getElementById('closeDate');
+            const editBtn = document.getElementById('editDateBtn');
+            
+            dateInput.removeAttribute('readonly');
+            dateInput.focus();
+            editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
+            editBtn.onclick = () => this.lockDateField();
+            
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('adminPasswordModal'));
+            modal.hide();
+            
+            this.showStatusMessage('Date field unlocked for editing', 'success');
+        } else {
+            // Incorrect password
+            document.getElementById('passwordError').classList.remove('d-none');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').focus();
+        }
+    },
+
+    // Lock date field
+    lockDateField() {
+        const dateInput = document.getElementById('closeDate');
+        const editBtn = document.getElementById('editDateBtn');
+        
+        dateInput.setAttribute('readonly', 'readonly');
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
+        editBtn.onclick = () => this.showAdminPasswordModal();
+        
+        this.showStatusMessage('Date field locked', 'info');
     }
 };
 

@@ -156,8 +156,17 @@ def save_daily_close():
         # Log the received data for debugging
         app.logger.debug(f"Received daily close data: {data}")
         
+        # Parse close date
+        from datetime import datetime
+        close_date = None
+        if data.get('close_date'):
+            close_date = datetime.strptime(data.get('close_date'), '%Y-%m-%d').date()
+        else:
+            close_date = datetime.utcnow().date()
+
         # Create daily close record
         daily_close = DailyClose(
+            close_date=close_date,
             main_reading=data.get('main_reading', 0),
             dr_smashed=data.get('dr_smashed', 0),
             ahmad_expenses=data.get('ahmad_expenses', 0),
