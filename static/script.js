@@ -1,11 +1,22 @@
 // Global application object
 const DailyCloseApp = {
+    // Categories cache
+    categoriesCache: {
+        expense: [],
+        advance: [],
+        credit: [],
+        cashback: [],
+        'samer-expense': []
+    },
+
     // Initialize the application
     init() {
         this.initializeDropdowns();
         this.initializeDailyClose();
         this.initializeModuleCards();
         this.initializeFormHandlers();
+        this.initializeExpenseCategories();
+        this.initializeExpenseSections();
     },
 
     // Initialize dropdown functionality
@@ -65,11 +76,7 @@ const DailyCloseApp = {
         const inputs = {
             mainReading: document.getElementById('mainReading'),
             drSmashed: document.getElementById('drSmashed'),
-            ahmadExpenses: document.getElementById('ahmadExpenses'),
-            dailyExpenses: document.getElementById('dailyExpenses'),
-            dailyAdvances: document.getElementById('dailyAdvances'),
-            creditSales: document.getElementById('creditSales'),
-            cashback: document.getElementById('cashback')
+            ahmadExpenses: document.getElementById('ahmadExpenses')
         };
 
         // Get calculated field displays
@@ -82,39 +89,53 @@ const DailyCloseApp = {
         // Add event listeners for real-time calculations
         Object.values(inputs).forEach(input => {
             if (input) {
-                input.addEventListener('input', () => this.calculateValues(inputs, displays));
-                input.addEventListener('change', () => this.calculateValues(inputs, displays));
+                input.addEventListener('input', () => this.calculateValues());
+                input.addEventListener('change', () => this.calculateValues());
             }
         });
 
         // Initial calculation
-        this.calculateValues(inputs, displays);
+        this.calculateValues();
     },
 
     // Calculate all values in real-time
-    calculateValues(inputs, displays) {
+    calculateValues() {
         try {
-            // Get input values with default 0 for empty fields
-            const values = {
-                mainReading: parseFloat(inputs.mainReading?.value) || 0,
-                drSmashed: parseFloat(inputs.drSmashed?.value) || 0,
-                ahmadExpenses: parseFloat(inputs.ahmadExpenses?.value) || 0,
-                dailyExpenses: parseFloat(inputs.dailyExpenses?.value) || 0,
-                dailyAdvances: parseFloat(inputs.dailyAdvances?.value) || 0,
-                creditSales: parseFloat(inputs.creditSales?.value) || 0,
-                cashback: parseFloat(inputs.cashback?.value) || 0
-            };
+            // Get basic input values
+            const mainReading = parseFloat(document.getElementById('mainReading')?.value) || 0;
+            const drSmashed = parseFloat(document.getElementById('drSmashed')?.value) || 0;
+            const ahmadExpenses = parseFloat(document.getElementById('ahmadExpenses')?.value) || 0;
 
-            // Calculate Adjusted Reading: Main Reading - Dr Smashed - Credit Sales + Cashback
-            const adjustedReading = values.mainReading - values.drSmashed - values.creditSales + values.cashback;
+            // Calculate totals from sections
+            const totalExpenses = this.calculateSectionTotal('.expense-amount');
+            const totalAdvances = this.calculateSectionTotal('.advance-amount');
+            const totalCredits = this.calculateSectionTotal('.credit-amount');
+            const totalCashback = this.calculateSectionTotal('.cashback-amount');
+            const totalSamerExpenses = this.calculateSectionTotal('.samer-expense-amount');
+
+            // Update section totals
+            this.updateSectionTotal('#totalExpenses', totalExpenses);
+            this.updateSectionTotal('#totalAdvances', totalAdvances);
+            this.updateSectionTotal('#totalCredits', totalCredits);
+            this.updateSectionTotal('#totalCashback', totalCashback);
+            this.updateSectionTotal('#totalSamerExpenses', totalSamerExpenses);
+
+            // Calculate Adjusted Reading: Main Reading - Dr Smashed - Total Credits + Total Cashback
+            const adjustedReading = mainReading - drSmashed - totalCredits + totalCashback;
 
             // Calculate 5% of Adjusted Reading
             const fivePercent = adjustedReading * 0.05;
 
-            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Daily Expenses - Advances
-            const actualCash = adjustedReading - values.ahmadExpenses - values.dailyExpenses - values.dailyAdvances;
+            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses
+            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses;
 
-            // Update display fields
+            // Update calculated field displays
+            const displays = {
+                adjustedReading: document.getElementById('adjustedReading'),
+                fivePercent: document.getElementById('fivePercent'),
+                actualCash: document.getElementById('actualCash')
+            };
+
             if (displays.adjustedReading) {
                 displays.adjustedReading.textContent = this.formatCurrency(adjustedReading);
             }
@@ -134,6 +155,24 @@ const DailyCloseApp = {
 
         } catch (error) {
             console.error('Error calculating values:', error);
+        }
+    },
+
+    // Calculate total for a section
+    calculateSectionTotal(selector) {
+        const inputs = document.querySelectorAll(selector);
+        let total = 0;
+        inputs.forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        return total;
+    },
+
+    // Update section total display
+    updateSectionTotal(selector, total) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.textContent = this.formatCurrency(total);
         }
     },
 
@@ -324,30 +363,55 @@ const DailyCloseApp = {
 
     // Clear the daily close form
     clearDailyCloseForm() {
+        // Clear basic input fields
         const inputs = document.querySelectorAll('#dailyCloseForm input[type="number"]');
         inputs.forEach(input => {
             input.value = '';
         });
 
-        // Trigger calculation update to reset calculated fields
-        const inputsObj = {
-            mainReading: document.getElementById('mainReading'),
-            drSmashed: document.getElementById('drSmashed'),
-            ahmadExpenses: document.getElementById('ahmadExpenses'),
-            dailyExpenses: document.getElementById('dailyExpenses'),
-            dailyAdvances: document.getElementById('dailyAdvances'),
-            creditSales: document.getElementById('creditSales'),
-            cashback: document.getElementById('cashback')
-        };
+        // Clear all category selections
+        const selects = document.querySelectorAll('#dailyCloseForm select');
+        selects.forEach(select => {
+            select.selectedIndex = 0;
+        });
 
-        const displaysObj = {
-            adjustedReading: document.getElementById('adjustedReading'),
-            fivePercent: document.getElementById('fivePercent'),
-            actualCash: document.getElementById('actualCash')
-        };
+        // Reset all expense sections to single items
+        this.resetExpenseSection('#expensesSection', 'expense');
+        this.resetExpenseSection('#advancesSection', 'advance');
+        this.resetExpenseSection('#creditsSection', 'credit');
+        this.resetExpenseSection('#cashbacksSection', 'cashback');
+        this.resetExpenseSection('#samerExpensesSection', 'samer-expense');
 
-        this.calculateValues(inputsObj, displaysObj);
+        // Recalculate values
+        this.calculateValues();
         this.showStatusMessage('Form cleared', 'info');
+    },
+
+    // Reset expense section to single item
+    resetExpenseSection(sectionSelector, type) {
+        const section = document.querySelector(sectionSelector);
+        if (!section) return;
+
+        const items = section.querySelectorAll('[class*="item"]');
+        
+        // Remove all items except the first one
+        items.forEach((item, index) => {
+            if (index > 0) {
+                item.remove();
+            }
+        });
+
+        // Clear the first item
+        const firstItem = section.querySelector('[class*="item"]');
+        if (firstItem) {
+            const select = firstItem.querySelector('select');
+            const input = firstItem.querySelector('input[type="number"]');
+            if (select) select.selectedIndex = 0;
+            if (input) input.value = '';
+        }
+
+        // Update remove button visibility
+        this.updateRemoveButtons(sectionSelector);
     },
 
     // Show status messages
@@ -380,6 +444,345 @@ const DailyCloseApp = {
             info: 'info-circle'
         };
         return icons[type] || 'info-circle';
+    },
+
+    // Initialize expense categories
+    async initializeExpenseCategories() {
+        const categoryTypes = ['expense', 'advance', 'credit', 'cashback', 'samer-expense'];
+        
+        for (const type of categoryTypes) {
+            try {
+                await this.loadCategories(type);
+            } catch (error) {
+                console.error(`Error loading ${type} categories:`, error);
+            }
+        }
+    },
+
+    // Load categories from API
+    async loadCategories(categoryType) {
+        try {
+            const response = await fetch(`/api/categories/${categoryType}`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                this.categoriesCache[categoryType] = data.categories || [];
+                this.updateCategoryDropdowns(categoryType);
+            }
+        } catch (error) {
+            console.error(`Error fetching ${categoryType} categories:`, error);
+        }
+    },
+
+    // Update category dropdowns
+    updateCategoryDropdowns(categoryType) {
+        const selectors = {
+            'expense': '.expense-category',
+            'advance': '.advance-category',
+            'credit': '.credit-category',
+            'cashback': '.cashback-category',
+            'samer-expense': '.samer-expense-category'
+        };
+
+        const dropdowns = document.querySelectorAll(selectors[categoryType]);
+        const categories = this.categoriesCache[categoryType] || [];
+
+        dropdowns.forEach(dropdown => {
+            // Save current value
+            const currentValue = dropdown.value;
+            
+            // Clear existing options except first
+            dropdown.innerHTML = `<option value="">Select or type ${categoryType} category</option>`;
+            
+            // Add categories
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                dropdown.appendChild(option);
+            });
+
+            // Restore value if it still exists
+            if (currentValue) {
+                dropdown.value = currentValue;
+            }
+        });
+    },
+
+    // Create or get category
+    async createOrGetCategory(categoryName, categoryType) {
+        if (!categoryName.trim()) return null;
+
+        try {
+            const response = await fetch(`/api/categories/${categoryType}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: categoryName.trim() })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (!data.exists) {
+                    // Add new category to cache
+                    this.categoriesCache[categoryType].push({
+                        id: data.id,
+                        name: data.name
+                    });
+                    // Update dropdowns
+                    this.updateCategoryDropdowns(categoryType);
+                }
+                return data.id;
+            } else {
+                console.error('Error creating category:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error creating category:', error);
+            return null;
+        }
+    },
+
+    // Initialize expense sections
+    initializeExpenseSections() {
+        if (!document.getElementById('dailyCloseForm')) return;
+
+        // Add event listeners for add/remove buttons
+        this.initializeSectionButtons('.add-expense', '.remove-expense', '#expensesSection', 'expense');
+        this.initializeSectionButtons('.add-advance', '.remove-advance', '#advancesSection', 'advance');
+        this.initializeSectionButtons('.add-credit', '.remove-credit', '#creditsSection', 'credit');
+        this.initializeSectionButtons('.add-cashback', '.remove-cashback', '#cashbacksSection', 'cashback');
+        this.initializeSectionButtons('.add-samer-expense', '.remove-samer-expense', '#samerExpensesSection', 'samer-expense');
+
+        // Add event listeners for category changes and calculations
+        this.initializeCategoryHandlers();
+    },
+
+    // Initialize section buttons
+    initializeSectionButtons(addSelector, removeSelector, sectionSelector, type) {
+        document.addEventListener('click', (e) => {
+            if (e.target.closest(addSelector)) {
+                e.preventDefault();
+                this.addSectionItem(sectionSelector, type);
+            }
+            
+            if (e.target.closest(removeSelector)) {
+                e.preventDefault();
+                this.removeSectionItem(e.target.closest(removeSelector), sectionSelector);
+            }
+        });
+    },
+
+    // Add section item
+    addSectionItem(sectionSelector, type) {
+        const section = document.querySelector(sectionSelector);
+        if (!section) return;
+
+        const template = this.getSectionTemplate(type);
+        section.insertAdjacentHTML('beforeend', template);
+
+        // Update dropdown for new item
+        setTimeout(() => {
+            this.updateCategoryDropdowns(type);
+            this.updateRemoveButtons(sectionSelector);
+        }, 10);
+    },
+
+    // Remove section item
+    removeSectionItem(button, sectionSelector) {
+        const item = button.closest(`[class*="${sectionSelector.slice(1).replace('Section', '-item')}"]`);
+        if (item) {
+            item.remove();
+            this.updateRemoveButtons(sectionSelector);
+            this.calculateValues(); // Recalculate totals
+        }
+    },
+
+    // Update remove buttons visibility
+    updateRemoveButtons(sectionSelector) {
+        const section = document.querySelector(sectionSelector);
+        if (!section) return;
+
+        const items = section.querySelectorAll('[class*="item"]');
+        items.forEach((item, index) => {
+            const removeBtn = item.querySelector('.btn-outline-danger');
+            if (removeBtn) {
+                removeBtn.style.display = items.length > 1 ? 'block' : 'none';
+            }
+        });
+    },
+
+    // Get section template
+    getSectionTemplate(type) {
+        const templates = {
+            'expense': `
+                <div class="expense-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <select class="form-control expense-category" data-type="expense">
+                                <option value="">Select or type expense category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control expense-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-expense" title="Add Expense">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-expense" title="Remove Expense">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`,
+            'advance': `
+                <div class="advance-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <select class="form-control advance-category" data-type="advance">
+                                <option value="">Select or type advance category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control advance-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-advance" title="Add Advance">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-advance" title="Remove Advance">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`,
+            'credit': `
+                <div class="credit-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <select class="form-control credit-category" data-type="credit">
+                                <option value="">Select or type credit category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control credit-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-credit" title="Add Credit">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-credit" title="Remove Credit">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`,
+            'cashback': `
+                <div class="cashback-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <select class="form-control cashback-category" data-type="cashback">
+                                <option value="">Select or type cashback category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control cashback-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-cashback" title="Add Cashback">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-cashback" title="Remove Cashback">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`,
+            'samer-expense': `
+                <div class="samer-expense-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <select class="form-control samer-expense-category" data-type="samer-expense">
+                                <option value="">Select or type Samer's expense category</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control samer-expense-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-samer-expense" title="Add Samer Expense">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-samer-expense" title="Remove Samer Expense">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`
+        };
+
+        return templates[type] || '';
+    },
+
+    // Initialize category handlers
+    initializeCategoryHandlers() {
+        document.addEventListener('change', async (e) => {
+            if (e.target.matches('select[data-type]')) {
+                const select = e.target;
+                const categoryType = select.dataset.type;
+                
+                // If custom value is entered, create new category
+                if (select.value === '' && select.options[select.selectedIndex].text) {
+                    const customName = select.options[select.selectedIndex].text;
+                    if (customName && customName !== `Select or type ${categoryType} category`) {
+                        const categoryId = await this.createOrGetCategory(customName, categoryType);
+                        if (categoryId) {
+                            select.value = categoryId;
+                        }
+                    }
+                }
+            }
+
+            // Recalculate when amounts change
+            if (e.target.matches('.expense-amount, .advance-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
+                this.calculateValues();
+            }
+        });
+
+        // Handle input events for real-time calculation
+        document.addEventListener('input', (e) => {
+            if (e.target.matches('.expense-amount, .advance-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
+                this.calculateValues();
+            }
+        });
     }
 };
 

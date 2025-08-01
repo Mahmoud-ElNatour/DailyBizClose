@@ -12,17 +12,36 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
+### Full-Stack Architecture
+The system uses a modern Flask-based web application with dynamic frontend functionality:
+- **Backend**: Flask web framework with SQLAlchemy ORM
+- **Frontend**: HTML5, CSS3, vanilla JavaScript with Bootstrap 5.3.0
+- **Database**: PostgreSQL with automated migrations
+- **API**: RESTful endpoints for category management and data persistence
+
+### Backend Architecture
+- **Framework**: Flask with Blueprint pattern for modular route organization
+- **Database**: PostgreSQL with SQLAlchemy ORM for type-safe database operations
+- **Models**: Comprehensive data models for expense categories and transactions
+- **API Endpoints**: RESTful API for category CRUD operations and daily close submissions
+
 ### Frontend Architecture
-The system uses a traditional multi-page application (MPA) architecture with static HTML files:
 - **Technology Stack**: Pure HTML5, CSS3, and vanilla JavaScript
 - **UI Framework**: Bootstrap 5.3.0 for responsive design and components
 - **Icon Library**: Font Awesome 6.4.0 for consistent iconography
 - **Structure**: Three main pages (Home, Control Panel, Daily Close) with shared navigation
+- **Dynamic Features**: Real-time calculations, category management, and transaction handling
+
+### Database Schema
+- **Category Tables**: Separate tables for ExpenseCategory, AdvanceCategory, CreditCategory, CashbackCategory, ExpenseCategorySamer
+- **Transaction Tables**: Individual transaction records linked to categories and daily close sessions
+- **Daily Close**: Central table tracking main calculations and linking to all transactions
+- **Relationships**: Foreign key relationships ensuring data integrity
 
 ### Design Patterns
 - **Singleton Pattern**: Global `DailyCloseApp` object manages all application functionality
 - **Event-Driven Architecture**: Custom event handlers for dropdowns, forms, and user interactions
-- **Modular CSS**: CSS custom properties (variables) for consistent theming and easy maintenance
+- **Repository Pattern**: Database operations abstracted through SQLAlchemy models
 - **Progressive Enhancement**: Core functionality works without JavaScript, enhanced with interactive features
 
 ### Styling and Theme System
@@ -35,6 +54,12 @@ The system uses a traditional multi-page application (MPA) architecture with sta
 - **Persistent Navigation**: Sticky header with consistent navigation across all pages
 - **Active State Management**: Visual indicators for current page location
 - **User Profile System**: Dropdown menu for user settings and logout functionality
+
+### Expense Management System
+- **Dynamic Categories**: Categories can be created on-the-fly by typing in dropdown fields
+- **Section-Based Input**: Separate sections for expenses, advances, credits, cashbacks, and Samer's expenses
+- **Real-Time Calculations**: Automatic totaling and formula calculations as users type
+- **Add/Remove Items**: Dynamic addition and removal of expense line items
 
 ## External Dependencies
 

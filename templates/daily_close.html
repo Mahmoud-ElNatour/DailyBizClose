@@ -52,10 +52,10 @@
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <form id="dailyCloseForm">
-                            <!-- Input Fields Section -->
+                            <!-- Basic Input Fields Section -->
                             <div class="mb-4">
                                 <h5 class="card-title mb-3">
-                                    <i class="fas fa-edit me-2 text-primary"></i>Input Values
+                                    <i class="fas fa-edit me-2 text-primary"></i>Basic Values
                                 </h5>
                                 
                                 <div class="row g-3">
@@ -75,45 +75,198 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <label for="ahmadExpenses" class="form-label">Ahmad Mistrah's Expenses</label>
                                         <div class="input-group">
                                             <span class="input-group-text">$</span>
                                             <input type="number" class="form-control" id="ahmadExpenses" placeholder="0.00" step="0.01">
                                         </div>
                                     </div>
+                                </div>
+                            </div>
 
-                                    <div class="col-md-6">
-                                        <label for="dailyExpenses" class="form-label">Daily Expenses</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="dailyExpenses" placeholder="0.00" step="0.01">
+                            <!-- Expenses Section -->
+                            <div class="mb-4">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-receipt me-2 text-warning"></i>Daily Expenses
+                                </h5>
+                                <div id="expensesSection">
+                                    <div class="expense-item mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-control expense-category" data-type="expense">
+                                                    <option value="">Select or type expense category</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number" class="form-control expense-amount" placeholder="0.00" step="0.01">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-success add-expense" title="Add Expense">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-outline-danger remove-expense" title="Remove Expense" style="display: none;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="expense-total">
+                                    <strong>Total Expenses: <span id="totalExpenses">$0.00</span></strong>
+                                </div>
+                            </div>
 
-                                    <div class="col-md-6">
-                                        <label for="dailyAdvances" class="form-label">Daily Advances</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="dailyAdvances" placeholder="0.00" step="0.01">
+                            <!-- Advance Salaries Section -->
+                            <div class="mb-4">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-money-bill me-2 text-info"></i>Advance Salaries
+                                </h5>
+                                <div id="advancesSection">
+                                    <div class="advance-item mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-control advance-category" data-type="advance">
+                                                    <option value="">Select or type advance category</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number" class="form-control advance-amount" placeholder="0.00" step="0.01">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-success add-advance" title="Add Advance">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-outline-danger remove-advance" title="Remove Advance" style="display: none;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="advance-total">
+                                    <strong>Total Advances: <span id="totalAdvances">$0.00</span></strong>
+                                </div>
+                            </div>
 
-                                    <div class="col-md-6">
-                                        <label for="creditSales" class="form-label">Credit Sales</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="creditSales" placeholder="0.00" step="0.01">
+                            <!-- Credit Sales Section -->
+                            <div class="mb-4">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-credit-card me-2 text-secondary"></i>Credit Sales
+                                </h5>
+                                <div id="creditsSection">
+                                    <div class="credit-item mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-control credit-category" data-type="credit">
+                                                    <option value="">Select or type credit category</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number" class="form-control credit-amount" placeholder="0.00" step="0.01">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-success add-credit" title="Add Credit">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-outline-danger remove-credit" title="Remove Credit" style="display: none;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="credit-total">
+                                    <strong>Total Credits: <span id="totalCredits">$0.00</span></strong>
+                                </div>
+                            </div>
 
-                                    <div class="col-md-6">
-                                        <label for="cashback" class="form-label">Cashback</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control" id="cashback" placeholder="0.00" step="0.01">
+                            <!-- Cashback Section -->
+                            <div class="mb-4">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-hand-holding-usd me-2 text-success"></i>Cashback
+                                </h5>
+                                <div id="cashbacksSection">
+                                    <div class="cashback-item mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-control cashback-category" data-type="cashback">
+                                                    <option value="">Select or type cashback category</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number" class="form-control cashback-amount" placeholder="0.00" step="0.01">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-success add-cashback" title="Add Cashback">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-outline-danger remove-cashback" title="Remove Cashback" style="display: none;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="cashback-total">
+                                    <strong>Total Cashback: <span id="totalCashback">$0.00</span></strong>
+                                </div>
+                            </div>
+
+                            <!-- Samer's Expenses Section -->
+                            <div class="mb-4">
+                                <h5 class="card-title mb-3">
+                                    <i class="fas fa-user-tag me-2 text-danger"></i>Samer's Expenses
+                                </h5>
+                                <div id="samerExpensesSection">
+                                    <div class="samer-expense-item mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-md-5">
+                                                <select class="form-control samer-expense-category" data-type="samer-expense">
+                                                    <option value="">Select or type Samer's expense category</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">$</span>
+                                                    <input type="number" class="form-control samer-expense-amount" placeholder="0.00" step="0.01">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-success add-samer-expense" title="Add Samer Expense">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-outline-danger remove-samer-expense" title="Remove Samer Expense" style="display: none;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="samer-expense-total">
+                                    <strong>Total Samer Expenses: <span id="totalSamerExpenses">$0.00</span></strong>
                                 </div>
                             </div>
 
