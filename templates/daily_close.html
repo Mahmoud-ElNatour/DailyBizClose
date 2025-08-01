@@ -26,14 +26,14 @@
             </div>
 
             <!-- Right Profile Dropdown -->
-            <div class="dropdown">
+            <div class="dropdown ms-auto">
                 <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-user me-1"></i>Profile
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -361,5 +361,38 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Debug dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownButton = document.getElementById('profileDropdown');
+            const dropdownMenu = dropdownButton.nextElementSibling;
+            
+            console.log('Dropdown button found:', dropdownButton);
+            console.log('Dropdown menu found:', dropdownMenu);
+            
+            // Test dropdown manually
+            dropdownButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Dropdown clicked!');
+                
+                // Toggle dropdown manually if Bootstrap doesn't work
+                if (!dropdownMenu.classList.contains('show')) {
+                    dropdownMenu.classList.add('show');
+                    dropdownButton.setAttribute('aria-expanded', 'true');
+                } else {
+                    dropdownMenu.classList.remove('show');
+                    dropdownButton.setAttribute('aria-expanded', 'false');
+                }
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                    dropdownMenu.classList.remove('show');
+                    dropdownButton.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

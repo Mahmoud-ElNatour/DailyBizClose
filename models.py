@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from flask_login import UserMixin
 
 class DailyClosing(db.Model):
     """Daily closing records with calculated totals"""
@@ -81,8 +82,11 @@ class Employees(db.Model):
         """Calculate actual salary and total based on working days"""
         if self.working_days > 0:
             daily_rate = self.base_salary / self.working_days
-            self.actual_salary = daily_rate * self.actual_working_days - self.deductions
-            self.total = self.actual_salary - self.advance
+            self.actual_salary = daily_rate * self.actual_working_days - self.deductions-self.advance
+            if self.actual_salary<0:
+                self.total=0.0
+            else:
+                self.total=self.actual_salary
         else:
             self.actual_salary = 0.0
             self.total = 0.0
@@ -90,7 +94,7 @@ class Employees(db.Model):
     def __repr__(self):
         return f'<Employees {self.name}>'
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     """Basic User model for future authentication"""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)

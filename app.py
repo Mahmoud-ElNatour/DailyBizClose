@@ -1,10 +1,12 @@
 import os
 import logging
+import hashlib
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 
 # Set up logging for debug mode
 logging.basicConfig(level=logging.DEBUG)
@@ -16,16 +18,42 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = 'secret_key'
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
 # Configure the database, relative to the app instance folder
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+mysqlconnector://root:Mah!moud123@localhost:3306/dailybizclose"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
 
+def create_user(username, email, password):
+    """Create a new user"""
+    try:
+        from models import User
+       
+        user = User(
+            username=username,
+            email=email,
+            password_hash=hashlib.sha256(password.encode()).hexdigest()
+        )
+        db.session.add(user)
+        db.session.commit()
+        return user
+    except Exception as e:
+        app.logger.error(f"Error creating user: {e}")
+        db.session.rollback()
+        return None
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
@@ -37,21 +65,72 @@ with app.app_context():
         pass  # Models file doesn't exist yet
     db.create_all()
 
+# Create admin user if it doesn't exist
+with app.app_context():
+    try:
+        from models import User
+        if not User.query.filter_by(username='admin').first():
+            create_user("admin", "admin@admin.com", "admin")
+    except Exception as e:
+        app.logger.error(f"Error creating admin user: {e}")
 # Routes
+@login_required
 @app.route('/')
+def main():
+    """Main route - redirects to index"""
+    return redirect(url_for('index'))
+
+@login_required
+@app.route('/index',methods=['GET'])
 def index():
     """Home page route"""
     return render_template('index.html')
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page route"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        try:
+            from models import User
+            user = User.query.filter_by(username=username).first()
+            
+            if user and user.password_hash == hashlib.sha256(password.encode()).hexdigest():
+                login_user(user)
+                next_page = request.args.get('next')
+                return redirect(next_page or url_for('index'))
+            else:
+                flash('Invalid username or password', 'error')
+        except Exception as e:
+            app.logger.error(f"Login error: {e}")
+            flash('Login failed. Please try again.', 'error')
+    
+    return render_template('login.html')
+@app.route('/logout')
+def logout():
+    """Logout page route"""
+    logout_user()
+    return redirect(url_for('login'))
+
+@login_required
 @app.route('/control-panel')
 def control_panel():
     """Control panel page route"""
     return render_template('control_panel.html')
 
+@login_required
 @app.route('/daily-close')
 def daily_close():
     """Daily close page route"""
     return render_template('daily_close.html')
+
+@login_required
+@app.route('/settings')
+def settings():
+    """Settings page route"""
+    return render_template('settings.html')
 
 # API Routes for data management
 @app.route('/api/receivers')
