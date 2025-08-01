@@ -53,85 +53,94 @@ def daily_close():
     """Daily close page route"""
     return render_template('daily_close.html')
 
-# API Routes for categories
-@app.route('/api/categories/<category_type>')
-def get_categories(category_type):
-    """Get categories for dropdown lists"""
+# API Routes for data management
+@app.route('/api/receivers')
+def get_receivers():
+    """Get all receivers"""
     try:
-        from models import (ExpenseCategory, AdvanceCategory, CreditCategory, 
-                          CashbackCategory, ExpenseCategorySamer)
-        
-        category_models = {
-            'expense': ExpenseCategory,
-            'advance': AdvanceCategory,
-            'credit': CreditCategory,
-            'cashback': CashbackCategory,
-            'samer-expense': ExpenseCategorySamer
-        }
-        
-        if category_type not in category_models:
-            return jsonify({'error': 'Invalid category type'}), 400
-        
-        model = category_models[category_type]
-        categories = model.query.all()
-        
+        from models import Receivers
+        receivers = Receivers.query.all()
         return jsonify({
-            'categories': [{'id': cat.id, 'name': cat.name} for cat in categories]
+            'receivers': [{
+                'id': r.id,
+                'name': r.name,
+                'paid_by': r.paid_by,
+                'note': r.note
+            } for r in receivers]
         })
     except Exception as e:
-        app.logger.error(f"Error fetching categories: {e}")
-        return jsonify({'error': 'Failed to fetch categories'}), 500
+        app.logger.error(f"Error fetching receivers: {e}")
+        return jsonify({'error': 'Failed to fetch receivers'}), 500
 
-@app.route('/api/categories/<category_type>', methods=['POST'])
-def create_category(category_type):
-    """Create new category if it doesn't exist"""
+@app.route('/api/receivers', methods=['POST'])
+def create_receiver():
+    """Create new receiver"""
     try:
-        from models import (ExpenseCategory, AdvanceCategory, CreditCategory, 
-                          CashbackCategory, ExpenseCategorySamer)
-        
+        from models import Receivers
         data = request.get_json()
-        category_name = data.get('name', '').strip()
         
-        if not category_name:
-            return jsonify({'error': 'Category name is required'}), 400
+        receiver = Receivers(
+            name=data.get('name'),
+            paid_by=data.get('paid_by', 'cash'),
+            note=data.get('note', '')
+        )
         
-        category_models = {
-            'expense': ExpenseCategory,
-            'advance': AdvanceCategory,
-            'credit': CreditCategory,
-            'cashback': CashbackCategory,
-            'samer-expense': ExpenseCategorySamer
-        }
-        
-        if category_type not in category_models:
-            return jsonify({'error': 'Invalid category type'}), 400
-        
-        model = category_models[category_type]
-        
-        # Check if category already exists
-        existing = model.query.filter_by(name=category_name).first()
-        if existing:
-            return jsonify({
-                'id': existing.id,
-                'name': existing.name,
-                'exists': True
-            })
-        
-        # Create new category
-        new_category = model(name=category_name)
-        db.session.add(new_category)
+        db.session.add(receiver)
         db.session.commit()
         
         return jsonify({
-            'id': new_category.id,
-            'name': new_category.name,
-            'exists': False
+            'id': receiver.id,
+            'name': receiver.name,
+            'paid_by': receiver.paid_by,
+            'note': receiver.note
         })
-        
     except Exception as e:
-        app.logger.error(f"Error creating category: {e}")
+        app.logger.error(f"Error creating receiver: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to create category'}), 500
+        return jsonify({'error': 'Failed to create receiver'}), 500
+
+@app.route('/api/customers')
+def get_customers():
+    """Get all customers"""
+    try:
+        from models import Customers
+        customers = Customers.query.all()
+        return jsonify({
+            'customers': [{
+                'id': c.id,
+                'username': c.username,
+                'balance': c.balance,
+                'phone_number': c.phone_number
+            } for c in customers]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching customers: {e}")
+        return jsonify({'error': 'Failed to fetch customers'}), 500
+
+@app.route('/api/employees')
+def get_employees():
+    """Get all employees"""
+    try:
+        from models import Employees
+        employees = Employees.query.all()
+        return jsonify({
+            'employees': [{
+                'id': e.id,
+                'name': e.name,
+                'phone_number': e.phone_number,
+                'position': e.position,
+                'base_salary': e.base_salary,
+                'working_days': e.working_days,
+                'actual_working_days': e.actual_working_days,
+                'deductions': e.deductions,
+                'advance': e.advance,
+                'actual_salary': e.actual_salary,
+                'total': e.total
+            } for e in employees]
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching employees: {e}")
+        return jsonify({'error': 'Failed to fetch employees'}), 500
 
 # API Routes for future AJAX integration
 @app.route('/api/modules/<module_name>')
@@ -144,74 +153,65 @@ def get_module(module_name):
         'data': f'{module_name.title()} module loaded successfully'
     })
 
-@app.route('/api/daily-close', methods=['POST'])
-def save_daily_close():
-    """API endpoint for saving daily close data"""
+@app.route('/api/daily-closing', methods=['POST'])
+def save_daily_closing():
+    """API endpoint for saving daily closing data"""
     try:
-        from models import (DailyClose, ExpenseTransaction, AdvanceTransaction, 
-                          CreditTransaction, CashbackTransaction, SamerExpenseTransaction)
+        from models import DailyClosing, Expenses
+        from datetime import datetime
         
         data = request.get_json()
         
         # Log the received data for debugging
-        app.logger.debug(f"Received daily close data: {data}")
+        app.logger.debug(f"Received daily closing data: {data}")
         
         # Parse close date
-        from datetime import datetime
         close_date = None
-        if data.get('close_date'):
-            close_date = datetime.strptime(data.get('close_date'), '%Y-%m-%d').date()
+        if data.get('date'):
+            close_date = datetime.strptime(data.get('date'), '%Y-%m-%d')
         else:
-            close_date = datetime.utcnow().date()
+            close_date = datetime.utcnow()
 
-        # Create daily close record
-        daily_close = DailyClose(
-            close_date=close_date,
-            main_reading=data.get('main_reading', 0),
-            dr_smashed=data.get('dr_smashed', 0),
-            ahmad_expenses=data.get('ahmad_expenses', 0),
-            adjusted_reading=data.get('adjusted_reading', 0),
+        # Create daily closing record
+        daily_closing = DailyClosing(
+            date=close_date,
+            total_expenses=data.get('total_expenses', 0),
+            total_advance=data.get('total_advance', 0),
+            total_credit=data.get('total_credit', 0),
+            total_cashback=data.get('total_cashback', 0),
             five_percent=data.get('five_percent', 0),
+            total_cashout=data.get('total_cashout', 0),
             actual_cash=data.get('actual_cash', 0)
         )
         
-        db.session.add(daily_close)
+        db.session.add(daily_closing)
         db.session.flush()  # Get the ID
         
-        # Add transactions
-        transaction_models = {
-            'expenses': (ExpenseTransaction, 'expense_category_id'),
-            'advances': (AdvanceTransaction, 'advance_category_id'),
-            'credits': (CreditTransaction, 'credit_category_id'),
-            'cashbacks': (CashbackTransaction, 'cashback_category_id'),
-            'samer_expenses': (SamerExpenseTransaction, 'samer_expense_category_id')
-        }
-        
-        for transaction_type, (model, category_field) in transaction_models.items():
-            transactions = data.get(transaction_type, [])
-            for trans in transactions:
-                transaction = model(
-                    daily_close_id=daily_close.id,
-                    category_id=trans.get('category_id'),
-                    amount=trans.get('amount', 0),
-                    description=trans.get('description', '')
-                )
-                db.session.add(transaction)
+        # Add individual expenses
+        expenses_data = data.get('expenses', [])
+        for expense_data in expenses_data:
+            expense = Expenses(
+                date=close_date,
+                amount=expense_data.get('amount', 0),
+                daily_closing_id=daily_closing.id,
+                receiver_id=expense_data.get('receiver_id')
+            )
+            db.session.add(expense)
         
         db.session.commit()
         
         return jsonify({
             'status': 'success',
-            'message': 'Daily close saved successfully',
-            'id': daily_close.id
+            'message': 'Daily closing saved successfully',
+            'id': daily_closing.id
         })
         
     except Exception as e:
-        app.logger.error(f"Error saving daily close: {e}")
+        app.logger.error(f"Error saving daily closing: {e}")
         db.session.rollback()
         return jsonify({
             'status': 'error',
-            'message': 'Failed to save daily close'
+            'message': 'Failed to save daily closing'
         }), 500
 
 if __name__ == '__main__':

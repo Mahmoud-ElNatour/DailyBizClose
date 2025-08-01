@@ -117,9 +117,7 @@
                                     <div class="expense-item mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-5">
-                                                <select class="form-control expense-category" data-type="expense">
-                                                    <option value="">Select or type expense category</option>
-                                                </select>
+                                                <input type="text" class="form-control expense-description" placeholder="Expense description">
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="input-group">
@@ -154,9 +152,7 @@
                                     <div class="advance-item mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-5">
-                                                <select class="form-control advance-category" data-type="advance">
-                                                    <option value="">Select or type advance category</option>
-                                                </select>
+                                                <input type="text" class="form-control advance-description" placeholder="Advance description">
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="input-group">
@@ -191,9 +187,7 @@
                                     <div class="credit-item mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-5">
-                                                <select class="form-control credit-category" data-type="credit">
-                                                    <option value="">Select or type credit category</option>
-                                                </select>
+                                                <input type="text" class="form-control credit-description" placeholder="Credit description">
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="input-group">
@@ -228,9 +222,7 @@
                                     <div class="cashback-item mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-5">
-                                                <select class="form-control cashback-category" data-type="cashback">
-                                                    <option value="">Select or type cashback category</option>
-                                                </select>
+                                                <input type="text" class="form-control cashback-description" placeholder="Cashback description">
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="input-group">
@@ -265,9 +257,7 @@
                                     <div class="samer-expense-item mb-3">
                                         <div class="row g-2">
                                             <div class="col-md-5">
-                                                <select class="form-control samer-expense-category" data-type="samer-expense">
-                                                    <option value="">Select or type Samer's expense category</option>
-                                                </select>
+                                                <input type="text" class="form-control samer-expense-description" placeholder="Samer's expense description">
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="input-group">
@@ -322,10 +312,10 @@
 
                             <!-- Action Buttons -->
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <button type="button" class="btn btn-outline-secondary me-md-2" id="clearForm">
+                                <button type="button" class="btn btn-outline-secondary me-md-2" onclick="DailyCloseApp.clearDailyCloseForm()">
                                     <i class="fas fa-undo me-1"></i>Clear Form
                                 </button>
-                                <button type="submit" class="btn btn-primary">
+                                <button type="button" class="btn btn-primary" onclick="DailyCloseApp.submitDailyClose()">
                                     <i class="fas fa-save me-1"></i>Save Daily Close
                                 </button>
                             </div>

@@ -15,8 +15,7 @@ const DailyCloseApp = {
         this.initializeDailyClose();
         this.initializeModuleCards();
         this.initializeFormHandlers();
-        this.initializeExpenseCategories();
-        this.initializeExpenseSections();
+        this.initializeSimpleExpenseSections();
         this.initializeDateHandling();
     },
 
@@ -360,19 +359,27 @@ const DailyCloseApp = {
                 actual_cash: parseFloat(document.getElementById('actualCash')?.textContent.replace('$', '').replace(',', '')) || 0
             };
 
+            // Calculate totals from individual sections
+            const totalExpenses = this.calculateSectionTotal('.expense-amount');
+            const totalAdvance = this.calculateSectionTotal('.advance-amount');
+            const totalCredit = this.calculateSectionTotal('.credit-amount');
+            const totalCashback = this.calculateSectionTotal('.cashback-amount');
+
             const formData = {
-                ...basicInputs,
-                ...calculations,
-                expenses,
-                advances,
-                credits,
-                cashbacks,
-                samer_expenses
+                date: closeDate,
+                total_expenses: totalExpenses,
+                total_advance: totalAdvance,
+                total_credit: totalCredit,
+                total_cashback: totalCashback,
+                five_percent: calculations.five_percent,
+                total_cashout: totalExpenses + totalAdvance, // Simple calculation
+                actual_cash: calculations.actual_cash,
+                expenses: expenses // Individual expense records
             };
 
             this.showStatusMessage('Saving daily close data...', 'info');
 
-            const response = await fetch('/api/daily-close', {
+            const response = await fetch('/api/daily-closing', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -434,10 +441,12 @@ const DailyCloseApp = {
             editBtn.onclick = () => this.showAdminPasswordModal();
         }
 
-        // Clear all category selections
-        const selects = document.querySelectorAll('#dailyCloseForm select');
-        selects.forEach(select => {
-            select.selectedIndex = 0;
+        // Clear all description fields
+        const descriptions = document.querySelectorAll('#dailyCloseForm input[type="text"]');
+        descriptions.forEach(input => {
+            if (input.id !== 'closeDate') { // Don't clear the date field
+                input.value = '';
+            }
         });
 
         // Reset all expense sections to single items
@@ -511,107 +520,8 @@ const DailyCloseApp = {
         return icons[type] || 'info-circle';
     },
 
-    // Initialize expense categories
-    async initializeExpenseCategories() {
-        const categoryTypes = ['expense', 'advance', 'credit', 'cashback', 'samer-expense'];
-        
-        for (const type of categoryTypes) {
-            try {
-                await this.loadCategories(type);
-            } catch (error) {
-                console.error(`Error loading ${type} categories:`, error);
-            }
-        }
-    },
-
-    // Load categories from API
-    async loadCategories(categoryType) {
-        try {
-            const response = await fetch(`/api/categories/${categoryType}`);
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.categoriesCache[categoryType] = data.categories || [];
-                this.updateCategoryDropdowns(categoryType);
-            }
-        } catch (error) {
-            console.error(`Error fetching ${categoryType} categories:`, error);
-        }
-    },
-
-    // Update category dropdowns
-    updateCategoryDropdowns(categoryType) {
-        const selectors = {
-            'expense': '.expense-category',
-            'advance': '.advance-category',
-            'credit': '.credit-category',
-            'cashback': '.cashback-category',
-            'samer-expense': '.samer-expense-category'
-        };
-
-        const dropdowns = document.querySelectorAll(selectors[categoryType]);
-        const categories = this.categoriesCache[categoryType] || [];
-
-        dropdowns.forEach(dropdown => {
-            // Save current value
-            const currentValue = dropdown.value;
-            
-            // Clear existing options except first
-            dropdown.innerHTML = `<option value="">Select or type ${categoryType} category</option>`;
-            
-            // Add categories
-            categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                dropdown.appendChild(option);
-            });
-
-            // Restore value if it still exists
-            if (currentValue) {
-                dropdown.value = currentValue;
-            }
-        });
-    },
-
-    // Create or get category
-    async createOrGetCategory(categoryName, categoryType) {
-        if (!categoryName.trim()) return null;
-
-        try {
-            const response = await fetch(`/api/categories/${categoryType}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name: categoryName.trim() })
-            });
-
-            const data = await response.json();
-            
-            if (response.ok) {
-                if (!data.exists) {
-                    // Add new category to cache
-                    this.categoriesCache[categoryType].push({
-                        id: data.id,
-                        name: data.name
-                    });
-                    // Update dropdowns
-                    this.updateCategoryDropdowns(categoryType);
-                }
-                return data.id;
-            } else {
-                console.error('Error creating category:', data.error);
-                return null;
-            }
-        } catch (error) {
-            console.error('Error creating category:', error);
-            return null;
-        }
-    },
-
-    // Initialize expense sections
-    initializeExpenseSections() {
+    // Initialize simplified expense sections
+    initializeSimpleExpenseSections() {
         if (!document.getElementById('dailyCloseForm')) return;
 
         // Add event listeners for add/remove buttons
@@ -621,8 +531,8 @@ const DailyCloseApp = {
         this.initializeSectionButtons('.add-cashback', '.remove-cashback', '#cashbacksSection', 'cashback');
         this.initializeSectionButtons('.add-samer-expense', '.remove-samer-expense', '#samerExpensesSection', 'samer-expense');
 
-        // Add event listeners for category changes and calculations
-        this.initializeCategoryHandlers();
+        // Add event listeners for calculations
+        this.initializeSimpleCalculationHandlers();
     },
 
     // Initialize section buttons
@@ -817,31 +727,8 @@ const DailyCloseApp = {
         return templates[type] || '';
     },
 
-    // Initialize category handlers
-    initializeCategoryHandlers() {
-        document.addEventListener('change', async (e) => {
-            if (e.target.matches('select[data-type]')) {
-                const select = e.target;
-                const categoryType = select.dataset.type;
-                
-                // If custom value is entered, create new category
-                if (select.value === '' && select.options[select.selectedIndex].text) {
-                    const customName = select.options[select.selectedIndex].text;
-                    if (customName && customName !== `Select or type ${categoryType} category`) {
-                        const categoryId = await this.createOrGetCategory(customName, categoryType);
-                        if (categoryId) {
-                            select.value = categoryId;
-                        }
-                    }
-                }
-            }
-
-            // Recalculate when amounts change
-            if (e.target.matches('.expense-amount, .advance-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
-                this.calculateValues();
-            }
-        });
-
+    // Initialize simplified calculation handlers
+    initializeSimpleCalculationHandlers() {
         // Handle input events for real-time calculation
         document.addEventListener('input', (e) => {
             if (e.target.matches('.expense-amount, .advance-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {

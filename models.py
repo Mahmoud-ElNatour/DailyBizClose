@@ -1,133 +1,94 @@
 from app import db
 from datetime import datetime
 
-# Expense Category Models
-class ExpenseCategory(db.Model):
-    """General expense categories"""
+class DailyClosing(db.Model):
+    """Daily closing records with calculated totals"""
+    __tablename__ = 'daily_closing'
+    
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<ExpenseCategory {self.name}>'
-
-class AdvanceCategory(db.Model):
-    """Advance salary categories"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<AdvanceCategory {self.name}>'
-
-class CreditCategory(db.Model):
-    """Credit sales categories"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<CreditCategory {self.name}>'
-
-class CashbackCategory(db.Model):
-    """Cashback categories"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<CashbackCategory {self.name}>'
-
-class ExpenseCategorySamer(db.Model):
-    """Samer's specific expense categories"""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<ExpenseCategorySamer {self.name}>'
-
-# Transaction Models
-class ExpenseTransaction(db.Model):
-    """Individual expense transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    daily_close_id = db.Column(db.Integer, db.ForeignKey('daily_close.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('expense_category.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    category = db.relationship('ExpenseCategory', backref='transactions')
-
-class AdvanceTransaction(db.Model):
-    """Individual advance salary transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    daily_close_id = db.Column(db.Integer, db.ForeignKey('daily_close.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('advance_category.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    category = db.relationship('AdvanceCategory', backref='transactions')
-
-class CreditTransaction(db.Model):
-    """Individual credit sales transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    daily_close_id = db.Column(db.Integer, db.ForeignKey('daily_close.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('credit_category.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    category = db.relationship('CreditCategory', backref='transactions')
-
-class CashbackTransaction(db.Model):
-    """Individual cashback transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    daily_close_id = db.Column(db.Integer, db.ForeignKey('daily_close.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('cashback_category.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    category = db.relationship('CashbackCategory', backref='transactions')
-
-class SamerExpenseTransaction(db.Model):
-    """Samer's expense transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    daily_close_id = db.Column(db.Integer, db.ForeignKey('daily_close.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('expense_category_samer.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    description = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    category = db.relationship('ExpenseCategorySamer', backref='transactions')
-
-class DailyClose(db.Model):
-    """Model for storing daily close transactions"""
-    id = db.Column(db.Integer, primary_key=True)
-    close_date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date())
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Input fields
-    main_reading = db.Column(db.Float, nullable=False, default=0.0)
-    dr_smashed = db.Column(db.Float, nullable=False, default=0.0)
-    ahmad_expenses = db.Column(db.Float, nullable=False, default=0.0)
-    
-    # Calculated fields
-    adjusted_reading = db.Column(db.Float, nullable=False, default=0.0)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    total_expenses = db.Column(db.Float, nullable=False, default=0.0)
+    total_advance = db.Column(db.Float, nullable=False, default=0.0)
+    total_credit = db.Column(db.Float, nullable=False, default=0.0)
+    total_cashback = db.Column(db.Float, nullable=False, default=0.0)
     five_percent = db.Column(db.Float, nullable=False, default=0.0)
+    total_cashout = db.Column(db.Float, nullable=False, default=0.0)
     actual_cash = db.Column(db.Float, nullable=False, default=0.0)
     
-    # Relationship to transactions
-    expense_transactions = db.relationship('ExpenseTransaction', backref='daily_close', cascade='all, delete-orphan')
-    advance_transactions = db.relationship('AdvanceTransaction', backref='daily_close', cascade='all, delete-orphan')
-    credit_transactions = db.relationship('CreditTransaction', backref='daily_close', cascade='all, delete-orphan')
-    cashback_transactions = db.relationship('CashbackTransaction', backref='daily_close', cascade='all, delete-orphan')
-    samer_expense_transactions = db.relationship('SamerExpenseTransaction', backref='daily_close', cascade='all, delete-orphan')
+    # Relationships
+    expenses = db.relationship('Expenses', backref='daily_closing', cascade='all, delete-orphan')
     
     def __repr__(self):
-        return f'<DailyClose {self.date_created.strftime("%Y-%m-%d")}>'
+        return f'<DailyClosing {self.date.strftime("%Y-%m-%d")}>'
+
+class Expenses(db.Model):
+    """Individual expense records"""
+    __tablename__ = 'expenses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('receivers.id'), nullable=True)
+    
+    def __repr__(self):
+        return f'<Expenses {self.amount} on {self.date.strftime("%Y-%m-%d")}>'
+
+class Receivers(db.Model):
+    """Recipients of payments/expenses"""
+    __tablename__ = 'receivers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    paid_by = db.Column(db.Enum('cash', 'credit', 'bank_transfer', name='payment_method'), nullable=False)
+    note = db.Column(db.String(500))
+    
+    # Relationships
+    expenses = db.relationship('Expenses', backref='receiver')
+    
+    def __repr__(self):
+        return f'<Receivers {self.name}>'
+
+class Customers(db.Model):
+    """Customer records with balances"""
+    __tablename__ = 'customers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    balance = db.Column(db.Float, nullable=False, default=0.0)
+    phone_number = db.Column(db.String(20))
+    
+    def __repr__(self):
+        return f'<Customers {self.username}>'
+
+class Employees(db.Model):
+    """Employee records with salary calculations"""
+    __tablename__ = 'employees'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone_number = db.Column(db.String(20))
+    position = db.Column(db.String(50))
+    base_salary = db.Column(db.Float, nullable=False, default=0.0)
+    working_days = db.Column(db.Float, nullable=False, default=0.0)
+    actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
+    deductions = db.Column(db.Float, nullable=False, default=0.0)
+    advance = db.Column(db.Float, nullable=False, default=0.0)
+    actual_salary = db.Column(db.Float, nullable=False, default=0.0)
+    total = db.Column(db.Float, nullable=False, default=0.0)
+    
+    def calculate_salary(self):
+        """Calculate actual salary and total based on working days"""
+        if self.working_days > 0:
+            daily_rate = self.base_salary / self.working_days
+            self.actual_salary = daily_rate * self.actual_working_days - self.deductions
+            self.total = self.actual_salary - self.advance
+        else:
+            self.actual_salary = 0.0
+            self.total = 0.0
+    
+    def __repr__(self):
+        return f'<Employees {self.name}>'
 
 class User(db.Model):
     """Basic User model for future authentication"""

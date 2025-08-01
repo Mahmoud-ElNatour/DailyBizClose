@@ -33,10 +33,12 @@ The system uses a modern Flask-based web application with dynamic frontend funct
 - **Dynamic Features**: Real-time calculations, category management, and transaction handling
 
 ### Database Schema
-- **Category Tables**: Separate tables for ExpenseCategory, AdvanceCategory, CreditCategory, CashbackCategory, ExpenseCategorySamer
-- **Transaction Tables**: Individual transaction records linked to categories and daily close sessions
-- **Daily Close**: Central table tracking main calculations and linking to all transactions
-- **Relationships**: Foreign key relationships ensuring data integrity
+- **DailyClosing**: Central table with calculated totals (expenses, advances, credits, cashback, actual cash)
+- **Expenses**: Individual expense records linked to daily closing and receivers
+- **Receivers**: Payment recipients with payment method and notes
+- **Customers**: Customer accounts with username, balance, and contact info
+- **Employees**: Employee records with salary calculations, deductions, and advances
+- **Relationships**: Foreign key relationships ensuring data integrity across all tables
 
 ### Design Patterns
 - **Singleton Pattern**: Global `DailyCloseApp` object manages all application functionality
