@@ -17,6 +17,7 @@ const DailyCloseApp = {
         this.initializeFormHandlers();
         this.initializeSimpleExpenseSections();
         this.initializeDateHandling();
+        this.checkAdminValidation();
     },
 
     // Initialize dropdown functionality
@@ -345,12 +346,12 @@ const DailyCloseApp = {
                 ahmad_expenses: parseFloat(document.getElementById('ahmadExpenses')?.value) || 0
             };
 
-            // Collect expense data
-            const expenses = this.collectSectionData('.expense-item', '.expense-category', '.expense-amount');
-            const advances = this.collectSectionData('.advance-item', '.advance-category', '.advance-amount');
-            const credits = this.collectSectionData('.credit-item', '.credit-category', '.credit-amount');
-            const cashbacks = this.collectSectionData('.cashback-item', '.cashback-category', '.cashback-amount');
-            const samer_expenses = this.collectSectionData('.samer-expense-item', '.samer-expense-category', '.samer-expense-amount');
+            // Collect expense data with proper types for automatic creation
+            const expenses = this.collectSectionData('.expense-item', '.expense-description', '.expense-amount', 'expense');
+            const advances = this.collectSectionData('.advance-item', '.advance-description', '.advance-amount', 'advance');
+            const credits = this.collectSectionData('.credit-item', '.credit-description', '.credit-amount', 'credit');
+            const cashbacks = this.collectSectionData('.cashback-item', '.cashback-description', '.cashback-amount', 'cashback');
+            const samer_expenses = this.collectSectionData('.samer-expense-item', '.samer-expense-description', '.samer-expense-amount', 'samer-expense');
 
             // Calculate totals and calculated fields
             const calculations = {
@@ -374,8 +375,14 @@ const DailyCloseApp = {
                 five_percent: calculations.five_percent,
                 total_cashout: totalExpenses + totalAdvance, // Simple calculation
                 actual_cash: calculations.actual_cash,
-                expenses: expenses // Individual expense records
+                expenses: expenses, // Individual expense records
+                advances: advances, // Individual advance records
+                credits: credits, // Individual credit records
+                cashbacks: cashbacks, // Individual cashback records
+                ahmad_mistrah_expenses: samer_expenses // Ahmad Mistrah expenses
             };
+
+
 
             this.showStatusMessage('Saving daily close data...', 'info');
 
@@ -402,20 +409,39 @@ const DailyCloseApp = {
     },
 
     // Collect section data for submission
-    collectSectionData(itemSelector, categorySelector, amountSelector) {
+    collectSectionData(itemSelector, descriptionSelector, amountSelector, type = 'expense') {
         const items = document.querySelectorAll(itemSelector);
         const data = [];
         
         items.forEach(item => {
-            const categorySelect = item.querySelector(categorySelector);
+            const descriptionInput = item.querySelector(descriptionSelector);
             const amountInput = item.querySelector(amountSelector);
             
-            if (categorySelect && amountInput && categorySelect.value && amountInput.value) {
-                data.push({
-                    category_id: parseInt(categorySelect.value),
+            if (descriptionInput && amountInput && descriptionInput.value.trim() && amountInput.value) {
+                const baseData = {
                     amount: parseFloat(amountInput.value) || 0,
-                    description: ''
-                });
+                    note: descriptionInput.value.trim()
+                };
+                
+                // Add type-specific data
+                if (type === 'expense') {
+                    baseData.receiver_name = descriptionInput.value.trim();
+                } else if (type === 'credit' || type === 'cashback') {
+                    baseData.customer_name = descriptionInput.value.trim();
+                    baseData.phone_number = ''; // Could be added to form later
+                } else if (type === 'advance') {
+                    baseData.employee_name = descriptionInput.value.trim();
+                    baseData.phone_number = ''; // Could be added to form later
+                    baseData.position = '';
+                    baseData.base_salary = 0;
+                    baseData.working_days = 0;
+                    baseData.actual_working_days = 0;
+                    baseData.deductions = 0;
+                    baseData.actual_salary = 0;
+                    baseData.total = 0;
+                }
+                
+                data.push(baseData);
             }
         });
         
@@ -531,6 +557,13 @@ const DailyCloseApp = {
         this.initializeSectionButtons('.add-cashback', '.remove-cashback', '#cashbacksSection', 'cashback');
         this.initializeSectionButtons('.add-samer-expense', '.remove-samer-expense', '#samerExpensesSection', 'samer-expense');
 
+        // Initialize remove buttons for existing items
+        this.updateRemoveButtons('#expensesSection');
+        this.updateRemoveButtons('#advancesSection');
+        this.updateRemoveButtons('#creditsSection');
+        this.updateRemoveButtons('#cashbacksSection');
+        this.updateRemoveButtons('#samerExpensesSection');
+
         // Add event listeners for calculations
         this.initializeSimpleCalculationHandlers();
     },
@@ -567,11 +600,14 @@ const DailyCloseApp = {
 
     // Remove section item
     removeSectionItem(button, sectionSelector) {
-        const item = button.closest(`[class*="${sectionSelector.slice(1).replace('Section', '-item')}"]`);
+        // Find the item that contains the remove button
+        const item = button.closest('[class*="-item"]');
         if (item) {
             item.remove();
             this.updateRemoveButtons(sectionSelector);
             this.calculateValues(); // Recalculate totals
+        } else {
+            console.error('Could not find item to remove');
         }
     },
 
@@ -584,7 +620,8 @@ const DailyCloseApp = {
         items.forEach((item, index) => {
             const removeBtn = item.querySelector('.btn-outline-danger');
             if (removeBtn) {
-                removeBtn.style.display = items.length > 1 ? 'block' : 'none';
+                // Always show remove button, even for first item
+                removeBtn.style.display = 'block';
             }
         });
     },
@@ -777,32 +814,80 @@ const DailyCloseApp = {
         }, 500);
     },
 
-    // Verify admin password
-    verifyAdminPassword() {
-        const password = document.getElementById('adminPassword').value;
-        const adminPassword = 'admin123'; // This should be stored securely in production
+    // Check if admin is validated (this will be called after form submission)
+    checkAdminValidation() {
+        // This will be called after the page reloads from form submission
+        const dateInput = document.getElementById('closeDate');
+        const editBtn = document.getElementById('editDateBtn');
         
-        if (password === adminPassword) {
-            // Correct password - unlock date field
-            const dateInput = document.getElementById('closeDate');
-            const editBtn = document.getElementById('editDateBtn');
+        if (dateInput && editBtn) {
+            // Check if we have admin validation in the URL or session
+            const urlParams = new URLSearchParams(window.location.search);
+            const adminValidated = urlParams.get('admin_validated') === 'true';
             
-            dateInput.removeAttribute('readonly');
-            dateInput.focus();
-            editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
-            editBtn.onclick = () => this.lockDateField();
-            
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('adminPasswordModal'));
-            modal.hide();
-            
-            this.showStatusMessage('Date field unlocked for editing', 'success');
-        } else {
-            // Incorrect password
-            document.getElementById('passwordError').classList.remove('d-none');
-            document.getElementById('adminPassword').value = '';
-            document.getElementById('adminPassword').focus();
+            if (adminValidated) {
+                // Admin was validated - unlock date field
+                dateInput.removeAttribute('readonly');
+                editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
+                editBtn.onclick = () => this.lockDateField();
+                
+                // Show success message
+                this.showStatusMessage('Date field unlocked for editing', 'success');
+            }
         }
+    },
+
+    // Verify admin password
+    async verifyAdminPassword() {
+        const password = document.getElementById('adminPassword').value;
+        
+        try {
+            // Fetch admin password hash from server
+            const response = await fetch('/api/admin-password');
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                // Hash the entered password and compare with stored hash
+                const hashedPassword = await this.hashPassword(password);
+                
+                if (hashedPassword === data.password) {
+                    // Correct password - unlock date field
+                    const dateInput = document.getElementById('closeDate');
+                    const editBtn = document.getElementById('editDateBtn');
+                    
+                    dateInput.removeAttribute('readonly');
+                    dateInput.focus();
+                    editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
+                    editBtn.onclick = () => this.lockDateField();
+                    
+                    // Hide modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('adminPasswordModal'));
+                    modal.hide();
+                    
+                    this.showStatusMessage('Date field unlocked for editing', 'success');
+                } else {
+                    // Incorrect password
+                    document.getElementById('passwordError').classList.remove('d-none');
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
+                }
+            } else {
+                this.showStatusMessage('Error fetching admin password', 'danger');
+            }
+        } catch (error) {
+            console.error('Error verifying admin password:', error);
+            this.showStatusMessage('Error verifying password', 'danger');
+        }
+    },
+
+    // Hash password using SHA-256 (same as server)
+    async hashPassword(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
     },
 
     // Lock date field

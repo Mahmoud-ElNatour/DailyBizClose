@@ -337,18 +337,20 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <p>Please enter the admin password to edit the daily close date:</p>
-                                <div class="mb-3">
-                                    <label for="adminPassword" class="form-label">Admin Password</label>
-                                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter admin password">
-                                </div>
-                                <div id="passwordError" class="alert alert-danger d-none">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>Incorrect password. Please try again.
-                                </div>
+                                <form id="adminPasswordForm" method="POST" action="{{ url_for('validate_admin_password') }}">
+                                    <p>Please enter the admin password to edit the daily close date:</p>
+                                    <div class="mb-3">
+                                        <label for="adminPassword" class="form-label">Admin Password</label>
+                                        <input type="password" class="form-control" id="adminPassword" name="admin_password" placeholder="Enter admin password" required>
+                                    </div>
+                                    <div id="passwordError" class="alert alert-danger d-none">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Incorrect password. Please try again.
+                                    </div>
+                                </form>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" onclick="DailyCloseApp.verifyAdminPassword()">
+                                <button type="submit" form="adminPasswordForm" class="btn btn-primary">
                                     <i class="fas fa-unlock me-2"></i>Unlock Date
                                 </button>
                             </div>

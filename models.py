@@ -1,6 +1,13 @@
-from app import db
 from datetime import datetime
 from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+
+class Base(DeclarativeBase):
+    pass
+
+# Create a separate db instance for models
+db = SQLAlchemy(model_class=Base)
 
 class DailyClosing(db.Model):
     """Daily closing records with calculated totals"""
@@ -18,6 +25,7 @@ class DailyClosing(db.Model):
     
     # Relationships
     expenses = db.relationship('Expenses', backref='daily_closing', cascade='all, delete-orphan')
+    ahmad_mistrah_expenses = db.relationship('AhmadMistrahExpenses', backref='daily_closing', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<DailyClosing {self.date.strftime("%Y-%m-%d")}>'
@@ -29,11 +37,25 @@ class Expenses(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     receiver_id = db.Column(db.Integer, db.ForeignKey('receivers.id'), nullable=True)
     
     def __repr__(self):
         return f'<Expenses {self.amount} on {self.date.strftime("%Y-%m-%d")}>'
+
+class AhmadMistrahExpenses(db.Model):
+    """Ahmad Mistrah expenses records"""
+    __tablename__ = 'ahmad_mistrah_expenses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    
+    def __repr__(self):
+        return f'<AhmadMistrahExpenses {self.amount} on {self.date.strftime("%Y-%m-%d")}>'
 
 class Receivers(db.Model):
     """Recipients of payments/expenses"""
@@ -41,8 +63,7 @@ class Receivers(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    paid_by = db.Column(db.Enum('cash', 'credit', 'bank_transfer', name='payment_method'), nullable=False)
-    note = db.Column(db.String(500))
+    paid_amount = db.Column(db.Float, nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('Expenses', backref='receiver')

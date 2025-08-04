@@ -52,79 +52,93 @@
                 <div class="row g-4 justify-content-center">
                     <!-- Employees Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="employees">
-                            <div class="module-icon">
-                                <i class="fas fa-users"></i>
+                        <a href="{{ url_for('employees') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="employees">
+                                <div class="module-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <h5 class="module-title">Employees</h5>
+                                <p class="module-description">Manage staff information and schedules</p>
                             </div>
-                            <h5 class="module-title">Employees</h5>
-                            <p class="module-description">Manage staff information and schedules</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Customers Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="customers">
-                            <div class="module-icon">
-                                <i class="fas fa-user-friends"></i>
+                        <a href="{{ url_for('customers') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="customers">
+                                <div class="module-icon">
+                                    <i class="fas fa-user-friends"></i>
+                                </div>
+                                <h5 class="module-title">Customers</h5>
+                                <p class="module-description">Customer database and relationship management</p>
                             </div>
-                            <h5 class="module-title">Customers</h5>
-                            <p class="module-description">Customer database and relationship management</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Users Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="users">
-                            <div class="module-icon">
-                                <i class="fas fa-user-cog"></i>
+                        <a href="{{ url_for('users') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="users">
+                                <div class="module-icon">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                                <h5 class="module-title">Users</h5>
+                                <p class="module-description">System user accounts and permissions</p>
                             </div>
-                            <h5 class="module-title">Users</h5>
-                            <p class="module-description">System user accounts and permissions</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Reports Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="reports">
-                            <div class="module-icon">
-                                <i class="fas fa-chart-bar"></i>
+                        <a href="{{ url_for('reports') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="reports">
+                                <div class="module-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <h5 class="module-title">Reports</h5>
+                                <p class="module-description">Business analytics and reporting</p>
                             </div>
-                            <h5 class="module-title">Reports</h5>
-                            <p class="module-description">Business analytics and reporting</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Expenses Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="expenses">
-                            <div class="module-icon">
-                                <i class="fas fa-receipt"></i>
+                        <a href="{{ url_for('expenses') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="expenses">
+                                <div class="module-icon">
+                                    <i class="fas fa-receipt"></i>
+                                </div>
+                                <h5 class="module-title">Expenses</h5>
+                                <p class="module-description">Track and manage business expenses</p>
                             </div>
-                            <h5 class="module-title">Expenses</h5>
-                            <p class="module-description">Track and manage business expenses</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Sales Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="sales">
-                            <div class="module-icon">
-                                <i class="fas fa-shopping-cart"></i>
+                        <a href="{{ url_for('sales') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="sales">
+                                <div class="module-icon">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                                <h5 class="module-title">Sales</h5>
+                                <p class="module-description">Sales transactions and inventory</p>
                             </div>
-                            <h5 class="module-title">Sales</h5>
-                            <p class="module-description">Sales transactions and inventory</p>
-                        </div>
+                        </a>
                     </div>
 
                     <!-- Payroll Module -->
                     <div class="col-lg-3 col-md-4 col-sm-6">
-                        <div class="module-card" data-module="payroll">
-                            <div class="module-icon">
-                                <i class="fas fa-money-check-alt"></i>
+                        <a href="{{ url_for('payroll') }}" class="text-decoration-none">
+                            <div class="module-card" data-module="payroll">
+                                <div class="module-icon">
+                                    <i class="fas fa-money-check-alt"></i>
+                                </div>
+                                <h5 class="module-title">Payroll</h5>
+                                <p class="module-description">Employee payroll and benefits</p>
                             </div>
-                            <h5 class="module-title">Payroll</h5>
-                            <p class="module-description">Employee payroll and benefits</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
             </div>
