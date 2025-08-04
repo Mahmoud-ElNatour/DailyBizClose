@@ -153,15 +153,48 @@ def settings():
 @app.route('/control-panel/employees')
 @login_required
 def employees():
-    """Employees management page"""
+    """Employees page - show available years"""
     try:
-        from models import Employees
-        employees = Employees.query.all()
-        return render_template('employees.html', employees=employees)
+        from models import Employees, db
+        years = db.session.query(db.func.distinct(Employees.year)).order_by(Employees.year.desc()).all()
+        years = [y[0] for y in years]
+        return render_template('employees_years.html', years=years)
     except Exception as e:
         app.logger.error(f"Error loading employees: {e}")
         flash('Error loading employees data', 'error')
-        return render_template('employees.html', employees=[])
+        return render_template('employees_years.html', years=[])
+
+
+@app.route('/control-panel/employees/<int:year>')
+@login_required
+def employees_months(year):
+    """Show months for a given year"""
+    try:
+        from models import Employees, db
+        import calendar
+        months = db.session.query(db.func.distinct(Employees.month)).filter_by(year=year).order_by(Employees.month).all()
+        months = [(m[0], calendar.month_name[m[0]]) for m in months]
+        return render_template('employees_months.html', year=year, months=months)
+    except Exception as e:
+        app.logger.error(f"Error loading employee months: {e}")
+        flash('Error loading employees data', 'error')
+        return render_template('employees_months.html', year=year, months=[])
+
+
+@app.route('/control-panel/employees/<int:year>/<int:month>')
+@login_required
+def employees_list(year, month):
+    """Show employees for specific month and year"""
+    try:
+        from models import Employees
+        import calendar
+        employees = Employees.query.filter_by(year=year, month=month).all()
+        month_name = calendar.month_name[month]
+        return render_template('employees.html', employees=employees, year=year, month=month, month_name=month_name)
+    except Exception as e:
+        app.logger.error(f"Error loading employees: {e}")
+        flash('Error loading employees data', 'error')
+        return render_template('employees.html', employees=[], year=year, month=month, month_name='')
 
 @app.route('/control-panel/customers')
 @login_required
@@ -276,11 +309,14 @@ def payroll():
         # Get filter parameters
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
-        
-        # For now, return all employees since we don't have month/year data in employees table
-        # In a real application, you would filter employees by month/year
-        employees = Employees.query.all()
-        
+
+        query = Employees.query
+        if year is not None:
+            query = query.filter_by(year=year)
+        if month is not None:
+            query = query.filter_by(month=month)
+        employees = query.all()
+
         return render_template('payroll.html', employees=employees)
     except Exception as e:
         app.logger.error(f"Error loading payroll: {e}")
@@ -443,7 +479,14 @@ def get_employees():
     """Get all employees"""
     try:
         from models import Employees
-        employees = Employees.query.all()
+        year = request.args.get('year', type=int)
+        month = request.args.get('month', type=int)
+        query = Employees.query
+        if year is not None:
+            query = query.filter_by(year=year)
+        if month is not None:
+            query = query.filter_by(month=month)
+        employees = query.all()
         return jsonify({
             'employees': [{
                 'id': e.id,
@@ -456,7 +499,9 @@ def get_employees():
                 'deductions': e.deductions,
                 'advance': e.advance,
                 'actual_salary': e.actual_salary,
-                'total': e.total
+                'total': e.total,
+                'year': e.year,
+                'month': e.month
             } for e in employees]
         })
     except Exception as e:
@@ -469,12 +514,15 @@ def create_employee():
     """Create new employee"""
     try:
         from models import Employees
+        from datetime import datetime
         data = request.get_json()
-        
+
         employee = Employees(
             name=data.get('name'),
             phone_number=data.get('phone_number'),
             position=data.get('position'),
+            year=data.get('year', datetime.utcnow().year),
+            month=data.get('month', datetime.utcnow().month),
             base_salary=data.get('base_salary', 0),
             working_days=data.get('working_days', 0),
             actual_working_days=data.get('actual_working_days', 0),
@@ -662,11 +710,9 @@ def payroll_report():
         data = request.get_json()
         month = int(data.get('month'))
         year = int(data.get('year'))
-        
+
         # Get all employees for the selected month/year
-        # In a real application, you would filter employees by month/year
-        # For now, we'll return all employees
-        employees = Employees.query.all()
+        employees = Employees.query.filter_by(year=year, month=month).all()
         
         total_payroll = sum(emp.total or 0 for emp in employees)
         total_deductions = sum(emp.deductions or 0 for emp in employees)
@@ -864,13 +910,19 @@ def save_daily_closing():
         for advance_data in advances_data:
             employee_name = advance_data.get('employee_name', '')
             if employee_name:
-                employee = Employees.query.filter_by(name=employee_name).first()
+                employee = Employees.query.filter_by(
+                    name=employee_name,
+                    year=close_date.year,
+                    month=close_date.month
+                ).first()
                 if not employee:
-                    # Create new employee
+                    # Create new employee record for this month
                     employee = Employees(
                         name=employee_name,
                         phone_number=advance_data.get('phone_number', ''),
                         position=advance_data.get('position', ''),
+                        year=close_date.year,
+                        month=close_date.month,
                         base_salary=advance_data.get('base_salary', 0),
                         working_days=advance_data.get('working_days', 0),
                         actual_working_days=advance_data.get('actual_working_days', 0),
