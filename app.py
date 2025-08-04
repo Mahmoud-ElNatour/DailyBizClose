@@ -156,13 +156,20 @@ def employees():
     """Employees page - show available years"""
     try:
         from models import Employees, db
+        from datetime import datetime
         years = db.session.query(db.func.distinct(Employees.year)).order_by(Employees.year.desc()).all()
         years = [y[0] for y in years]
-        return render_template('employees_years.html', years=years)
+        current_year = datetime.utcnow().year
+        current_month = datetime.utcnow().month
+        return render_template('employees_years.html', years=years,
+                               current_year=current_year, current_month=current_month)
     except Exception as e:
         app.logger.error(f"Error loading employees: {e}")
         flash('Error loading employees data', 'error')
-        return render_template('employees_years.html', years=[])
+        from datetime import datetime
+        dt = datetime.utcnow()
+        return render_template('employees_years.html', years=[],
+                               current_year=dt.year, current_month=dt.month)
 
 
 @app.route('/control-panel/employees/<int:year>')
@@ -527,11 +534,9 @@ def create_employee():
             working_days=data.get('working_days', 0),
             actual_working_days=data.get('actual_working_days', 0),
             deductions=data.get('deductions', 0),
-            advance=data.get('advance', 0),
-            actual_salary=data.get('actual_salary', 0),
-            total=data.get('total', 0)
+            advance=data.get('advance', 0)
         )
-        
+        employee.calculate_salary()
         db.session.add(employee)
         db.session.commit()
         
@@ -545,24 +550,55 @@ def create_employee():
         db.session.rollback()
         return jsonify({'error': 'Failed to create employee'}), 500
 
-@app.route('/api/employees/<int:employee_id>', methods=['DELETE'])
+@app.route('/api/employees/<int:employee_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-def delete_employee(employee_id):
-    """Delete employee"""
+def employee_detail(employee_id):
+    """Get, update, or delete an employee"""
     try:
         from models import Employees
         employee = Employees.query.get_or_404(employee_id)
+
+        if request.method == 'GET':
+            return jsonify({
+                'id': employee.id,
+                'name': employee.name,
+                'phone_number': employee.phone_number,
+                'position': employee.position,
+                'year': employee.year,
+                'month': employee.month,
+                'base_salary': employee.base_salary,
+                'working_days': employee.working_days,
+                'actual_working_days': employee.actual_working_days,
+                'deductions': employee.deductions,
+                'advance': employee.advance,
+                'actual_salary': employee.actual_salary,
+                'total': employee.total
+            })
+
+        if request.method == 'PUT':
+            data = request.get_json()
+            employee.name = data.get('name', employee.name)
+            employee.phone_number = data.get('phone_number', employee.phone_number)
+            employee.position = data.get('position', employee.position)
+            employee.year = data.get('year', employee.year)
+            employee.month = data.get('month', employee.month)
+            employee.base_salary = data.get('base_salary', employee.base_salary)
+            employee.working_days = data.get('working_days', employee.working_days)
+            employee.actual_working_days = data.get('actual_working_days', employee.actual_working_days)
+            employee.deductions = data.get('deductions', employee.deductions)
+            employee.advance = data.get('advance', employee.advance)
+            employee.calculate_salary()
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Employee updated successfully'})
+
+        # DELETE
         db.session.delete(employee)
         db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Employee deleted successfully'
-        })
+        return jsonify({'status': 'success', 'message': 'Employee deleted successfully'})
     except Exception as e:
-        app.logger.error(f"Error deleting employee: {e}")
+        app.logger.error(f"Error processing employee: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete employee'}), 500
+        return jsonify({'error': 'Failed to process employee'}), 500
 
 # API Routes for future AJAX integration
 @app.route('/api/users', methods=['POST'])
