@@ -91,6 +91,8 @@ class Employees(db.Model):
     name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(20))
     position = db.Column(db.String(50))
+    year = db.Column(db.Integer, nullable=False, default=lambda: datetime.utcnow().year)
+    month = db.Column(db.Integer, nullable=False, default=lambda: datetime.utcnow().month)
     base_salary = db.Column(db.Float, nullable=False, default=0.0)
     working_days = db.Column(db.Float, nullable=False, default=0.0)
     actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
