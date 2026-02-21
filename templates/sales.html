@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Management - Business Daily Close System</title>
+    <title>Sales Dashboard - Business Daily Close System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 </head>
+
 <body>
     <!-- Header -->
     <header class="navbar navbar-expand-lg sticky-top" id="main-header">
@@ -27,13 +29,18 @@
 
             <!-- Right Profile Dropdown -->
             <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
+                    data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-user me-1"></i>{{ current_user.username }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
+                                class="fas fa-cog me-2"></i>Settings</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
+                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -43,54 +50,126 @@
     <main class="container-fluid mt-4">
         <div class="row justify-content-center">
             <div class="col-lg-11">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
+                    role="alert">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="display-6">Sales Management</h2>
-                        <p class="text-muted">Sales transactions and inventory management</p>
+                        <h2 class="display-6">Sales Dashboard - {{ month_name }} {{ year }}</h2>
+                        <p class="text-muted">Daily closing summary for {{ month_name }} {{ year }}</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <div class="d-flex gap-2 align-items-center">
-                            <select class="form-select" id="salesMonth" style="width: auto;">
-                                <option value="">All Months</option>
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                            <select class="form-select" id="salesYear" style="width: auto;">
-                                <option value="">All Years</option>
-                                <option value="2023">2023</option>
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
-                                <option value="2026">2026</option>
-                                <option value="2027">2027</option>
-                            </select>
-                            <button class="btn btn-outline-primary" onclick="filterSales()">
-                                <i class="fas fa-filter me-1"></i>Filter
-                            </button>
-                        </div>
+                        <select class="form-select" id="salesMonth" style="width: auto;">
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m==month %}selected{% endif %}>
+                                {{
+                                ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]
+                                }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <select class="form-select" id="salesYear" style="width: auto;">
+                            {% for y in range(2023, 2028) %}
+                            <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-outline-primary" onclick="filterSales()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
                         <button class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add Sale
+                            <i class="fas fa-download me-2"></i>Export Sales
                         </button>
                     </div>
                 </div>
 
-                <!-- Sales Content -->
-                <div class="card">
+                <!-- Sales Summary Cards -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-uppercase mb-2">Total Expenses</h6>
+                                <h3 class="mb-0">${{ "%.2f"|format(total_expenses_sum) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-uppercase mb-2">Total Actual Cash</h6>
+                                <h3 class="mb-0">${{ "%.2f"|format(total_actual_cash_sum) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-uppercase mb-2">Total Credits</h6>
+                                <h3 class="mb-0">${{ "%.2f"|format(total_credit_sum) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-uppercase mb-2">5% Fee Total</h6>
+                                <h3 class="mb-0">${{ "%.2f"|format(total_five_percent_sum) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales Table -->
+                <div class="card shadow-sm">
                     <div class="card-body">
-                        <div class="text-center py-5">
-                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                            <h4 class="text-muted">Sales Management</h4>
-                            <p class="text-muted">Sales functionality coming soon...</p>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Expenses</th>
+                                        <th>Advances</th>
+                                        <th>Credits</th>
+                                        <th>Cashback</th>
+                                        <th>5% Fee</th>
+                                        <th>Actual Cash</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for closing in closings %}
+                                    <tr>
+                                        <td class="fw-bold">{{ closing.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>${{ "%.2f"|format(closing.total_expenses) }}</td>
+                                        <td>${{ "%.2f"|format(closing.total_advance) }}</td>
+                                        <td>${{ "%.2f"|format(closing.total_credit) }}</td>
+                                        <td>${{ "%.2f"|format(closing.total_cashback) }}</td>
+                                        <td>${{ "%.2f"|format(closing.five_percent) }}</td>
+                                        <td class="fw-bold text-success">${{ "%.2f"|format(closing.actual_cash) }}</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">No daily closing records
+                                            found for this period</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -104,32 +183,9 @@
         function filterSales() {
             const month = document.getElementById('salesMonth').value;
             const year = document.getElementById('salesYear').value;
-            
-            // Build query parameters
-            const params = new URLSearchParams();
-            if (month) params.append('month', month);
-            if (year) params.append('year', year);
-            
-            // Redirect to filtered view
-            window.location.href = `/control-panel/sales?${params.toString()}`;
+            window.location.href = `/control-panel/sales?month=${month}&year=${year}`;
         }
-
-        // Set current month and year as default
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentDate = new Date();
-            const currentMonth = currentDate.getMonth() + 1;
-            const currentYear = currentDate.getFullYear();
-            
-            // Set default values if no filters are applied
-            const urlParams = new URLSearchParams(window.location.search);
-            if (!urlParams.get('month') && !urlParams.get('year')) {
-                document.getElementById('salesMonth').value = currentMonth;
-                document.getElementById('salesYear').value = currentYear;
-            } else {
-                document.getElementById('salesMonth').value = urlParams.get('month') || '';
-                document.getElementById('salesYear').value = urlParams.get('year') || '';
-            }
-        });
     </script>
 </body>
-</html> 
+
+</html>

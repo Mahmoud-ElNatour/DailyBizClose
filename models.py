@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -15,17 +15,25 @@ class DailyClosing(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    main_reading = db.Column(db.Float, nullable=False, default=0.0)
+    dr_smashed = db.Column(db.Float, nullable=False, default=0.0)
+    adjusted_reading = db.Column(db.Float, nullable=False, default=0.0)
     total_expenses = db.Column(db.Float, nullable=False, default=0.0)
     total_advance = db.Column(db.Float, nullable=False, default=0.0)
     total_credit = db.Column(db.Float, nullable=False, default=0.0)
     total_cashback = db.Column(db.Float, nullable=False, default=0.0)
     five_percent = db.Column(db.Float, nullable=False, default=0.0)
     total_cashout = db.Column(db.Float, nullable=False, default=0.0)
+    total_deductions = db.Column(db.Float, nullable=False, default=0.0)
     actual_cash = db.Column(db.Float, nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('Expenses', backref='daily_closing', cascade='all, delete-orphan')
     ahmad_mistrah_expenses = db.relationship('AhmadMistrahExpenses', backref='daily_closing', cascade='all, delete-orphan')
+    advances = db.relationship('Advances', backref='daily_closing', cascade='all, delete-orphan')
+    credits = db.relationship('Credits', backref='daily_closing', cascade='all, delete-orphan')
+    cashbacks = db.relationship('Cashbacks', backref='daily_closing', cascade='all, delete-orphan')
+    deductions_rel = db.relationship('Deductions', backref='daily_closing', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<DailyClosing {self.date.strftime("%Y-%m-%d")}>'
@@ -80,6 +88,10 @@ class Customers(db.Model):
     balance = db.Column(db.Float, nullable=False, default=0.0)
     phone_number = db.Column(db.String(20))
     
+    # Relationships
+    credits_rel = db.relationship('Credits', backref='customer')
+    cashbacks_rel = db.relationship('Cashbacks', backref='customer')
+    
     def __repr__(self):
         return f'<Customers {self.username}>'
 
@@ -91,8 +103,8 @@ class Employees(db.Model):
     name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(20))
     position = db.Column(db.String(50))
-    year = db.Column(db.Integer, nullable=False, default=lambda: datetime.utcnow().year)
-    month = db.Column(db.Integer, nullable=False, default=lambda: datetime.utcnow().month)
+    year = db.Column(db.Integer, nullable=False, default=lambda: datetime.now(timezone.utc).year)
+    month = db.Column(db.Integer, nullable=False, default=lambda: datetime.now(timezone.utc).month)
     base_salary = db.Column(db.Float, nullable=False, default=0.0)
     working_days = db.Column(db.Float, nullable=False, default=0.0)
     actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
@@ -101,12 +113,28 @@ class Employees(db.Model):
     actual_salary = db.Column(db.Float, nullable=False, default=0.0)
     total = db.Column(db.Float, nullable=False, default=0.0)
     
+    # Relationships
+    advances_rel = db.relationship('Advances', backref='employee')
+    deductions_list = db.relationship('Deductions', backref='employee')
+    
     def calculate_salary(self):
         """Calculate actual salary and total based on working days"""
-        if self.working_days > 0:
-            daily_rate = self.base_salary / self.working_days
-            self.actual_salary = daily_rate * self.actual_working_days - self.deductions-self.advance
-            if self.actual_salary<0:
+        # Ensure values are numeric
+        try:
+            working_days = float(self.working_days)
+            base_salary = float(self.base_salary)
+            actual_working_days = float(self.actual_working_days)
+            deductions = float(self.deductions)
+            advance = float(self.advance)
+        except (TypeError, ValueError):
+            self.actual_salary = 0.0
+            self.total = 0.0
+            return
+
+        if working_days > 0:
+            daily_rate = base_salary / working_days
+            self.actual_salary = daily_rate * actual_working_days - deductions - advance
+            if self.actual_salary < 0:
                 self.total=0.0
             else:
                 self.total=self.actual_salary
@@ -117,6 +145,46 @@ class Employees(db.Model):
     def __repr__(self):
         return f'<Employees {self.name}>'
 
+class Advances(db.Model):
+    """Employee salary advances from daily close"""
+    __tablename__ = 'advances'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
+
+class Credits(db.Model):
+    """Customer credit sales from daily close"""
+    __tablename__ = 'credits'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
+
+class Cashbacks(db.Model):
+    """Customer cashbacks from daily close"""
+    __tablename__ = 'cashbacks'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
+
+class Deductions(db.Model):
+    """Employee salary deductions from daily close"""
+    __tablename__ = 'deductions_records'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
+
 class User(db.Model, UserMixin):
     """Basic User model for future authentication"""
     id = db.Column(db.Integer, primary_key=True)
@@ -124,7 +192,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     # ensure password hash field has length of at least 256
     password_hash = db.Column(db.String(256))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def __repr__(self):
         return f'<User {self.username}>'

@@ -1,3 +1,45 @@
+/**
+ * Global Alert/Notification System
+ * @param {string} message - The message to display
+ * @param {string} type - Bootstrap alert class (success, danger, warning, info)
+ * @param {number} duration - Auto-close duration in ms (0 for permanent)
+ */
+function showAlert(message, type = 'danger', duration = 5000) {
+    const alertId = 'alert-' + Date.now();
+    const alertHtml = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show shadow-sm" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px;">
+            <i class="fas fa-${type === 'danger' ? 'exclamation-circle' : (type === 'success' ? 'check-circle' : 'info-circle')} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+
+    // Create container if it doesn't exist
+    let container = document.getElementById('global-alert-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'global-alert-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(container);
+    }
+
+    // Add alert to container
+    const alertElement = document.createElement('div');
+    alertElement.innerHTML = alertHtml;
+    container.appendChild(alertElement.firstChild);
+
+    // Auto-close if duration > 0
+    if (duration > 0) {
+        setTimeout(() => {
+            const alertToClose = document.getElementById(alertId);
+            if (alertToClose) {
+                const bsAlert = new bootstrap.Alert(alertToClose);
+                bsAlert.close();
+            }
+        }, duration);
+    }
+}
+
 // Global application object
 const DailyCloseApp = {
     // Categories cache
@@ -17,6 +59,7 @@ const DailyCloseApp = {
         this.initializeFormHandlers();
         this.initializeSimpleExpenseSections();
         this.initializeDateHandling();
+        this.fetchAutocompleteSuggestions();
         this.checkAdminValidation();
     },
 
@@ -31,12 +74,12 @@ const DailyCloseApp = {
             dropdownToggle.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const isOpen = dropdownMenu.classList.contains('show');
-                
+
                 // Close all dropdowns first
                 this.closeAllDropdowns();
-                
+
                 // Toggle current dropdown
                 if (!isOpen) {
                     dropdownMenu.classList.add('show');
@@ -64,7 +107,7 @@ const DailyCloseApp = {
     closeAllDropdowns() {
         const dropdowns = document.querySelectorAll('.dropdown-menu.show');
         const toggles = document.querySelectorAll('.dropdown-toggle[aria-expanded="true"]');
-        
+
         dropdowns.forEach(dropdown => dropdown.classList.remove('show'));
         toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'false'));
     },
@@ -110,6 +153,7 @@ const DailyCloseApp = {
             // Calculate totals from sections
             const totalExpenses = this.calculateSectionTotal('.expense-amount');
             const totalAdvances = this.calculateSectionTotal('.advance-amount');
+            const totalDeductions = this.calculateSectionTotal('.deduction-amount');
             const totalCredits = this.calculateSectionTotal('.credit-amount');
             const totalCashback = this.calculateSectionTotal('.cashback-amount');
             const totalSamerExpenses = this.calculateSectionTotal('.samer-expense-amount');
@@ -117,6 +161,7 @@ const DailyCloseApp = {
             // Update section totals
             this.updateSectionTotal('#totalExpenses', totalExpenses);
             this.updateSectionTotal('#totalAdvances', totalAdvances);
+            this.updateSectionTotal('#totalDeductions', totalDeductions);
             this.updateSectionTotal('#totalCredits', totalCredits);
             this.updateSectionTotal('#totalCashback', totalCashback);
             this.updateSectionTotal('#totalSamerExpenses', totalSamerExpenses);
@@ -127,8 +172,8 @@ const DailyCloseApp = {
             // Calculate 5% of Adjusted Reading
             const fivePercent = adjustedReading * 0.05;
 
-            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses
-            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses;
+            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses - Total Deductions
+            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalDeductions;
 
             // Update calculated field displays
             const displays = {
@@ -145,7 +190,7 @@ const DailyCloseApp = {
             }
             if (displays.actualCash) {
                 displays.actualCash.textContent = this.formatCurrency(actualCash);
-                
+
                 // Add visual feedback for negative values
                 if (actualCash < 0) {
                     displays.actualCash.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
@@ -189,7 +234,7 @@ const DailyCloseApp = {
     // Initialize module card interactions
     initializeModuleCards() {
         const moduleCards = document.querySelectorAll('.module-card');
-        
+
         moduleCards.forEach(card => {
             card.addEventListener('click', () => {
                 const module = card.dataset.module;
@@ -220,7 +265,7 @@ const DailyCloseApp = {
 
         // Simulate module loading (prepare for Flask integration)
         this.showStatusMessage(`Loading ${module} module...`, 'info');
-        
+
         // Simulate AJAX call that will later connect to Flask
         this.simulateModuleLoad(module);
     },
@@ -282,17 +327,14 @@ const DailyCloseApp = {
     // Handle daily close form submission
     handleDailyCloseSubmit() {
         const formData = this.collectFormData();
-        
+
         if (!this.validateFormData(formData)) {
             this.showStatusMessage('Please fill in all required fields', 'danger');
             return;
         }
 
-        // Show loading state
-        this.showStatusMessage('Saving daily close data...', 'info');
-        
-        // Simulate AJAX submission (prepare for Flask integration)
-        this.simulateDailyCloseSubmission(formData);
+        // Actual submission to Flask API
+        this.submitDailyClose();
     },
 
     // Collect form data
@@ -316,12 +358,14 @@ const DailyCloseApp = {
         // Add calculated values
         const adjustedReading = data.inputs.mainReading - data.inputs.drSmashed - data.inputs.creditSales + data.inputs.cashback;
         const fivePercent = adjustedReading * 0.05;
-        const actualCash = adjustedReading - data.inputs.ahmadExpenses - data.inputs.dailyExpenses - data.inputs.dailyAdvances;
+        const totalDeductions = this.calculateSectionTotal('.deduction-amount');
+        const actualCash = adjustedReading - data.inputs.ahmadExpenses - data.inputs.dailyExpenses - data.inputs.dailyAdvances - totalDeductions;
 
         data.calculations = {
             adjustedReading,
             fivePercent,
-            actualCash
+            actualCash,
+            totalDeductions
         };
 
         return data;
@@ -337,7 +381,7 @@ const DailyCloseApp = {
     async submitDailyClose() {
         try {
             const closeDate = document.getElementById('closeDate')?.value;
-            
+
             // Collect basic inputs
             const basicInputs = {
                 close_date: closeDate,
@@ -363,26 +407,53 @@ const DailyCloseApp = {
             // Calculate totals from individual sections
             const totalExpenses = this.calculateSectionTotal('.expense-amount');
             const totalAdvance = this.calculateSectionTotal('.advance-amount');
+            const totalDeductions = this.calculateSectionTotal('.deduction-amount');
             const totalCredit = this.calculateSectionTotal('.credit-amount');
             const totalCashback = this.calculateSectionTotal('.cashback-amount');
 
+            // Collect deductions data
+            const deductions = this.collectSectionData('.deduction-item', '.deduction-description', '.deduction-amount', 'deduction');
+
             const formData = {
                 date: closeDate,
+                main_reading: basicInputs.main_reading,
+                dr_smashed: basicInputs.dr_smashed,
+                adjusted_reading: calculations.adjusted_reading,
                 total_expenses: totalExpenses,
                 total_advance: totalAdvance,
+                total_deductions: totalDeductions,
                 total_credit: totalCredit,
                 total_cashback: totalCashback,
                 five_percent: calculations.five_percent,
-                total_cashout: totalExpenses + totalAdvance, // Simple calculation
+                total_cashout: totalExpenses + totalAdvance + totalDeductions,
                 actual_cash: calculations.actual_cash,
-                expenses: expenses, // Individual expense records
-                advances: advances, // Individual advance records
-                credits: credits, // Individual credit records
-                cashbacks: cashbacks, // Individual cashback records
-                ahmad_mistrah_expenses: samer_expenses // Ahmad Mistrah expenses
+                expenses: expenses,
+                advances: advances,
+                deductions: deductions,
+                credits: credits,
+                cashbacks: cashbacks,
+                ahmad_mistrah_expenses: samer_expenses
             };
 
+            // Validation: Ensure main reading is provided
+            if (!(formData.main_reading > 0)) {
+                showAlert('Main Reading is mandatory. Please enter the current counter value.', 'warning');
+                return;
+            }
 
+            // Validation: Ensure there's at least some data
+            const hasData = formData.main_reading > 0 ||
+                formData.expenses.length > 0 ||
+                formData.advances.length > 0 ||
+                formData.deductions.length > 0 ||
+                formData.credits.length > 0 ||
+                formData.cashbacks.length > 0 ||
+                formData.ahmad_mistrah_expenses.length > 0;
+
+            if (!hasData) {
+                showAlert('Cannot submit an empty daily close. Please enter at least one value.', 'warning');
+                return;
+            }
 
             this.showStatusMessage('Saving daily close data...', 'info');
 
@@ -395,7 +466,7 @@ const DailyCloseApp = {
             });
 
             const data = await response.json();
-            
+
             if (response.ok && data.status === 'success') {
                 this.showStatusMessage('Daily close saved successfully', 'success');
                 this.clearDailyCloseForm();
@@ -412,39 +483,40 @@ const DailyCloseApp = {
     collectSectionData(itemSelector, descriptionSelector, amountSelector, type = 'expense') {
         const items = document.querySelectorAll(itemSelector);
         const data = [];
-        
+
         items.forEach(item => {
             const descriptionInput = item.querySelector(descriptionSelector);
             const amountInput = item.querySelector(amountSelector);
-            
+
             if (descriptionInput && amountInput && descriptionInput.value.trim() && amountInput.value) {
                 const baseData = {
                     amount: parseFloat(amountInput.value) || 0,
                     note: descriptionInput.value.trim()
                 };
-                
+
                 // Add type-specific data
                 if (type === 'expense') {
                     baseData.receiver_name = descriptionInput.value.trim();
                 } else if (type === 'credit' || type === 'cashback') {
                     baseData.customer_name = descriptionInput.value.trim();
                     baseData.phone_number = ''; // Could be added to form later
-                } else if (type === 'advance') {
+                } else if (type === 'advance' || type === 'deduction') {
                     baseData.employee_name = descriptionInput.value.trim();
                     baseData.phone_number = ''; // Could be added to form later
                     baseData.position = '';
                     baseData.base_salary = 0;
                     baseData.working_days = 0;
                     baseData.actual_working_days = 0;
+                    baseData.advance = 0;
                     baseData.deductions = 0;
                     baseData.actual_salary = 0;
                     baseData.total = 0;
                 }
-                
+
                 data.push(baseData);
             }
         });
-        
+
         return data;
     },
 
@@ -478,6 +550,7 @@ const DailyCloseApp = {
         // Reset all expense sections to single items
         this.resetExpenseSection('#expensesSection', 'expense');
         this.resetExpenseSection('#advancesSection', 'advance');
+        this.resetExpenseSection('#deductionsSection', 'deduction');
         this.resetExpenseSection('#creditsSection', 'credit');
         this.resetExpenseSection('#cashbacksSection', 'cashback');
         this.resetExpenseSection('#samerExpensesSection', 'samer-expense');
@@ -493,7 +566,7 @@ const DailyCloseApp = {
         if (!section) return;
 
         const items = section.querySelectorAll('[class*="item"]');
-        
+
         // Remove all items except the first one
         items.forEach((item, index) => {
             if (index > 0) {
@@ -553,6 +626,7 @@ const DailyCloseApp = {
         // Add event listeners for add/remove buttons
         this.initializeSectionButtons('.add-expense', '.remove-expense', '#expensesSection', 'expense');
         this.initializeSectionButtons('.add-advance', '.remove-advance', '#advancesSection', 'advance');
+        this.initializeSectionButtons('.add-deduction', '.remove-deduction', '#deductionsSection', 'deduction');
         this.initializeSectionButtons('.add-credit', '.remove-credit', '#creditsSection', 'credit');
         this.initializeSectionButtons('.add-cashback', '.remove-cashback', '#cashbacksSection', 'cashback');
         this.initializeSectionButtons('.add-samer-expense', '.remove-samer-expense', '#samerExpensesSection', 'samer-expense');
@@ -560,6 +634,7 @@ const DailyCloseApp = {
         // Initialize remove buttons for existing items
         this.updateRemoveButtons('#expensesSection');
         this.updateRemoveButtons('#advancesSection');
+        this.updateRemoveButtons('#deductionsSection');
         this.updateRemoveButtons('#creditsSection');
         this.updateRemoveButtons('#cashbacksSection');
         this.updateRemoveButtons('#samerExpensesSection');
@@ -575,7 +650,7 @@ const DailyCloseApp = {
                 e.preventDefault();
                 this.addSectionItem(sectionSelector, type);
             }
-            
+
             if (e.target.closest(removeSelector)) {
                 e.preventDefault();
                 this.removeSectionItem(e.target.closest(removeSelector), sectionSelector);
@@ -633,9 +708,7 @@ const DailyCloseApp = {
                 <div class="expense-item mb-3">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <select class="form-control expense-category" data-type="expense">
-                                <option value="">Select or type expense category</option>
-                            </select>
+                            <input type="text" class="form-control expense-description" placeholder="Receiver Name" list="receiversList">
                         </div>
                         <div class="col-md-4">
                             <div class="input-group">
@@ -659,9 +732,7 @@ const DailyCloseApp = {
                 <div class="advance-item mb-3">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <select class="form-control advance-category" data-type="advance">
-                                <option value="">Select or type advance category</option>
-                            </select>
+                            <input type="text" class="form-control advance-description" placeholder="Employee Name" list="employeesList">
                         </div>
                         <div class="col-md-4">
                             <div class="input-group">
@@ -681,13 +752,35 @@ const DailyCloseApp = {
                         </div>
                     </div>
                 </div>`,
+            'deduction': `
+                <div class="deduction-item mb-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control deduction-description" placeholder="Employee Name" list="employeesList">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control deduction-amount" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-success add-deduction" title="Add Deduction">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remove-deduction" title="Remove Deduction">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`,
             'credit': `
                 <div class="credit-item mb-3">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <select class="form-control credit-category" data-type="credit">
-                                <option value="">Select or type credit category</option>
-                            </select>
+                            <input type="text" class="form-control credit-description" placeholder="Customer Name" list="customersList">
                         </div>
                         <div class="col-md-4">
                             <div class="input-group">
@@ -711,9 +804,7 @@ const DailyCloseApp = {
                 <div class="cashback-item mb-3">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <select class="form-control cashback-category" data-type="cashback">
-                                <option value="">Select or type cashback category</option>
-                            </select>
+                            <input type="text" class="form-control cashback-description" placeholder="Customer Name" list="customersList">
                         </div>
                         <div class="col-md-4">
                             <div class="input-group">
@@ -737,9 +828,7 @@ const DailyCloseApp = {
                 <div class="samer-expense-item mb-3">
                     <div class="row g-2">
                         <div class="col-md-5">
-                            <select class="form-control samer-expense-category" data-type="samer-expense">
-                                <option value="">Select or type Samer's expense category</option>
-                            </select>
+                            <input type="text" class="form-control samer-expense-description" placeholder="Samer's expense description">
                         </div>
                         <div class="col-md-4">
                             <div class="input-group">
@@ -768,7 +857,7 @@ const DailyCloseApp = {
     initializeSimpleCalculationHandlers() {
         // Handle input events for real-time calculation
         document.addEventListener('input', (e) => {
-            if (e.target.matches('.expense-amount, .advance-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
+            if (e.target.matches('.expense-amount, .advance-amount, .deduction-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
                 this.calculateValues();
             }
         });
@@ -807,7 +896,7 @@ const DailyCloseApp = {
         document.getElementById('adminPassword').value = '';
         document.getElementById('passwordError').classList.add('d-none');
         modal.show();
-        
+
         // Focus on password field when modal is shown
         setTimeout(() => {
             document.getElementById('adminPassword').focus();
@@ -819,18 +908,18 @@ const DailyCloseApp = {
         // This will be called after the page reloads from form submission
         const dateInput = document.getElementById('closeDate');
         const editBtn = document.getElementById('editDateBtn');
-        
+
         if (dateInput && editBtn) {
             // Check if we have admin validation in the URL or session
             const urlParams = new URLSearchParams(window.location.search);
             const adminValidated = urlParams.get('admin_validated') === 'true';
-            
+
             if (adminValidated) {
                 // Admin was validated - unlock date field
                 dateInput.removeAttribute('readonly');
                 editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
                 editBtn.onclick = () => this.lockDateField();
-                
+
                 // Show success message
                 this.showStatusMessage('Date field unlocked for editing', 'success');
             }
@@ -840,30 +929,30 @@ const DailyCloseApp = {
     // Verify admin password
     async verifyAdminPassword() {
         const password = document.getElementById('adminPassword').value;
-        
+
         try {
             // Fetch admin password hash from server
             const response = await fetch('/api/admin-password');
             const data = await response.json();
-            
+
             if (response.ok && data.status === 'success') {
                 // Hash the entered password and compare with stored hash
                 const hashedPassword = await this.hashPassword(password);
-                
+
                 if (hashedPassword === data.password) {
                     // Correct password - unlock date field
                     const dateInput = document.getElementById('closeDate');
                     const editBtn = document.getElementById('editDateBtn');
-                    
+
                     dateInput.removeAttribute('readonly');
                     dateInput.focus();
                     editBtn.innerHTML = '<i class="fas fa-lock"></i> Lock';
                     editBtn.onclick = () => this.lockDateField();
-                    
+
                     // Hide modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('adminPasswordModal'));
                     modal.hide();
-                    
+
                     this.showStatusMessage('Date field unlocked for editing', 'success');
                 } else {
                     // Incorrect password
@@ -894,12 +983,42 @@ const DailyCloseApp = {
     lockDateField() {
         const dateInput = document.getElementById('closeDate');
         const editBtn = document.getElementById('editDateBtn');
-        
+
         dateInput.setAttribute('readonly', 'readonly');
         editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
         editBtn.onclick = () => this.showAdminPasswordModal();
-        
+
         this.showStatusMessage('Date field locked', 'info');
+    },
+
+    // Fetch and populate autocomplete suggestions
+    async fetchAutocompleteSuggestions() {
+        try {
+            const [receivers, employees, customers] = await Promise.all([
+                fetch('/api/suggestions/receivers').then(res => res.json()),
+                fetch('/api/suggestions/employees').then(res => res.json()),
+                fetch('/api/suggestions/customers').then(res => res.json())
+            ]);
+
+            this.populateDatalist('receiversList', receivers);
+            this.populateDatalist('employeesList', employees);
+            this.populateDatalist('customersList', customers);
+        } catch (error) {
+            console.error('Error fetching autocomplete suggestions:', error);
+        }
+    },
+
+    // Populate a datalist with options
+    populateDatalist(id, suggestions) {
+        const datalist = document.getElementById(id);
+        if (!datalist) return;
+
+        datalist.innerHTML = '';
+        suggestions.forEach(suggestion => {
+            const option = document.createElement('option');
+            option.value = suggestion;
+            datalist.appendChild(option);
+        });
     }
 };
 

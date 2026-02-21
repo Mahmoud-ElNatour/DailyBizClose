@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
 </head>
+
 <body>
     <!-- Header -->
     <header class="navbar navbar-expand-lg sticky-top" id="main-header">
@@ -27,13 +29,18 @@
 
             <!-- Right Profile Dropdown -->
             <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
+                    data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-user me-1"></i>{{ current_user.username }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
+                                class="fas fa-cog me-2"></i>Settings</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
+                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -43,6 +50,20 @@
     <main class="container-fluid mt-4">
         <div class="row justify-content-center">
             <div class="col-lg-11">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
+                    role="alert">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -84,6 +105,44 @@
                     </div>
                 </div>
 
+                <!-- Statistics Summary -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white text-center h-100 shadow-sm border-0">
+                            <div class="card-body py-3">
+                                <small class="text-uppercase mb-2 opacity-75 d-block">Total Expenses</small>
+                                <h3 class="fw-bold mb-0">${{ "%.2f"|format(stats.total or 0) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white text-center h-100 shadow-sm border-0">
+                            <div class="card-body py-3">
+                                <small class="text-uppercase mb-2 opacity-75 d-block">Top Receiver</small>
+                                <h3 class="fw-bold mb-0" style="font-size: 1.25rem;">{{ stats.top_receiver }}</h3>
+                                <div class="small opacity-75">${{ "%.2f"|format(stats.top_receiver_amount or 0) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white text-center h-100 shadow-sm border-0">
+                            <div class="card-body py-3">
+                                <small class="text-uppercase mb-2 opacity-75 d-block">Max Single Expense</small>
+                                <h3 class="fw-bold mb-0">${{ "%.2f"|format(stats.max or 0) }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-dark text-white text-center h-100 shadow-sm border-0">
+                            <div class="card-body py-3">
+                                <small class="text-uppercase mb-2 opacity-75 d-block">Expense Count</small>
+                                <h3 class="fw-bold mb-0">{{ stats.count }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Expenses Table -->
                 <div class="card">
                     <div class="card-body">
@@ -108,10 +167,12 @@
                                         <td>${{ "%.2f"|format(expense.amount or 0) }}</td>
                                         <td>{{ expense.note or 'N/A' }}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="editExpense({{ expense.id }})">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editExpense({{ expense.id }})">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense({{ expense.id }})">
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteExpense({{ expense.id }})">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
@@ -146,12 +207,13 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Receiver</label>
-                            <select class="form-control" name="receiver_id" required>
-                                <option value="">Select Receiver</option>
+                            <input type="text" class="form-control" name="receiver_name" id="receiver_search"
+                                list="receivers_list" placeholder="Type to search or add new..." required>
+                            <datalist id="receivers_list">
                                 {% for receiver in receivers %}
-                                <option value="{{ receiver.id }}">{{ receiver.name }}</option>
-                                {% endfor %}
-                            </select>
+                                <option value="{{ receiver.name }}">
+                                    {% endfor %}
+                            </datalist>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Amount</label>
@@ -175,11 +237,11 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Add Expense Form Handler
-        document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
+        document.getElementById('addExpenseForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
-            
+
             fetch('/api/expenses', {
                 method: 'POST',
                 headers: {
@@ -187,23 +249,23 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert('Error adding expense: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error adding expense');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        showAlert('Error adding expense: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error adding expense');
+                });
         });
 
         function editExpense(id) {
             // TODO: Implement edit functionality
-            alert('Edit expense ' + id + ' - Coming soon!');
+            showAlert('Edit expense ' + id + ' - Coming soon!');
         }
 
         function deleteExpense(id) {
@@ -211,40 +273,40 @@
                 fetch(`/api/expenses/${id}`, {
                     method: 'DELETE'
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        location.reload();
-                    } else {
-                        alert('Error deleting expense: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error deleting expense');
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            location.reload();
+                        } else {
+                            showAlert('Error deleting expense: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('Error deleting expense');
+                    });
             }
         }
 
         function filterExpenses() {
             const month = document.getElementById('expenseMonth').value;
             const year = document.getElementById('expenseYear').value;
-            
+
             // Build query parameters
             const params = new URLSearchParams();
             if (month) params.append('month', month);
             if (year) params.append('year', year);
-            
+
             // Redirect to filtered view
             window.location.href = `/control-panel/expenses?${params.toString()}`;
         }
 
         // Set current month and year as default
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth() + 1;
             const currentYear = currentDate.getFullYear();
-            
+
             // Set default values if no filters are applied
             const urlParams = new URLSearchParams(window.location.search);
             if (!urlParams.get('month') && !urlParams.get('year')) {
@@ -257,4 +319,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone, UTC
 import logging
 import hashlib
 
@@ -12,6 +13,22 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Base(DeclarativeBase):
     pass
+
+def safe_float(value, default=0.0):
+    try:
+        if value is None or str(value).strip() == '':
+            return default
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+def safe_int(value, default=0):
+    try:
+        if value is None or str(value).strip() == '':
+            return default
+        return int(value)
+    except (ValueError, TypeError):
+        return default
 
 # Import db from models to avoid circular import
 from models import db
@@ -159,15 +176,15 @@ def employees():
         from datetime import datetime
         years = db.session.query(db.func.distinct(Employees.year)).order_by(Employees.year.desc()).all()
         years = [y[0] for y in years]
-        current_year = datetime.utcnow().year
-        current_month = datetime.utcnow().month
+        current_year = datetime.now(UTC).year
+        current_month = datetime.now(UTC).month
         return render_template('employees_years.html', years=years,
                                current_year=current_year, current_month=current_month)
     except Exception as e:
         app.logger.error(f"Error loading employees: {e}")
         flash('Error loading employees data', 'error')
         from datetime import datetime
-        dt = datetime.utcnow()
+        dt = datetime.now(UTC)
         return render_template('employees_years.html', years=[],
                                current_year=dt.year, current_month=dt.month)
 
@@ -282,28 +299,76 @@ def expenses():
         expenses = query.all()
         receivers = Receivers.query.all()
         
-        return render_template('expenses.html', expenses=expenses, receivers=receivers)
+        # Calculate statistics
+        total_expenses = sum(exp.amount or 0 for exp in expenses)
+        max_expense = max((exp.amount or 0 for exp in expenses), default=0)
+        
+        receiver_totals = {}
+        for exp in expenses:
+            name = exp.receiver.name if exp.receiver else 'N/A'
+            receiver_totals[name] = receiver_totals.get(name, 0) + (exp.amount or 0)
+        
+        top_receiver = max(receiver_totals.items(), key=lambda x: x[1], default=('N/A', 0))
+        
+        stats = {
+            'total': total_expenses,
+            'max': max_expense,
+            'count': len(expenses),
+            'top_receiver': top_receiver[0],
+            'top_receiver_amount': top_receiver[1]
+        }
+        
+        return render_template('expenses.html', expenses=expenses, receivers=receivers, stats=stats)
     except Exception as e:
         app.logger.error(f"Error loading expenses: {e}")
         flash('Error loading expenses data', 'error')
-        return render_template('expenses.html', expenses=[], receivers=[])
+        return render_template('expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
 
 @app.route('/control-panel/sales')
 @login_required
 def sales():
     """Sales management page"""
     try:
+        from models import DailyClosing
+        from datetime import datetime
+        
         # Get filter parameters
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
-        # For now, return placeholder since we don't have a sales table
-        # In a real application, you would filter sales by month/year
-        return render_template('sales.html')
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            month = now.month
+            year = now.year
+            
+        # Build query
+        query = DailyClosing.query.filter(
+            db.extract('year', DailyClosing.date) == year,
+            db.extract('month', DailyClosing.date) == month
+        )
+        closings = query.order_by(DailyClosing.date.desc()).all()
+        
+        # Calculate sums for cards
+        total_expenses_sum = sum(c.total_expenses for c in closings)
+        total_actual_cash_sum = sum(c.actual_cash for c in closings)
+        total_credit_sum = sum(c.total_credit for c in closings)
+        total_five_percent_sum = sum(c.five_percent for c in closings)
+        
+        month_name = datetime(2000, month, 1).strftime('%B')
+        
+        return render_template('sales.html', 
+                             closings=closings,
+                             month=month,
+                             year=year,
+                             month_name=month_name,
+                             total_expenses_sum=total_expenses_sum,
+                             total_actual_cash_sum=total_actual_cash_sum,
+                             total_credit_sum=total_credit_sum,
+                             total_five_percent_sum=total_five_percent_sum)
     except Exception as e:
         app.logger.error(f"Error loading sales: {e}")
         flash('Error loading sales data', 'error')
-        return render_template('sales.html')
+        return render_template('sales.html', closings=[], total_expenses_sum=0, total_actual_cash_sum=0, total_credit_sum=0, total_five_percent_sum=0)
 
 @app.route('/control-panel/payroll')
 @login_required
@@ -329,6 +394,99 @@ def payroll():
         app.logger.error(f"Error loading payroll: {e}")
         flash('Error loading payroll data', 'error')
         return render_template('payroll.html', employees=[])
+
+@app.route('/api/employees/<int:employee_id>/calculate', methods=['POST'])
+@login_required
+def calculate_employee_payroll(employee_id):
+    """Trigger payroll calculation for an employee"""
+    try:
+        from models import Employees
+        employee = Employees.query.get_or_404(employee_id)
+        employee.calculate_salary()
+        db.session.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Payroll calculated successfully',
+            'actual_salary': employee.actual_salary,
+            'total': employee.total
+        })
+    except Exception as e:
+        app.logger.error(f"Error calculating payroll: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to calculate payroll'}), 500
+
+@app.route('/payroll/payslip/<int:employee_id>')
+@login_required
+def generate_payslip_view(employee_id):
+    """Render printable payslip for an employee"""
+    try:
+        from models import Employees, Advances, Deductions
+        employee = Employees.query.get_or_404(employee_id)
+        
+        show_details = True
+        details = None
+        
+        if show_details:
+            advances_list = Advances.query.filter_by(employee_id=employee_id).all()
+            deductions_list = Deductions.query.filter_by(employee_id=employee_id).all()
+            details = {
+                'advances': advances_list,
+                'deductions': deductions_list
+            }
+            print(details)
+            
+        return render_template('payslip.html', employee=employee, show_details=show_details, details=details)
+    except Exception as e:
+        app.logger.error(f"Error generating payslip: {e}")
+        flash('Error generating payslip', 'error')
+        return redirect(url_for('payroll'))
+
+@app.route('/control-panel/receivers')
+@login_required
+def receivers_view():
+    """Receivers list page"""
+    try:
+        from models import Receivers
+        receivers = Receivers.query.all()
+        return render_template('receivers.html', receivers=receivers)
+    except Exception as e:
+        app.logger.error(f"Error loading receivers: {e}")
+        flash('Error loading receivers page', 'error')
+        return redirect(url_for('control_panel'))
+
+@app.route('/control-panel/deductions-advances')
+@login_required
+def deductions_advances_view():
+    """Deductions and advances list with filtering"""
+    try:
+        from models import Advances, Deductions, Employees
+        from datetime import datetime
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        advances_query = Advances.query
+        deductions_query = Deductions.query
+        
+        if year:
+            advances_query = advances_query.filter(db.extract('year', Advances.date) == year)
+            deductions_query = deductions_query.filter(db.extract('year', Deductions.date) == year)
+        if month:
+            advances_query = advances_query.filter(db.extract('month', Advances.date) == month)
+            deductions_query = deductions_query.filter(db.extract('month', Deductions.date) == month)
+            
+        advances = advances_query.order_by(Advances.date.desc()).all()
+        deductions = deductions_query.order_by(Deductions.date.desc()).all()
+        
+        return render_template('deductions_advances.html', 
+                             advances=advances, 
+                             deductions=deductions,
+                             current_month=month,
+                             current_year=year)
+    except Exception as e:
+        app.logger.error(f"Error loading deductions & advances: {e}")
+        flash('Error loading data', 'error')
+        return redirect(url_for('control_panel'))
 
 @app.route('/test-auth')
 def test_auth():
@@ -371,10 +529,46 @@ def validate_admin_password():
         return redirect(request.referrer or url_for('daily_close'))
 
 # API Routes for data management
+@app.route('/api/suggestions/receivers')
+@login_required
+def get_receiver_suggestions():
+    """Get unique receiver names for autocomplete"""
+    try:
+        from models import Receivers
+        receivers = Receivers.query.with_entities(Receivers.name).distinct().all()
+        return jsonify([r[0] for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching receiver suggestions: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/suggestions/employees')
+@login_required
+def get_employee_suggestions():
+    """Get unique employee names for autocomplete"""
+    try:
+        from models import Employees
+        employees = Employees.query.with_entities(Employees.name).distinct().all()
+        return jsonify([e[0] for e in employees])
+    except Exception as e:
+        app.logger.error(f"Error fetching employee suggestions: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/suggestions/customers')
+@login_required
+def get_customer_suggestions():
+    """Get unique customer usernames for autocomplete"""
+    try:
+        from models import Customers
+        customers = Customers.query.with_entities(Customers.username).distinct().all()
+        return jsonify([c[0] for c in customers])
+    except Exception as e:
+        app.logger.error(f"Error fetching customer suggestions: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/receivers')
 @login_required
 def get_receivers():
-    """Get all receivers"""
+    """Get all receivers with full data"""
     try:
         from models import Receivers
         receivers = Receivers.query.all()
@@ -389,6 +583,174 @@ def get_receivers():
         app.logger.error(f"Error fetching receivers: {e}")
         return jsonify({'error': 'Failed to fetch receivers'}), 500
 
+@app.route('/api/daily-closing', methods=['POST'])
+@login_required
+def daily_closing_api():
+    """Process daily closing data"""
+    try:
+        from models import DailyClosing, Expenses, AhmadMistrahExpenses, Receivers, Customers, Employees, Advances, Credits, Cashbacks
+        from datetime import datetime
+        
+        data = request.get_json()
+        close_date_str = data.get('date')
+        if not close_date_str:
+            return jsonify({'error': 'Date is required'}), 400
+            
+        close_date = datetime.strptime(close_date_str, '%Y-%m-%d')
+        
+        # Validation: Ensure main reading is provided
+        if not (safe_float(data.get('main_reading', 0)) > 0):
+            return jsonify({'error': 'Main Reading is mandatory. Please provide the current counter value.'}), 400
+
+        # Check if already closed for this date
+        # For simplicity, we'll allow multiple or overwrite. Let's overwrite?
+        # Or just append. Usually, one close per day is expected.
+        # existing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == close_date.date()).first()
+        
+        daily_close = DailyClosing(
+            date=close_date,
+            main_reading=safe_float(data.get('main_reading', 0)),
+            dr_smashed=safe_float(data.get('dr_smashed', 0)),
+            adjusted_reading=safe_float(data.get('adjusted_reading', 0)),
+            total_expenses=safe_float(data.get('total_expenses', 0)),
+            total_advance=safe_float(data.get('total_advance', 0)),
+            total_credit=safe_float(data.get('total_credit', 0)),
+            total_cashback=safe_float(data.get('total_cashback', 0)),
+            total_deductions=safe_float(data.get('total_deductions', 0)),
+            five_percent=safe_float(data.get('five_percent', 0)),
+            total_cashout=safe_float(data.get('total_cashout', 0)),
+            actual_cash=safe_float(data.get('actual_cash', 0))
+        )
+        db.session.add(daily_close)
+        db.session.flush() # Get daily_close.id
+        
+        # Process Expenses
+        for exp_data in data.get('expenses', []):
+            receiver_name = exp_data.get('receiver_name')
+            if receiver_name:
+                receiver = Receivers.query.filter_by(name=receiver_name).first()
+                if not receiver:
+                    receiver = Receivers(name=receiver_name, paid_amount=safe_float(exp_data.get('amount', 0)))
+                    db.session.add(receiver)
+                    db.session.flush()
+                else:
+                    receiver.paid_amount += safe_float(exp_data.get('amount', 0))
+                    db.session.add(receiver)
+                    db.session.flush()
+                expense = Expenses(
+                    date=close_date,
+                    amount=safe_float(exp_data.get('amount', 0)),
+                    note=exp_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    receiver_id=receiver.id
+                )
+                db.session.add(expense)
+        
+        # Process Advances
+        for adv_data in data.get('advances', []):
+            employee_name = adv_data.get('employee_name')
+            if employee_name:
+                employee = Employees.query.filter_by(name=employee_name, month=close_date.month, year=close_date.year).first()
+                if not employee:
+                    employee = Employees(name=employee_name, month=close_date.month, year=close_date.year, advance=0.0, deductions=0.0)
+                    db.session.add(employee)
+                    db.session.flush()
+                
+                amount = safe_float(adv_data.get('amount', 0))
+                advance_rec = Advances(
+                    date=close_date,
+                    amount=amount,
+                    note=adv_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    employee_id=employee.id
+                )
+                db.session.add(advance_rec)
+                employee.advance = safe_float(employee.advance or 0) + amount
+                employee.calculate_salary()
+
+        # Process Deductions
+        from models import Deductions
+        for ded_data in data.get('deductions', []):
+            employee_name = ded_data.get('employee_name')
+            if employee_name:
+                employee = Employees.query.filter_by(name=employee_name, month=close_date.month, year=close_date.year).first()
+                if not employee:
+                    employee = Employees(name=employee_name, month=close_date.month, year=close_date.year, advance=0.0, deductions=0.0)
+                    db.session.add(employee)
+                    db.session.flush()
+                
+                amount = safe_float(ded_data.get('amount', 0))
+                deduction_rec = Deductions(
+                    date=close_date,
+                    amount=amount,
+                    note=ded_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    employee_id=employee.id
+                )
+                db.session.add(deduction_rec)
+                employee.deductions = safe_float(employee.deductions or 0) + amount
+                employee.calculate_salary()
+        
+        # Process Credits
+        for cr_data in data.get('credits', []):
+            customer_name = cr_data.get('customer_name')
+            if customer_name:
+                customer = Customers.query.filter_by(username=customer_name).first()
+                if not customer:
+                    customer = Customers(username=customer_name, balance=0.0)
+                    db.session.add(customer)
+                    db.session.flush()
+                
+                amount = safe_float(cr_data.get('amount', 0))
+                credit = Credits(
+                    date=close_date,
+                    amount=amount,
+                    note=cr_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    customer_id=customer.id
+                )
+                db.session.add(credit)
+                customer.balance = safe_float(customer.balance or 0) + amount
+        
+        # Process Cashbacks
+        for cb_data in data.get('cashbacks', []):
+            customer_name = cb_data.get('customer_name')
+            if customer_name:
+                customer = Customers.query.filter_by(username=customer_name).first()
+                if not customer:
+                    customer = Customers(username=customer_name, balance=0.0)
+                    db.session.add(customer)
+                    db.session.flush()
+                
+                amount = safe_float(cb_data.get('amount', 0))
+                cashback = Cashbacks(
+                    date=close_date,
+                    amount=amount,
+                    note=cb_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    customer_id=customer.id
+                )
+                db.session.add(cashback)
+                customer.balance = safe_float(customer.balance or 0) - amount
+                
+        # Process Samer's (Ahmad Mistrah) Expenses
+        for samer_exp in data.get('ahmad_mistrah_expenses', []):
+            sm_expense = AhmadMistrahExpenses(
+                date=close_date,
+                amount=safe_float(samer_exp.get('amount', 0)),
+                note=samer_exp.get('note', ''),
+                daily_closing_id=daily_close.id
+            )
+            db.session.add(sm_expense)
+            
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Daily close processed successfully'})
+        
+    except Exception as e:
+        app.logger.error(f"Error processing daily close: {e}")
+        db.session.rollback()
+        return jsonify({'error': f'Failed to process daily close: {str(e)}'}), 500
+
 @app.route('/api/receivers', methods=['POST'])
 @login_required
 def create_receiver():
@@ -399,13 +761,14 @@ def create_receiver():
         
         receiver = Receivers(
             name=data.get('name'),
-            paid_amount=data.get('paid_amount', 0.0)
+            paid_amount=safe_float(data.get('paid_amount', 0.0))
         )
         
         db.session.add(receiver)
         db.session.commit()
         
         return jsonify({
+            'status': 'success',
             'id': receiver.id,
             'name': receiver.name,
             'paid_amount': receiver.paid_amount
@@ -414,6 +777,38 @@ def create_receiver():
         app.logger.error(f"Error creating receiver: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to create receiver'}), 500
+
+@app.route('/api/receivers/<int:receiver_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+def receiver_detail(receiver_id):
+    """Get, update, or delete a receiver"""
+    try:
+        from models import Receivers
+        receiver = Receivers.query.get_or_404(receiver_id)
+        
+        if request.method == 'GET':
+            return jsonify({
+                'id': receiver.id,
+                'name': receiver.name,
+                'paid_amount': receiver.paid_amount
+            })
+            
+        elif request.method == 'PUT':
+            data = request.get_json()
+            receiver.name = data.get('name', receiver.name)
+            receiver.paid_amount = safe_float(data.get('paid_amount', receiver.paid_amount))
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Receiver updated successfully'})
+            
+        elif request.method == 'DELETE':
+            db.session.delete(receiver)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Receiver deleted successfully'})
+            
+    except Exception as e:
+        app.logger.error(f"Error managing receiver {receiver_id}: {e}")
+        db.session.rollback()
+        return jsonify({'error': f'Failed to manage receiver: {str(e)}'}), 500
 
 @app.route('/api/customers')
 @login_required
@@ -444,7 +839,7 @@ def create_customer():
         
         customer = Customers(
             username=data.get('username'),
-            balance=data.get('balance', 0),
+            balance=safe_float(data.get('balance', 0)),
             phone_number=data.get('phone_number')
         )
         
@@ -461,24 +856,42 @@ def create_customer():
         db.session.rollback()
         return jsonify({'error': 'Failed to create customer'}), 500
 
-@app.route('/api/customers/<int:customer_id>', methods=['DELETE'])
+@app.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-def delete_customer(customer_id):
-    """Delete customer"""
+def customer_detail(customer_id):
+    """Get, update, or delete a customer"""
     try:
         from models import Customers
         customer = Customers.query.get_or_404(customer_id)
+        
+        if request.method == 'GET':
+            return jsonify({
+                'id': customer.id,
+                'username': customer.username,
+                'phone_number': customer.phone_number,
+                'balance': customer.balance
+            })
+            
+        if request.method == 'PUT':
+            data = request.get_json()
+            customer.username = data.get('username', customer.username)
+            customer.phone_number = data.get('phone_number', customer.phone_number)
+            if 'balance' in data:
+                customer.balance = safe_float(data['balance'], customer.balance)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Customer updated successfully'})
+            
+        # DELETE
         db.session.delete(customer)
         db.session.commit()
-        
         return jsonify({
             'status': 'success',
             'message': 'Customer deleted successfully'
         })
     except Exception as e:
-        app.logger.error(f"Error deleting customer: {e}")
+        app.logger.error(f"Error processing customer: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete customer'}), 500
+        return jsonify({'error': 'Failed to process customer'}), 500
 
 @app.route('/api/employees')
 @login_required
@@ -528,13 +941,13 @@ def create_employee():
             name=data.get('name'),
             phone_number=data.get('phone_number'),
             position=data.get('position'),
-            year=data.get('year', datetime.utcnow().year),
-            month=data.get('month', datetime.utcnow().month),
-            base_salary=data.get('base_salary', 0),
-            working_days=data.get('working_days', 0),
-            actual_working_days=data.get('actual_working_days', 0),
-            deductions=data.get('deductions', 0),
-            advance=data.get('advance', 0)
+            year=safe_int(data.get('year'), datetime.now(UTC).year),
+            month=safe_int(data.get('month'), datetime.now(UTC).month),
+            base_salary=safe_float(data.get('base_salary', 0)),
+            working_days=safe_float(data.get('working_days', 0)),
+            actual_working_days=safe_float(data.get('actual_working_days', 0)),
+            deductions=safe_float(data.get('deductions', 0)),
+            advance=safe_float(data.get('advance', 0))
         )
         employee.calculate_salary()
         db.session.add(employee)
@@ -580,13 +993,13 @@ def employee_detail(employee_id):
             employee.name = data.get('name', employee.name)
             employee.phone_number = data.get('phone_number', employee.phone_number)
             employee.position = data.get('position', employee.position)
-            employee.year = data.get('year', employee.year)
-            employee.month = data.get('month', employee.month)
-            employee.base_salary = data.get('base_salary', employee.base_salary)
-            employee.working_days = data.get('working_days', employee.working_days)
-            employee.actual_working_days = data.get('actual_working_days', employee.actual_working_days)
-            employee.deductions = data.get('deductions', employee.deductions)
-            employee.advance = data.get('advance', employee.advance)
+            if 'year' in data: employee.year = safe_int(data['year'], employee.year)
+            if 'month' in data: employee.month = safe_int(data['month'], employee.month)
+            if 'base_salary' in data: employee.base_salary = safe_float(data['base_salary'], employee.base_salary)
+            if 'working_days' in data: employee.working_days = safe_float(data['working_days'], employee.working_days)
+            if 'actual_working_days' in data: employee.actual_working_days = safe_float(data['actual_working_days'], employee.actual_working_days)
+            if 'deductions' in data: employee.deductions = safe_float(data['deductions'], employee.deductions)
+            if 'advance' in data: employee.advance = safe_float(data['advance'], employee.advance)
             employee.calculate_salary()
             db.session.commit()
             return jsonify({'status': 'success', 'message': 'Employee updated successfully'})
@@ -634,14 +1047,31 @@ def create_user_api():
         app.logger.error(f"Error creating user: {e}")
         return jsonify({'error': 'Failed to create user'}), 500
 
-@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+@app.route('/api/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-def delete_user_api(user_id):
-    """Delete user via API"""
+def user_detail_api(user_id):
+    """Get, update, or delete user via API"""
     try:
         from models import User
         user = User.query.get_or_404(user_id)
         
+        if request.method == 'GET':
+            return jsonify({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            })
+            
+        if request.method == 'PUT':
+            data = request.get_json()
+            user.username = data.get('username', user.username)
+            user.email = data.get('email', user.email)
+            if data.get('password'):
+                user.password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'User updated successfully'})
+
+        # DELETE
         # Prevent deleting admin user
         if user.username == 'admin':
             return jsonify({'error': 'Cannot delete admin user'}), 400
@@ -654,25 +1084,36 @@ def delete_user_api(user_id):
             'message': 'User deleted successfully'
         })
     except Exception as e:
-        app.logger.error(f"Error deleting user: {e}")
+        app.logger.error(f"Error processing user: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to delete user'}), 500
+        return jsonify({'error': 'Failed to process user'}), 500
 
 @app.route('/api/expenses', methods=['POST'])
 @login_required
 def create_expense():
-    """Create new expense"""
+    """Create new expense with potentially new receiver"""
     try:
-        from models import Expenses
+        from models import Expenses, Receivers
         from datetime import datetime
         
         data = request.get_json()
+        receiver_name = data.get('receiver_name')
+        receiver_id = data.get('receiver_id')
+        
+        # Logic for searchable receiver
+        if receiver_name:
+            receiver = Receivers.query.filter_by(name=receiver_name).first()
+            if not receiver:
+                receiver = Receivers(name=receiver_name, paid_amount=0.0)
+                db.session.add(receiver)
+                db.session.flush() # Get ID before commit
+            receiver_id = receiver.id
         
         expense = Expenses(
-            date=datetime.strptime(data.get('date'), '%Y-%m-%d') if data.get('date') else datetime.utcnow(),
-            amount=data.get('amount', 0),
+            date=datetime.strptime(data.get('date'), '%Y-%m-%d') if data.get('date') else datetime.now(UTC),
+            amount=safe_float(data.get('amount', 0)),
             note=data.get('note', ''),
-            receiver_id=data.get('receiver_id')
+            receiver_id=receiver_id
         )
         
         db.session.add(expense)
@@ -718,14 +1159,26 @@ def sales_report():
         month = int(data.get('month'))
         year = int(data.get('year'))
         
-        # For now, return placeholder data since we don't have a sales table
-        # In a real application, you would query the sales table for the specific month/year
+        from models import DailyClosing
+        # Get closings for the specific month/year
+        closings = DailyClosing.query.filter(
+            db.extract('year', DailyClosing.date) == year,
+            db.extract('month', DailyClosing.date) == month
+        ).all()
+        
+        total_sales = sum(c.adjusted_reading or 0 for c in closings)
+        
         report_data = {
             'month': data.get('month'),
             'year': data.get('year'),
-            'total_sales': 0,
-            'total_orders': 0,
-            'sales': []
+            'total_sales': total_sales,
+            'total_orders': len(closings),
+            'sales': [{
+                'date': c.date.strftime('%Y-%m-%d') if c.date else 'N/A',
+                'amount': c.adjusted_reading or 0,
+                'main_reading': c.main_reading or 0,
+                'dr_smashed': c.dr_smashed or 0
+            } for c in closings]
         }
         
         return jsonify({
@@ -799,11 +1252,18 @@ def expenses_report():
         total_expenses = sum(exp.amount or 0 for exp in expenses)
         unique_receivers = len(set(exp.receiver_id for exp in expenses if exp.receiver_id))
         
+        # Calculate breakdown by receiver
+        receiver_breakdown = {}
+        for exp in expenses:
+            name = exp.receiver.name if exp.receiver else 'N/A'
+            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + (exp.amount or 0)
+        
         report_data = {
             'month': data.get('month'),
             'year': data.get('year'),
             'total_expenses': total_expenses,
             'total_receivers': unique_receivers,
+            'receiver_breakdown': receiver_breakdown,
             'expenses': [{
                 'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
                 'receiver': exp.receiver.name if exp.receiver else 'N/A',
@@ -831,160 +1291,6 @@ def get_module(module_name):
         'data': f'{module_name.title()} module loaded successfully'
     })
 
-@app.route('/api/daily-closing', methods=['POST'])
-@login_required
-def save_daily_closing():
-    """API endpoint for saving daily closing data"""
-    try:
-        from models import DailyClosing, Expenses, AhmadMistrahExpenses, Receivers, Customers, Employees
-        from datetime import datetime
-        
-        data = request.get_json()
-        
-        # Log the received data for debugging
-        app.logger.debug(f"Received daily closing data: {data}")
-        
-        # Parse close date
-        close_date = None
-        if data.get('date'):
-            close_date = datetime.strptime(data.get('date'), '%Y-%m-%d')
-        else:
-            close_date = datetime.utcnow()
-
-        # Create daily closing record
-        daily_closing = DailyClosing(
-            date=close_date,
-            total_expenses=data.get('total_expenses', 0),
-            total_advance=data.get('total_advance', 0),
-            total_credit=data.get('total_credit', 0),
-            total_cashback=data.get('total_cashback', 0),
-            five_percent=data.get('five_percent', 0),
-            total_cashout=data.get('total_cashout', 0),
-            actual_cash=data.get('actual_cash', 0)
-        )
-        
-        db.session.add(daily_closing)
-        db.session.flush()  # Get the ID
-        
-        # Add individual expenses
-        expenses_data = data.get('expenses', [])
-        for expense_data in expenses_data:
-            # Check if receiver exists, if not create it
-            receiver_name = expense_data.get('receiver_name', '')
-            receiver = None
-            if receiver_name:
-                receiver = Receivers.query.filter_by(name=receiver_name).first()
-                if not receiver:
-                    # Create new receiver
-                    receiver = Receivers(
-                        name=receiver_name,
-                        paid_amount=expense_data.get('amount', 0)
-                    )
-                    db.session.add(receiver)
-                    db.session.flush()  # Get the ID
-            
-            expense = Expenses(
-                date=close_date,
-                amount=expense_data.get('amount', 0),
-                note=expense_data.get('note', ''),
-                daily_closing_id=daily_closing.id,
-                receiver_id=receiver.id if receiver else None
-            )
-            db.session.add(expense)
-        
-        # Add Ahmad Mistrah expenses
-        ahmad_expenses_data = data.get('ahmad_mistrah_expenses', [])
-        for ahmad_expense_data in ahmad_expenses_data:
-            ahmad_expense = AhmadMistrahExpenses(
-                date=close_date,
-                amount=ahmad_expense_data.get('amount', 0),
-                note=ahmad_expense_data.get('note', ''),
-                daily_closing_id=daily_closing.id
-            )
-            db.session.add(ahmad_expense)
-        
-        # Handle credits (customers) - subtract from balance
-        credits_data = data.get('credits', [])
-        for credit_data in credits_data:
-            customer_name = credit_data.get('customer_name', '')
-            if customer_name:
-                customer = Customers.query.filter_by(username=customer_name).first()
-                if not customer:
-                    # Create new customer with negative balance (they owe money)
-                    customer = Customers(
-                        username=customer_name,
-                        balance=-credit_data.get('amount', 0),  # Negative balance for credit
-                        phone_number=credit_data.get('phone_number', '')
-                    )
-                    db.session.add(customer)
-                    db.session.flush()
-                else:
-                    # Update existing customer balance (subtract for credit)
-                    customer.balance -= credit_data.get('amount', 0)
-        
-        # Handle cashback (customers) - add to balance
-        cashbacks_data = data.get('cashbacks', [])
-        for cashback_data in cashbacks_data:
-            customer_name = cashback_data.get('customer_name', '')
-            if customer_name:
-                customer = Customers.query.filter_by(username=customer_name).first()
-                if not customer:
-                    # Create new customer with positive balance (they get money back)
-                    customer = Customers(
-                        username=customer_name,
-                        balance=cashback_data.get('amount', 0),  # Positive balance for cashback
-                        phone_number=cashback_data.get('phone_number', '')
-                    )
-                    db.session.add(customer)
-                    db.session.flush()
-                else:
-                    # Update existing customer balance (add for cashback)
-                    customer.balance += cashback_data.get('amount', 0)
-        
-        # Handle advances (employees)
-        advances_data = data.get('advances', [])
-        for advance_data in advances_data:
-            employee_name = advance_data.get('employee_name', '')
-            if employee_name:
-                employee = Employees.query.filter_by(
-                    name=employee_name,
-                    year=close_date.year,
-                    month=close_date.month
-                ).first()
-                if not employee:
-                    # Create new employee record for this month
-                    employee = Employees(
-                        name=employee_name,
-                        phone_number=advance_data.get('phone_number', ''),
-                        position=advance_data.get('position', ''),
-                        year=close_date.year,
-                        month=close_date.month,
-                        base_salary=advance_data.get('base_salary', 0),
-                        working_days=advance_data.get('working_days', 0),
-                        actual_working_days=advance_data.get('actual_working_days', 0),
-                        deductions=advance_data.get('deductions', 0),
-                        advance=advance_data.get('amount', 0),
-                        actual_salary=advance_data.get('actual_salary', 0),
-                        total=advance_data.get('total', 0)
-                    )
-                    db.session.add(employee)
-                    db.session.flush()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Daily closing saved successfully',
-            'id': daily_closing.id
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Error saving daily closing: {e}")
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': 'Failed to save daily closing'
-        }), 500
 
 if __name__ == '__main__':
     # Debug: Print all registered routes
