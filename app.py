@@ -454,6 +454,78 @@ def receivers_view():
         flash('Error loading receivers page', 'error')
         return redirect(url_for('control_panel'))
 
+@app.route('/control-panel/ahmad-expenses')
+@login_required
+def ahmad_expenses_view():
+    """Ahmad expenses list page"""
+    try:
+        from models import AhmadMistrahExpenses, AhmadExpenseReceivers
+        from datetime import datetime
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        query = AhmadMistrahExpenses.query
+        if month and year:
+            query = query.filter(db.extract('year', AhmadMistrahExpenses.date) == year, db.extract('month', AhmadMistrahExpenses.date) == month)
+        elif month:
+            query = query.filter(db.extract('month', AhmadMistrahExpenses.date) == month)
+        elif year:
+            query = query.filter(db.extract('year', AhmadMistrahExpenses.date) == year)
+            
+        expenses = query.all()
+        receivers = AhmadExpenseReceivers.query.all()
+        
+        total = sum(float(e.amount or 0) for e in expenses)
+        max_val = max((float(e.amount or 0) for e in expenses), default=0)
+        receiver_totals = {}
+        for e in expenses:
+            name = e.receiver.name if e.receiver else 'General'
+            receiver_totals[name] = receiver_totals.get(name, 0) + float(e.amount or 0)
+        top_receiver = max(receiver_totals.items(), key=lambda x: x[1], default=('N/A', 0))
+        
+        stats = {'total': total, 'max': max_val, 'count': len(expenses), 'top_receiver': top_receiver[0], 'top_receiver_amount': top_receiver[1]}
+        return render_template('ahmad_expenses.html', expenses=expenses, receivers=receivers, stats=stats)
+    except Exception as e:
+        app.logger.error(f"Error loading Ahmad expenses: {e}")
+        return render_template('ahmad_expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
+
+@app.route('/control-panel/samer-expenses')
+@login_required
+def samer_expenses_view():
+    """Samer expenses list page"""
+    try:
+        from models import SamerExpenses, SamerExpenseReceivers
+        from datetime import datetime
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        query = SamerExpenses.query
+        if month and year:
+            query = query.filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
+        elif month:
+            query = query.filter(db.extract('month', SamerExpenses.date) == month)
+        elif year:
+            query = query.filter(db.extract('year', SamerExpenses.date) == year)
+            
+        expenses = query.all()
+        receivers = SamerExpenseReceivers.query.all()
+        
+        total = sum(float(e.amount or 0) for e in expenses)
+        max_val = max((float(e.amount or 0) for e in expenses), default=0)
+        receiver_totals = {}
+        for e in expenses:
+            name = e.receiver.name if e.receiver else 'General'
+            receiver_totals[name] = receiver_totals.get(name, 0) + float(e.amount or 0)
+        top_receiver = max(receiver_totals.items(), key=lambda x: x[1], default=('N/A', 0))
+        
+        stats = {'total': total, 'max': max_val, 'count': len(expenses), 'top_receiver': top_receiver[0], 'top_receiver_amount': top_receiver[1]}
+        return render_template('samer_expenses.html', expenses=expenses, receivers=receivers, stats=stats)
+    except Exception as e:
+        app.logger.error(f"Error loading Samer expenses: {e}")
+        return render_template('samer_expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
+
 @app.route('/control-panel/deductions-advances')
 @login_required
 def deductions_advances_view():
@@ -565,6 +637,30 @@ def get_customer_suggestions():
         app.logger.error(f"Error fetching customer suggestions: {e}")
         return jsonify([]), 500
 
+@app.route('/api/ahmad-receivers/suggestions')
+@login_required
+def get_ahmad_receiver_suggestions():
+    """Get unique Ahmad receiver names for autocomplete"""
+    try:
+        from models import AhmadExpenseReceivers
+        receivers = AhmadExpenseReceivers.query.with_entities(AhmadExpenseReceivers.name).distinct().all()
+        return jsonify([r[0] for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching Ahmad receiver suggestions: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/samer-receivers/suggestions')
+@login_required
+def get_samer_receiver_suggestions():
+    """Get unique Samer receiver names for autocomplete"""
+    try:
+        from models import SamerExpenseReceivers
+        receivers = SamerExpenseReceivers.query.with_entities(SamerExpenseReceivers.name).distinct().all()
+        return jsonify([r[0] for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching Samer receiver suggestions: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/receivers')
 @login_required
 def get_receivers():
@@ -588,7 +684,7 @@ def get_receivers():
 def daily_closing_api():
     """Process daily closing data"""
     try:
-        from models import DailyClosing, Expenses, AhmadMistrahExpenses, Receivers, Customers, Employees, Advances, Credits, Cashbacks
+        from models import DailyClosing, Expenses, AhmadMistrahExpenses, SamerExpenses, AhmadExpenseReceivers, SamerExpenseReceivers, Receivers, Customers, Employees, Advances, Credits, Cashbacks
         from datetime import datetime
         
         data = request.get_json()
@@ -710,7 +806,7 @@ def daily_closing_api():
                     customer_id=customer.id
                 )
                 db.session.add(credit)
-                customer.balance = safe_float(customer.balance or 0) + amount
+                customer.balance = safe_float(customer.balance or 0) - amount
         
         # Process Cashbacks
         for cb_data in data.get('cashbacks', []):
@@ -731,17 +827,37 @@ def daily_closing_api():
                     customer_id=customer.id
                 )
                 db.session.add(cashback)
-                customer.balance = safe_float(customer.balance or 0) - amount
+                customer.balance = safe_float(customer.balance or 0) + amount
                 
-        # Process Samer's (Ahmad Mistrah) Expenses
-        for samer_exp in data.get('ahmad_mistrah_expenses', []):
-            sm_expense = AhmadMistrahExpenses(
+        # Process Ahmad's Expenses (Single field from Daily Close)
+        ahmad_amount = safe_float(data.get('ahmad_expenses', 0))
+        if ahmad_amount > 0:
+            # Check for a default receiver if none specified, for now just creating the expense
+            ahmad_exp = AhmadMistrahExpenses(
                 date=close_date,
-                amount=safe_float(samer_exp.get('amount', 0)),
-                note=samer_exp.get('note', ''),
+                amount=ahmad_amount,
+                note="From Daily Close",
                 daily_closing_id=daily_close.id
             )
-            db.session.add(sm_expense)
+            db.session.add(ahmad_exp)
+
+        # Process Samer's Expenses (List from Daily Close)
+        for samer_exp_data in data.get('samer_expenses', []):
+            rc_name = samer_exp_data.get('receiver_name') or samer_exp_data.get('description')
+            rc = SamerExpenseReceivers.query.filter_by(name=rc_name).first()
+            if not rc and rc_name:
+                rc = SamerExpenseReceivers(name=rc_name)
+                db.session.add(rc)
+                db.session.flush()
+            
+            s_expense = SamerExpenses(
+                date=close_date,
+                amount=safe_float(samer_exp_data.get('amount', 0)),
+                note=samer_exp_data.get('note', '') or samer_exp_data.get('description', ''),
+                daily_closing_id=daily_close.id,
+                receiver_id=rc.id if rc else None
+            )
+            db.session.add(s_expense)
             
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'Daily close processed successfully'})
@@ -1148,6 +1264,188 @@ def delete_expense(expense_id):
         db.session.rollback()
         return jsonify({'error': 'Failed to delete expense'}), 500
 
+# Ahmad Expenses API
+@app.route('/api/ahmad-expenses', methods=['GET', 'POST'])
+@login_required
+def ahmad_expenses_api():
+    from models import AhmadMistrahExpenses, AhmadExpenseReceivers
+    from datetime import datetime
+    
+    if request.method == 'GET':
+        try:
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            query = AhmadMistrahExpenses.query
+            if start_date:
+                query = query.filter(AhmadMistrahExpenses.date >= datetime.strptime(start_date, '%Y-%m-%d'))
+            if end_date:
+                query = query.filter(AhmadMistrahExpenses.date <= datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+            
+            expenses = query.all()
+            return jsonify({
+                'status': 'success',
+                'expenses': [{
+                    'id': e.id,
+                    'date': e.date.strftime('%Y-%m-%d'),
+                    'amount': float(e.amount),
+                    'note': e.note,
+                    'receiver_name': e.receiver.name if e.receiver else 'General'
+                } for e in expenses],
+                'total': sum(float(e.amount) for e in expenses)
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            receiver_id = data.get('receiver_id')
+            
+            # Strict validation: Receiver must exist
+            receiver = AhmadExpenseReceivers.query.get(receiver_id) if receiver_id else None
+            if not receiver:
+                return jsonify({'error': 'Valid receiver is required'}), 400
+
+            expense = AhmadMistrahExpenses(
+                date=datetime.strptime(data.get('date'), '%Y-%m-%d') if data.get('date') else datetime.now(UTC),
+                amount=safe_float(data.get('amount')),
+                note=data.get('note'),
+                daily_closing_id=data.get('daily_closing_id'),
+                receiver_id=receiver.id
+            )
+            db.session.add(expense)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Expense added'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ahmad-expenses/<int:expense_id>', methods=['PUT', 'DELETE'])
+@login_required
+def ahmad_expense_detail(expense_id):
+    from models import AhmadMistrahExpenses, AhmadExpenseReceivers
+    expense = AhmadMistrahExpenses.query.get_or_404(expense_id)
+    
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            receiver_id = data.get('receiver_id')
+            if receiver_id:
+                receiver = AhmadExpenseReceivers.query.get(receiver_id)
+                if not receiver:
+                    return jsonify({'error': 'Invalid receiver ID'}), 400
+                expense.receiver_id = receiver.id
+            
+            expense.amount = safe_float(data.get('amount', float(expense.amount)))
+            expense.note = data.get('note', expense.note)
+            if 'date' in data:
+                expense.date = datetime.strptime(data['date'], '%Y-%m-%d')
+            db.session.commit()
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'DELETE':
+        try:
+            db.session.delete(expense)
+            db.session.commit()
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+# Samer Expenses API
+@app.route('/api/samer-expenses', methods=['GET', 'POST'])
+@login_required
+def samer_expenses_api():
+    from models import SamerExpenses, SamerExpenseReceivers
+    from datetime import datetime
+    
+    if request.method == 'GET':
+        try:
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            query = SamerExpenses.query
+            if start_date:
+                query = query.filter(SamerExpenses.date >= datetime.strptime(start_date, '%Y-%m-%d'))
+            if end_date:
+                query = query.filter(SamerExpenses.date <= datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+            
+            expenses = query.all()
+            return jsonify({
+                'status': 'success',
+                'expenses': [{
+                    'id': e.id,
+                    'date': e.date.strftime('%Y-%m-%d'),
+                    'amount': float(e.amount),
+                    'note': e.note,
+                    'receiver_name': e.receiver.name if e.receiver else 'General'
+                } for e in expenses],
+                'total': sum(float(e.amount) for e in expenses)
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            receiver_id = data.get('receiver_id')
+            
+            # Strict validation: Receiver must exist
+            receiver = SamerExpenseReceivers.query.get(receiver_id) if receiver_id else None
+            if not receiver:
+                return jsonify({'error': 'Valid receiver is required'}), 400
+
+            expense = SamerExpenses(
+                date=datetime.strptime(data.get('date'), '%Y-%m-%d') if data.get('date') else datetime.now(UTC),
+                amount=safe_float(data.get('amount')),
+                note=data.get('note'),
+                daily_closing_id=data.get('daily_closing_id'),
+                receiver_id=receiver.id
+            )
+            db.session.add(expense)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Expense added'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/samer-expenses/<int:expense_id>', methods=['PUT', 'DELETE'])
+@login_required
+def samer_expense_detail(expense_id):
+    from models import SamerExpenses, SamerExpenseReceivers
+    expense = SamerExpenses.query.get_or_404(expense_id)
+    
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            receiver_id = data.get('receiver_id')
+            if receiver_id:
+                receiver = SamerExpenseReceivers.query.get(receiver_id)
+                if not receiver:
+                    return jsonify({'error': 'Invalid receiver ID'}), 400
+                expense.receiver_id = receiver.id
+            
+            expense.amount = safe_float(data.get('amount', float(expense.amount)))
+            expense.note = data.get('note', expense.note)
+            if 'date' in data:
+                expense.date = datetime.strptime(data['date'], '%Y-%m-%d')
+            db.session.commit()
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'DELETE':
+        try:
+            db.session.delete(expense)
+            db.session.commit()
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
 # Report API Routes
 @app.route('/api/reports/sales', methods=['POST'])
 @login_required
@@ -1234,42 +1532,93 @@ def payroll_report():
 @app.route('/api/reports/expenses', methods=['POST'])
 @login_required
 def expenses_report():
-    """Generate expenses report for month/year"""
+    """Generate expenses report for a date range or month/year"""
     try:
-        from datetime import datetime
-        from models import Expenses, Receivers
+        from datetime import datetime, timedelta
+        from models import Expenses, AhmadMistrahExpenses, SamerExpenses, Receivers
         data = request.get_json()
-        month = int(data.get('month'))
-        year = int(data.get('year'))
         
-        # Get expenses for the specific month/year
-        # Filter expenses by month and year
-        expenses = Expenses.query.filter(
-            db.extract('year', Expenses.date) == year,
-            db.extract('month', Expenses.date) == month
-        ).all()
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
         
-        total_expenses = sum(exp.amount or 0 for exp in expenses)
-        unique_receivers = len(set(exp.receiver_id for exp in expenses if exp.receiver_id))
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            # Set end_date to end of day for inclusive datetime filtering
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+        else:
+            month = int(data.get('month', datetime.now(UTC).month))
+            year = int(data.get('year', datetime.now(UTC).year))
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+            else:
+                end_date = datetime(year, month + 1, 1) - timedelta(seconds=1)
         
-        # Calculate breakdown by receiver
+        # Helper to extract and format expenses within date range
+        def get_formatted_expenses(model, start, end):
+            return model.query.filter(model.date >= start, model.date <= end).all()
+
+        general_expenses = get_formatted_expenses(Expenses, start_date, end_date)
+        ahmad_expenses = get_formatted_expenses(AhmadMistrahExpenses, start_date, end_date)
+        samer_expenses = get_formatted_expenses(SamerExpenses, start_date, end_date)
+        
+        total_gen = sum(float(e.amount or 0) for e in general_expenses)
+        total_ahmad = sum(float(e.amount or 0) for e in ahmad_expenses)
+        total_samer = sum(float(e.amount or 0) for e in samer_expenses)
+        
+        # Calculate breakdown by receiver for all types
         receiver_breakdown = {}
-        for exp in expenses:
-            name = exp.receiver.name if exp.receiver else 'N/A'
-            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + (exp.amount or 0)
+        unique_receivers = set()
+        
+        all_expenses_list = []
+        for exp in general_expenses:
+            name = exp.receiver.name if exp.receiver else 'General Expenses'
+            if exp.receiver_id: unique_receivers.add(f"gen_{exp.receiver_id}")
+            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
+            all_expenses_list.append({
+                'type': 'General',
+                'date': exp.date.strftime('%Y-%m-%d'),
+                'receiver': name,
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+            
+        for exp in ahmad_expenses:
+            name = exp.receiver.name if exp.receiver else 'Ahmad General'
+            if exp.receiver_id: unique_receivers.add(f"ahmad_{exp.receiver_id}")
+            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
+            all_expenses_list.append({
+                'type': 'Ahmad',
+                'date': exp.date.strftime('%Y-%m-%d'),
+                'receiver': name,
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+
+        for exp in samer_expenses:
+            name = exp.receiver.name if exp.receiver else 'Samer General'
+            if exp.receiver_id: unique_receivers.add(f"samer_{exp.receiver_id}")
+            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
+            all_expenses_list.append({
+                'type': 'Samer',
+                'date': exp.date.strftime('%Y-%m-%d'),
+                'receiver': name,
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
         
         report_data = {
-            'month': data.get('month'),
-            'year': data.get('year'),
-            'total_expenses': total_expenses,
-            'total_receivers': unique_receivers,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+            'total_expenses': total_gen + total_ahmad + total_samer,
+            'total_receivers': len(unique_receivers),
+            'breakdown': {
+                'general': total_gen,
+                'ahmad': total_ahmad,
+                'samer': total_samer
+            },
             'receiver_breakdown': receiver_breakdown,
-            'expenses': [{
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'N/A',
-                'amount': exp.amount or 0,
-                'note': exp.note or 'N/A'
-            } for exp in expenses]
+            'expenses': all_expenses_list
         }
         
         return jsonify({
@@ -1278,7 +1627,7 @@ def expenses_report():
         })
     except Exception as e:
         app.logger.error(f"Error generating expenses report: {e}")
-        return jsonify({'error': 'Failed to generate expenses report'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/modules/<module_name>')
 @login_required

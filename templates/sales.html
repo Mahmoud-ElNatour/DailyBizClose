@@ -141,6 +141,7 @@
                                         <th>Advances</th>
                                         <th>Credits</th>
                                         <th>Cashback</th>
+                                        <th>Deductions</th>
                                         <th>5% Fee</th>
                                         <th>Actual Cash</th>
                                         <th class="text-end">Actions</th>
@@ -154,8 +155,12 @@
                                         <td>${{ "%.2f"|format(closing.total_advance) }}</td>
                                         <td>${{ "%.2f"|format(closing.total_credit) }}</td>
                                         <td>${{ "%.2f"|format(closing.total_cashback) }}</td>
+                                        <td>${{ "%.2f"|format(closing.total_deductions or 0) }}</td>
                                         <td>${{ "%.2f"|format(closing.five_percent) }}</td>
-                                        <td class="fw-bold text-success">${{ "%.2f"|format(closing.actual_cash) }}</td>
+                                        <td
+                                            class="fw-bold {{ 'text-danger' if (closing.actual_cash or 0) < 0 else '' }}">
+                                            ${{ "%.2f"|format(closing.actual_cash or 0) }}
+                                        </td>
                                         <td class="text-end">
                                             <button class="btn btn-sm btn-outline-info" title="View Details">
                                                 <i class="fas fa-eye"></i>

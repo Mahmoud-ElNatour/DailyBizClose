@@ -30,6 +30,7 @@ class DailyClosing(db.Model):
     # Relationships
     expenses = db.relationship('Expenses', backref='daily_closing', cascade='all, delete-orphan')
     ahmad_mistrah_expenses = db.relationship('AhmadMistrahExpenses', backref='daily_closing', cascade='all, delete-orphan')
+    samer_expenses = db.relationship('SamerExpenses', backref='daily_closing', cascade='all, delete-orphan')
     advances = db.relationship('Advances', backref='daily_closing', cascade='all, delete-orphan')
     credits = db.relationship('Credits', backref='daily_closing', cascade='all, delete-orphan')
     cashbacks = db.relationship('Cashbacks', backref='daily_closing', cascade='all, delete-orphan')
@@ -58,12 +59,55 @@ class AhmadMistrahExpenses(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(18, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('ahmad_expense_receivers.id'), nullable=True)
     
     def __repr__(self):
         return f'<AhmadMistrahExpenses {self.amount} on {self.date.strftime("%Y-%m-%d")}>'
+
+class AhmadExpenseReceivers(db.Model):
+    """Recipients of Ahmad's expenses"""
+    __tablename__ = 'ahmad_expense_receivers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    paid_amount = db.Column(db.Numeric(18, 2), nullable=False, default=0.0)
+    
+    # Relationships
+    expenses = db.relationship('AhmadMistrahExpenses', backref='receiver')
+    
+    def __repr__(self):
+        return f'<AhmadExpenseReceivers {self.name}>'
+
+class SamerExpenses(db.Model):
+    """Samer expenses records"""
+    __tablename__ = 'samer_expenses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    note = db.Column(db.String(500))
+    daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('samer_expense_receivers.id'), nullable=True)
+    
+    def __repr__(self):
+        return f'<SamerExpenses {self.amount} on {self.date.strftime("%Y-%m-%d")}>'
+
+class SamerExpenseReceivers(db.Model):
+    """Recipients of Samer's expenses"""
+    __tablename__ = 'samer_expense_receivers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    paid_amount = db.Column(db.Numeric(18, 2), nullable=False, default=0.0)
+    
+    # Relationships
+    expenses = db.relationship('SamerExpenses', backref='receiver')
+    
+    def __repr__(self):
+        return f'<SamerExpenseReceivers {self.name}>'
 
 class Receivers(db.Model):
     """Recipients of payments/expenses"""

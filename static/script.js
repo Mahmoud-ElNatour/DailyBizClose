@@ -379,6 +379,7 @@ const DailyCloseApp = {
 
     // Submit daily close form
     async submitDailyClose() {
+        const submitBtn = document.getElementById('submitCloseBtn');
         try {
             const closeDate = document.getElementById('closeDate')?.value;
 
@@ -432,12 +433,13 @@ const DailyCloseApp = {
                 deductions: deductions,
                 credits: credits,
                 cashbacks: cashbacks,
-                ahmad_mistrah_expenses: samer_expenses
+                samer_expenses: samer_expenses,
+                ahmad_expenses: basicInputs.ahmad_expenses
             };
 
             // Validation: Ensure main reading is provided
             if (!(formData.main_reading > 0)) {
-                showAlert('Main Reading is mandatory. Please enter the current counter value.', 'warning');
+                this.showStatusMessage('Main Reading is mandatory. Please enter the current counter value.', 'warning');
                 return;
             }
 
@@ -448,34 +450,44 @@ const DailyCloseApp = {
                 formData.deductions.length > 0 ||
                 formData.credits.length > 0 ||
                 formData.cashbacks.length > 0 ||
-                formData.ahmad_mistrah_expenses.length > 0;
+                formData.ahmad_expenses > 0 ||
+                formData.samer_expenses.length > 0;
 
             if (!hasData) {
-                showAlert('Cannot submit an empty daily close. Please enter at least one value.', 'warning');
+                this.showStatusMessage('Cannot submit an empty daily close. Please enter at least one value.', 'warning');
                 return;
+            }
+
+            // Disable submit button to prevent duplicate submissions
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
             }
 
             this.showStatusMessage('Saving daily close data...', 'info');
 
             const response = await fetch('/api/daily-closing', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                this.showStatusMessage('Daily close saved successfully', 'success');
+                this.showStatusMessage('Daily close saved successfully!', 'success');
                 this.clearDailyCloseForm();
             } else {
-                this.showStatusMessage('Error saving daily close: ' + (data.message || 'Unknown error'), 'danger');
+                this.showStatusMessage('Error saving daily close: ' + (data.message || data.error || 'Unknown error'), 'danger');
             }
         } catch (error) {
             console.error('Error submitting daily close:', error);
-            this.showStatusMessage('Error saving daily close', 'danger');
+            this.showStatusMessage('Error saving daily close: ' + error.message, 'danger');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Daily Close';
+            }
         }
     },
 
