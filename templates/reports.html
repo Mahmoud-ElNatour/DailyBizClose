@@ -1,701 +1,694 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% block title %}Reports - DailyBizClose{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - Business Daily Close System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-    <style>
-        @media print {
+{% block extra_head %}
+<style>
+    @media print {
 
-            .navbar,
-            .btn,
-            .card-header,
-            form,
-            .text-muted,
-            h2.display-6 {
-                display: none !important;
-            }
+        #main-spacer,
+        .btn,
+        .card-header,
+        form,
+        .text-muted,
+        h2,
+        p {
+            display: none !important;
+        }
 
-            .container-fluid {
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
 
-            .card {
-                border: none !important;
-                box-shadow: none !important;
-            }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
 
-            .card-body {
-                padding: 0 !important;
-            }
+        .card-body {
+            padding: 0 !important;
+        }
 
-            .table-responsive {
-                overflow: visible !important;
-            }
+        .table-responsive {
+            overflow: visible !important;
+        }
 
-            h4 {
-                margin-top: 20px;
-                border-bottom: 2px solid #333;
-                padding-bottom: 10px;
-            }
-
-            .print-header {
-                display: block !important;
-                text-align: center;
-                margin-bottom: 30px;
-            }
-
-            .print-only {
-                display: block !important;
-            }
+        h4 {
+            margin-top: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
         }
 
         .print-header {
-            display: none;
+            display: block !important;
+            text-align: center;
+            margin-bottom: 30px;
         }
 
         .print-only {
-            display: none;
+            display: block !important;
         }
-    </style>
-</head>
+    }
 
-<body>
-    <!-- Header -->
-    <header class="navbar navbar-expand-lg sticky-top" id="main-header">
-        <div class="container-fluid">
-            <!-- Left Navigation -->
-            <div class="navbar-nav flex-row">
-                <a class="nav-link me-3" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-1"></i>Home
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('control_panel') }}">
-                    <i class="fas fa-cogs me-1"></i>Control Panel
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('daily_close') }}">
-                    <i class="fas fa-calculator me-1"></i>Daily Close
-                </a>
-            </div>
+    .print-header {
+        display: none;
+    }
 
-            <!-- Right Profile Dropdown -->
-            <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+    .print-only {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Reports & Analytics</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Business insights and performance metrics.</p>
+    </div>
+    <div class="flex gap-3 w-full md:w-auto pb-4">
+        <button onclick="exportCurrentReport()"
+            class="flex-1 md:flex-none inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">download</span>
+            Export
+        </button>
+        <button onclick="window.print()"
+            class="flex-1 md:flex-none inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30">
+            <span class="material-symbols-outlined text-sm">print</span>
+            Print
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-primary text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">calendar_today</span>
+        </div>
+        <div class="relative z-10">
+            <h4 class="text-3xl font-bold mb-1">{{ total_daily_closings or 0 }}</h4>
+            <p class="text-sm font-medium text-primary-100 uppercase tracking-wider">Daily Closings</p>
+        </div>
+    </div>
+
+    <div class="bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">receipt_long</span>
+        </div>
+        <div class="relative z-10">
+            <h4 class="text-3xl font-bold mb-1">{{ total_expenses or 0 }}</h4>
+            <p class="text-sm font-medium text-emerald-100 uppercase tracking-wider">Total Expenses</p>
+        </div>
+    </div>
+
+    <div class="bg-indigo-500 dark:bg-indigo-600 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">group</span>
+        </div>
+        <div class="relative z-10">
+            <h4 class="text-3xl font-bold mb-1">{{ total_customers or 0 }}</h4>
+            <p class="text-sm font-medium text-indigo-100 uppercase tracking-wider">Customers</p>
+        </div>
+    </div>
+
+    <div class="bg-amber-500 dark:bg-amber-600 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">badge</span>
+        </div>
+        <div class="relative z-10">
+            <h4 class="text-3xl font-bold mb-1">{{ total_employees or 0 }}</h4>
+            <p class="text-sm font-medium text-amber-100 uppercase tracking-wider">Employees</p>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Reports -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Sales Report -->
+    <div
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+        <div
+            class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">shopping_cart</span>
+            <h5 class="font-bold text-slate-900 dark:text-white m-0">Sales Report</h5>
+        </div>
+        <div class="p-6 flex-1">
+            <form id="salesReportForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>
+                    <select name="month" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Year</label>
+                    <select name="year" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Year</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <button type="submit"
+                    class="w-full inline-flex justify-center items-center gap-2 px-4 py-2 mt-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    Generate Sales Report
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
-                                class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
-                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payroll Report -->
+    <div
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+        <div
+            class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <span class="material-symbols-outlined text-emerald-500">payments</span>
+            <h5 class="font-bold text-slate-900 dark:text-white m-0">Payroll Report</h5>
+        </div>
+        <div class="p-6 flex-1">
+            <form id="payrollReportForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>
+                    <select name="month" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Year</label>
+                    <select name="year" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Year</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <button type="submit"
+                    class="w-full inline-flex justify-center items-center gap-2 px-4 py-2 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-emerald-600/30">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    Generate Payroll Report
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Expenses Report -->
+    <div
+        class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+        <div
+            class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500">receipt_long</span>
+            <h5 class="font-bold text-slate-900 dark:text-white m-0">Expenses Report</h5>
+        </div>
+        <div class="p-6 flex-1">
+            <form id="expensesReportForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>
+                    <select name="month" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Year</label>
+                    <select name="year" required
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+                        <option value="">Select Year</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <button type="submit"
+                    class="w-full inline-flex justify-center items-center gap-2 px-4 py-2 mt-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-amber-500/30">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    Generate Expenses Report
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Report Results -->
+<div
+    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mb-6">
+    <div
+        class="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-slate-500">table_chart</span>
+        <h5 class="font-bold text-slate-900 dark:text-white m-0">Report Results</h5>
+    </div>
+    <div class="p-6">
+        <div id="reportResults">
+            <div class="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+                <span
+                    class="material-symbols-outlined text-5xl mb-4 text-slate-300 dark:text-slate-600">bar_chart</span>
+                <p class="text-base font-medium">Select a report type and date range to generate results</p>
             </div>
         </div>
-    </header>
+    </div>
+</div>
+{% endblock %}
 
-    <!-- Main Content -->
-    <main class="container-fluid mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-11">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
-                    role="alert">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
+{% block extra_scripts %}
+<script>
+    // Sales Report Form Handler
+    document.getElementById('salesReportForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
 
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="display-6">Reports & Analytics</h2>
-                        <p class="text-muted">Business insights and performance metrics</p>
-                    </div>
-                    <div>
-                        <button class="btn btn-outline-primary me-2">
-                            <i class="fas fa-download me-2"></i>Export
-                        </button>
-                        <button class="btn btn-primary" onclick="window.print()">
-                            <i class="fas fa-print me-2"></i>Print
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="row g-4 mb-4">
-                    <div class="col-lg-3 col-md-6">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4 class="card-title">{{ total_daily_closings or 0 }}</h4>
-                                        <p class="card-text">Daily Closings</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-calendar fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="card bg-success text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4 class="card-title">{{ total_expenses or 0 }}</h4>
-                                        <p class="card-text">Total Expenses</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-receipt fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="card bg-info text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4 class="card-title">{{ total_customers or 0 }}</h4>
-                                        <p class="card-text">Customers</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-user-friends fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <div class="card bg-warning text-white">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <h4 class="card-title">{{ total_employees or 0 }}</h4>
-                                        <p class="card-text">Employees</p>
-                                    </div>
-                                    <div class="align-self-center">
-                                        <i class="fas fa-users fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Date Range Reports -->
-                <div class="row g-4 mb-4">
-                    <!-- Sales Report -->
-                    <div class="col-lg-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-shopping-cart me-2"></i>Sales Report
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="salesReportForm">
-                                    <div class="mb-3">
-                                        <label class="form-label">Month</label>
-                                        <select class="form-control" name="month" required>
-                                            <option value="">Select Month</option>
-                                            <option value="1">January</option>
-                                            <option value="2">February</option>
-                                            <option value="3">March</option>
-                                            <option value="4">April</option>
-                                            <option value="5">May</option>
-                                            <option value="6">June</option>
-                                            <option value="7">July</option>
-                                            <option value="8">August</option>
-                                            <option value="9">September</option>
-                                            <option value="10">October</option>
-                                            <option value="11">November</option>
-                                            <option value="12">December</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Year</label>
-                                        <select class="form-control" name="year" required>
-                                            <option value="">Select Year</option>
-                                            <option value="2023">2023</option>
-                                            <option value="2024">2024</option>
-                                            <option value="2025">2025</option>
-                                            <option value="2026">2026</option>
-                                            <option value="2027">2027</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-download me-2"></i>Generate Sales Report
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payroll Report -->
-                    <div class="col-lg-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-money-check-alt me-2"></i>Payroll Report
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="payrollReportForm">
-                                    <div class="mb-3">
-                                        <label class="form-label">Month</label>
-                                        <select class="form-control" name="month" required>
-                                            <option value="">Select Month</option>
-                                            <option value="1">January</option>
-                                            <option value="2">February</option>
-                                            <option value="3">March</option>
-                                            <option value="4">April</option>
-                                            <option value="5">May</option>
-                                            <option value="6">June</option>
-                                            <option value="7">July</option>
-                                            <option value="8">August</option>
-                                            <option value="9">September</option>
-                                            <option value="10">October</option>
-                                            <option value="11">November</option>
-                                            <option value="12">December</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Year</label>
-                                        <select class="form-control" name="year" required>
-                                            <option value="">Select Year</option>
-                                            <option value="2023">2023</option>
-                                            <option value="2024">2024</option>
-                                            <option value="2025">2025</option>
-                                            <option value="2026">2026</option>
-                                            <option value="2027">2027</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-success w-100">
-                                        <i class="fas fa-download me-2"></i>Generate Payroll Report
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Expenses Report -->
-                    <div class="col-lg-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-receipt me-2"></i>Expenses Report
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <form id="expensesReportForm">
-                                    <div class="mb-3">
-                                        <label class="form-label">Month</label>
-                                        <select class="form-control" name="month" required>
-                                            <option value="">Select Month</option>
-                                            <option value="1">January</option>
-                                            <option value="2">February</option>
-                                            <option value="3">March</option>
-                                            <option value="4">April</option>
-                                            <option value="5">May</option>
-                                            <option value="6">June</option>
-                                            <option value="7">July</option>
-                                            <option value="8">August</option>
-                                            <option value="9">September</option>
-                                            <option value="10">October</option>
-                                            <option value="11">November</option>
-                                            <option value="12">December</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Year</label>
-                                        <select class="form-control" name="year" required>
-                                            <option value="">Select Year</option>
-                                            <option value="2023">2023</option>
-                                            <option value="2024">2024</option>
-                                            <option value="2025">2025</option>
-                                            <option value="2026">2026</option>
-                                            <option value="2027">2027</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-warning w-100">
-                                        <i class="fas fa-download me-2"></i>Generate Expenses Report
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Report Results -->
-                <div class="row g-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-table me-2"></i>Report Results
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="reportResults">
-                                    <div class="text-center py-5">
-                                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
-                                        <p class="text-muted">Select a report type and date range to generate results
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        // Sales Report Form Handler
-        document.getElementById('salesReportForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
-
-            // Validate month and year selection
-            if (!data.month || !data.year) {
-                showAlert('Please select both month and year');
-                return;
-            }
-
-            fetch('/api/reports/sales', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        displayReportResults('sales', data.data);
-                    } else {
-                        showAlert('Error generating sales report: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error generating sales report');
-                });
-        });
-
-        // Payroll Report Form Handler
-        document.getElementById('payrollReportForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
-
-            // Validate month and year selection
-            if (!data.month || !data.year) {
-                showAlert('Please select both month and year');
-                return;
-            }
-
-            fetch('/api/reports/payroll', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        displayReportResults('payroll', data.data);
-                    } else {
-                        showAlert('Error generating payroll report: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error generating payroll report');
-                });
-        });
-
-        // Expenses Report Form Handler
-        document.getElementById('expensesReportForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
-
-            // Validate month and year selection
-            if (!data.month || !data.year) {
-                showAlert('Please select both month and year');
-                return;
-            }
-
-            fetch('/api/reports/expenses', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        displayReportResults('expenses', data.data);
-                    } else {
-                        showAlert('Error generating expenses report: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error generating expenses report');
-                });
-        });
-
-        function displayReportResults(type, data) {
-            const resultsDiv = document.getElementById('reportResults');
-
-            if (type === 'sales') {
-                const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-                const monthName = monthNames[parseInt(data.month)];
-                resultsDiv.innerHTML = `
-                    <div class="print-header">
-                        <h2>Misk Beirut - Sales Report</h2>
-                        <p>${monthName} ${data.year}</p>
-                    </div>
-                    <h4>Sales Report (${monthName} ${data.year})</h4>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-primary text-white h-100">
-                                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4">
-                                    <h5 class="mb-0">Total Sales</h5>
-                                    <h2 class="display-4 fw-bold">$${(data.total_sales || 0).toLocaleString()}</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-success text-white h-100">
-                                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4">
-                                    <h5 class="mb-0">Total Days Closed</h5>
-                                    <h2 class="display-4 fw-bold">${data.total_orders || 0}</h2>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <h5>Sales Details</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover mt-2">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Main Reading</th>
-                                        <th>Dr Smashed</th>
-                                        <th class="text-end">Net Sales</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.sales ? data.sales.map(sale => `
-                                        <tr>
-                                            <td>${sale.date}</td>
-                                            <td>$${(sale.main_reading || 0).toLocaleString()}</td>
-                                            <td>$${(sale.dr_smashed || 0).toLocaleString()}</td>
-                                            <td class="text-end fw-bold">$${(sale.amount || 0).toLocaleString()}</td>
-                                        </tr>
-                                    `).join('') : '<tr><td colspan="4" class="text-center">No sales data found</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'payroll') {
-                const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-                const monthName = monthNames[parseInt(data.month)];
-                resultsDiv.innerHTML = `
-                    <h4>Payroll Report (${monthName} ${data.year})</h4>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h5>Total Payroll</h5>
-                                    <h3>$${data.total_payroll || 0}</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body">
-                                    <h5>Total Employees</h5>
-                                    <h3>${data.total_employees || 0}</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-danger text-white">
-                                <div class="card-body">
-                                    <h5>Total Deductions</h5>
-                                    <h3>$${data.total_deductions || 0}</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <h5>Payroll Details</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Employee</th>
-                                        <th>Position</th>
-                                        <th>Base Salary</th>
-                                        <th>Advance</th>
-                                        <th>Deductions</th>
-                                        <th>Actual Salary</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.employees ? data.employees.map(emp => `
-                                        <tr>
-                                            <td>${emp.name}</td>
-                                            <td>${emp.position || 'N/A'}</td>
-                                            <td>$${emp.base_salary}</td>
-                                            <td>$${emp.advance}</td>
-                                            <td>$${emp.deductions}</td>
-                                            <td>$${emp.actual_salary}</td>
-                                            <td>$${emp.total}</td>
-                                        </tr>
-                                    `).join('') : '<tr><td colspan="7" class="text-center">No payroll data found</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'expenses') {
-                const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-                const monthName = monthNames[parseInt(data.month)];
-                resultsDiv.innerHTML = `
-                    <div class="print-header">
-                        <h2>Misk Beirut - Expenses Report</h2>
-                        <p>${monthName} ${data.year}</p>
-                    </div>
-                    <h4>Expenses Report (${monthName} ${data.year})</h4>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-danger text-white h-100">
-                                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4">
-                                    <h5 class="mb-0">Total Expenses</h5>
-                                    <h2 class="display-4 fw-bold">$${(data.total_expenses || 0).toLocaleString()}</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-info text-white h-100">
-                                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4">
-                                    <h5 class="mb-0">Total Receivers</h5>
-                                    <h2 class="display-4 fw-bold">${data.total_receivers || 0}</h2>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <h5>Breakdown by Receiver</h5>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered mt-2">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Receiver</th>
-                                            <th class="text-end">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${Object.entries(data.receiver_breakdown || {}).sort((a, b) => b[1] - a[1]).map(([name, amount]) => `
-                                            <tr>
-                                                <td>${name}</td>
-                                                <td class="text-end fw-bold">$${amount.toLocaleString()}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <h5>Individual Expenses</h5>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover mt-2">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Receiver</th>
-                                        <th>Amount</th>
-                                        <th>Note</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.expenses ? data.expenses.map(expense => `
-                                        <tr>
-                                            <td>${expense.date}</td>
-                                            <td>${expense.receiver || 'N/A'}</td>
-                                            <td>$${(expense.amount || 0).toLocaleString()}</td>
-                                            <td>${expense.note || 'N/A'}</td>
-                                        </tr>
-                                    `).join('') : '<tr><td colspan="4" class="text-center">No expenses data found</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
+        // Validate month and year selection
+        if (!data.month || !data.year) {
+            if (typeof showAlert === 'function') showAlert('Please select both month and year', 'error');
+            else alert('Please select both month and year');
+            return;
         }
 
-        // Set current month and year as default for all report forms
-        document.addEventListener('DOMContentLoaded', function () {
-            const currentDate = new Date();
-            const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
-            const currentYear = currentDate.getFullYear();
-
-            // Set default values for all report forms
-            const forms = ['#payrollReportForm', '#salesReportForm', '#expensesReportForm'];
-
-            forms.forEach(formId => {
-                const monthSelect = document.querySelector(`${formId} select[name="month"]`);
-                const yearSelect = document.querySelector(`${formId} select[name="year"]`);
-
-                if (monthSelect) {
-                    monthSelect.value = currentMonth;
+        fetch('/api/reports/sales', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayReportResults('sales', data.data);
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error generating sales report: ' + data.message, 'error');
+                    else alert('Error generating sales report: ' + data.message);
                 }
-                if (yearSelect) {
-                    yearSelect.value = currentYear;
-                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error generating sales report', 'error');
+                else alert('Error generating sales report');
             });
-        });
-    </script>
-</body>
+    });
 
-</html>
+    // Payroll Report Form Handler
+    document.getElementById('payrollReportForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        // Validate month and year selection
+        if (!data.month || !data.year) {
+            if (typeof showAlert === 'function') showAlert('Please select both month and year', 'error');
+            else alert('Please select both month and year');
+            return;
+        }
+
+        fetch('/api/reports/payroll', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayReportResults('payroll', data.data);
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error generating payroll report: ' + data.message, 'error');
+                    else alert('Error generating payroll report: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error generating payroll report', 'error');
+                else alert('Error generating payroll report');
+            });
+    });
+
+    // Expenses Report Form Handler
+    document.getElementById('expensesReportForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        // Validate month and year selection
+        if (!data.month || !data.year) {
+            if (typeof showAlert === 'function') showAlert('Please select both month and year', 'error');
+            else alert('Please select both month and year');
+            return;
+        }
+
+        fetch('/api/reports/expenses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayReportResults('expenses', data.data);
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error generating expenses report: ' + data.message, 'error');
+                    else alert('Error generating expenses report: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error generating expenses report', 'error');
+                else alert('Error generating expenses report');
+            });
+    });
+
+    let currentReportState = null;
+
+    function displayReportResults(type, data) {
+        currentReportState = { type: type, data: data };
+        const resultsDiv = document.getElementById('reportResults');
+
+        if (type === 'sales') {
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(data.month)];
+            resultsDiv.innerHTML = `
+                <div class="print-header hidden print:block text-center mb-6">
+                    <h2 class="text-2xl font-bold">Misk Beirut - Sales Report</h2>
+                    <p class="text-lg">${monthName} ${data.year}</p>
+                </div>
+                <h4 class="text-xl font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Sales Report (${monthName} ${data.year})</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-primary text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">shopping_cart</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col justify-center items-center text-center">
+                            <h5 class="text-sm font-semibold text-primary-100 uppercase tracking-wider mb-2">Total Sales</h5>
+                            <h2 class="text-3xl font-bold">$${(data.total_sales || 0).toLocaleString()}</h2>
+                        </div>
+                    </div>
+                    <div class="bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">payments</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col justify-center items-center text-center">
+                            <h5 class="text-sm font-semibold text-emerald-100 uppercase tracking-wider mb-2">Actual Cash</h5>
+                            <h2 class="text-3xl font-bold">$${(data.actual_cash || 0).toLocaleString()}</h2>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-500 dark:bg-indigo-600 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">group</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col justify-center items-center text-center">
+                            <h5 class="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-2">Customers Balance</h5>
+                            <h2 class="text-3xl font-bold">$${(data.total_customer_balance || 0).toLocaleString()}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h5 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Sales Details</h5>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Date</th>
+                                    <th class="px-6 py-3 font-semibold text-right">Main Reading</th>
+                                    <th class="px-6 py-3 font-semibold text-right">Dr Smashed</th>
+                                    <th class="px-6 py-3 font-semibold text-right text-emerald-600 dark:text-emerald-400">Net Sales</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                ${data.sales && data.sales.length > 0 ? data.sales.map(sale => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                        <td class="px-6 py-3 font-medium text-slate-900 dark:text-white">${sale.date}</td>
+                                        <td class="px-6 py-3 text-right text-slate-600 dark:text-slate-300">$${(sale.main_reading || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right text-slate-600 dark:text-slate-300">$${(sale.dr_smashed || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right font-bold text-slate-900 dark:text-white border-l border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20">$${(sale.amount || 0).toLocaleString()}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">No sales data found</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'payroll') {
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(data.month)];
+            resultsDiv.innerHTML = `
+                <div class="print-header hidden print:block text-center mb-6">
+                    <h2 class="text-2xl font-bold">Misk Beirut - Payroll Report</h2>
+                    <p class="text-lg">${monthName} ${data.year}</p>
+                </div>
+                <h4 class="text-xl font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Payroll Report (${monthName} ${data.year})</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-indigo-500 dark:bg-indigo-600 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">payments</span>
+                        </div>
+                        <div class="relative z-10">
+                            <h5 class="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-1">Total Payroll</h5>
+                            <h3 class="text-3xl font-bold">$${(data.total_payroll || 0).toLocaleString()}</h3>
+                        </div>
+                    </div>
+                    <div class="bg-amber-500 dark:bg-amber-600 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">group</span>
+                        </div>
+                        <div class="relative z-10">
+                            <h5 class="text-sm font-semibold text-amber-100 uppercase tracking-wider mb-1">Total Employees</h5>
+                            <h3 class="text-3xl font-bold">${data.total_employees || 0}</h3>
+                        </div>
+                    </div>
+                    <div class="bg-red-500 dark:bg-red-600 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">money_off</span>
+                        </div>
+                        <div class="relative z-10">
+                            <h5 class="text-sm font-semibold text-red-100 uppercase tracking-wider mb-1">Total Deductions</h5>
+                            <h3 class="text-3xl font-bold">$${(data.total_deductions || 0).toLocaleString()}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h5 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Payroll Details</h5>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Employee</th>
+                                    <th class="px-6 py-3 font-semibold">Position</th>
+                                    <th class="px-6 py-3 font-semibold text-right">Base Salary</th>
+                                    <th class="px-6 py-3 font-semibold text-right text-amber-600 dark:text-amber-500">Advance</th>
+                                    <th class="px-6 py-3 font-semibold text-right text-red-600 dark:text-red-500">Deductions</th>
+                                    <th class="px-6 py-3 font-semibold text-right">Actual Salary</th>
+                                    <th class="px-6 py-3 font-semibold text-right text-emerald-600 dark:text-emerald-500">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                ${data.employees && data.employees.length > 0 ? data.employees.map(emp => `
+                                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td class="px-6 py-3 font-medium text-slate-900 dark:text-white">${emp.name}</td>
+                                        <td class="px-6 py-3 text-slate-600 dark:text-slate-300">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                                ${emp.position || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-slate-600 dark:text-slate-300">$${(emp.base_salary || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right text-amber-600 dark:text-amber-500">$${(emp.advance || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right text-red-600 dark:text-red-500">$${(emp.deductions || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right font-medium text-slate-900 dark:text-white">$${(emp.actual_salary || 0).toLocaleString()}</td>
+                                        <td class="px-6 py-3 text-right font-bold text-emerald-600 dark:text-emerald-400 bg-slate-50 dark:bg-slate-800/20 border-l border-slate-200 dark:border-slate-800">$${(emp.total || 0).toLocaleString()}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="7" class="px-6 py-4 text-center text-slate-500">No payroll data found</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'expenses') {
+            const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(data.month)];
+            resultsDiv.innerHTML = `
+                <div class="print-header hidden print:block text-center mb-6">
+                    <h2 class="text-2xl font-bold">Misk Beirut - Expenses Report</h2>
+                    <p class="text-lg">${monthName} ${data.year}</p>
+                </div>
+                <h4 class="text-xl font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Expenses Report (${monthName} ${data.year})</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-red-500 dark:bg-red-600 text-white rounded-xl shadow-sm p-6 overflow-hidden relative">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                            <span class="material-symbols-outlined text-8xl">receipt_long</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col justify-center items-center text-center">
+                            <h5 class="text-sm font-semibold text-red-100 uppercase tracking-wider mb-2">Total Expenses</h5>
+                            <h2 class="text-4xl font-bold">$${(data.total_expenses || 0).toLocaleString()}</h2>
+                        </div>
+                    </div>
+                    <div class="bg-info text-white rounded-xl shadow-sm p-6 overflow-hidden relative" style="background-color: #0dcaf0;">
+                        <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4" style="color:rgba(0,0,0,0.5)">
+                            <span class="material-symbols-outlined text-8xl float-right">group</span>
+                        </div>
+                        <div class="relative z-10 flex flex-col justify-center items-center text-center">
+                            <h5 class="text-sm font-semibold uppercase tracking-wider mb-2" style="color: #cff4fc;">Total Receivers</h5>
+                            <h2 class="text-4xl font-bold">${data.total_receivers || 0}</h2>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                    <div>
+                        <h5 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Breakdown by Receiver</h5>
+                        <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                                    <tr>
+                                        <th class="px-4 py-2 font-semibold">Receiver</th>
+                                        <th class="px-4 py-2 font-semibold text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                    ${Object.entries(data.receiver_breakdown || {}).sort((a, b) => b[1] - a[1]).map(([name, amount]) => `
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                            <td class="px-4 py-2 font-medium text-slate-900 dark:text-white">${name}</td>
+                                            <td class="px-4 py-2 text-right font-bold text-slate-700 dark:text-slate-300">$${amount.toLocaleString()}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-3">Individual Expenses</h5>
+                        <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 max-h-96">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-4 py-2 font-semibold">Date</th>
+                                        <th class="px-4 py-2 font-semibold">Receiver</th>
+                                        <th class="px-4 py-2 font-semibold text-right">Amount</th>
+                                        <th class="px-4 py-2 font-semibold">Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                    ${data.expenses && data.expenses.length > 0 ? data.expenses.map(expense => `
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                            <td class="px-4 py-2 font-medium text-slate-700 dark:text-slate-300">${expense.date}</td>
+                                            <td class="px-4 py-2 text-slate-600 dark:text-slate-400">${expense.receiver || 'N/A'}</td>
+                                            <td class="px-4 py-2 text-right font-medium text-slate-900 dark:text-white">$${(expense.amount || 0).toLocaleString()}</td>
+                                            <td class="px-4 py-2 text-slate-500 dark:text-slate-400 max-w-[150px] truncate" title="${expense.note || ''}">${expense.note || 'N/A'}</td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="4" class="px-4 py-3 text-center text-slate-500">No expenses data found</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function exportCurrentReport() {
+        if (!currentReportState) {
+            if (typeof showAlert === 'function') showAlert('Please generate a report first before exporting.', 'warning');
+            else alert('Please generate a report first before exporting.');
+            return;
+        }
+
+        const type = currentReportState.type;
+        const data = currentReportState.data;
+        const params = new URLSearchParams();
+        if (data.month) params.append('month', data.month);
+        if (data.year) params.append('year', data.year);
+
+        let endpoint = '';
+        if (type === 'sales') {
+            endpoint = '/api/exports/sales';
+        } else if (type === 'payroll') {
+            endpoint = '/api/exports/payroll';
+        } else if (type === 'expenses') {
+            endpoint = '/api/exports/reports';
+        }
+
+        if (endpoint) {
+            window.location.href = `${endpoint}?${params.toString()}`;
+        }
+    }
+
+    // Set current month and year as default for all report forms
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+        const currentYear = currentDate.getFullYear();
+
+        // Set default values for all report forms
+        const forms = ['#payrollReportForm', '#salesReportForm', '#expensesReportForm'];
+
+        forms.forEach(formId => {
+            const monthSelect = document.querySelector(`${formId} select[name="month"]`);
+            const yearSelect = document.querySelector(`${formId} select[name="year"]`);
+
+            if (monthSelect) {
+                monthSelect.value = currentMonth;
+            }
+            if (yearSelect) {
+                yearSelect.value = currentYear;
+            }
+        });
+    });
+</script>
+{% endblock %}

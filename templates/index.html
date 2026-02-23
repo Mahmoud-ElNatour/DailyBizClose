@@ -2,164 +2,271 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Daily Close System - Home</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DailyBizClose Home Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1e3fae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121520",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .pattern-bg {
+            background-color: #ffffff;
+            background-image: radial-gradient(#1e3fae15 1.5px, transparent 1.5px), radial-gradient(#1e3fae15 1.5px, #ffffff 1.5px);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+        }
+    </style>
 </head>
 
-<body>
-    <!-- Header -->
-    <header class="navbar navbar-expand-lg sticky-top" id="main-header">
-        <div class="container-fluid">
-            <!-- Left Navigation -->
-            <div class="navbar-nav flex-row">
-                <a class="nav-link active me-3" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-1"></i>Home
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('control_panel') }}">
-                    <i class="fas fa-cogs me-1"></i>Control Panel
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('daily_close') }}">
-                    <i class="fas fa-calculator me-1"></i>Daily Close
-                </a>
-            </div>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+    <!-- Sticky Top Header -->
+    <header
+        class="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-primary p-1.5 rounded-lg">
+                        <span class="material-symbols-outlined text-white text-2xl">account_balance_wallet</span>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-primary">DailyBizClose</span>
+                </div>
 
-            <!-- Right Profile Dropdown -->
-            <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
-                                class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
-                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
+                <!-- Navigation -->
+                <nav class="hidden md:flex space-x-8">
+                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-primary text-sm font-semibold text-primary"
+                        href="{{ url_for('index') }}">
+                        Home
+                    </a>
+                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-primary hover:border-primary/30 transition-all"
+                        href="{{ url_for('control_panel') }}">
+                        Control Panel
+                    </a>
+                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-primary hover:border-primary/30 transition-all"
+                        href="{{ url_for('daily_close') }}">
+                        Daily Close
+                    </a>
+                </nav>
+
+                <!-- Profile Dropdown -->
+                <div class="flex items-center gap-4">
+                    <div class="relative group">
+                        <button class="flex items-center gap-2 focus:outline-none" id="profileDropdown"
+                            aria-expanded="false">
+                            <div
+                                class="size-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden text-primary font-bold">
+                                {{ current_user.username[:1]|upper }}
+                            </div>
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{
+                                current_user.username }}</span>
+                            <span class="material-symbols-outlined text-slate-400">expand_more</span>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-primary/10 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+                            id="profileDropdownMenu">
+                            <a class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-primary/5 hover:text-primary"
+                                href="{{ url_for('settings') }}">
+                                <span class="material-symbols-outlined text-lg">settings</span>
+                                Settings
+                            </a>
+                            <div class="my-1 border-t border-primary/5"></div>
+                            <a class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                                href="{{ url_for('logout') }}">
+                                <span class="material-symbols-outlined text-lg">logout</span>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="container-fluid mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
-                    role="alert">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
-                <div class="welcome-section text-center mb-5">
-                    <h1 class="display-4 mb-3">Welcome to Daily Close System</h1>
-                    <p class="lead text-muted">Manage your business operations efficiently with our comprehensive daily
-                        close management system.</p>
-                </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-8 space-y-4">
+            {% for category, message in messages %}
+            {% set border_color = 'border-red-500 text-red-700 bg-red-50' if category == 'error' else 'border-green-500
+            text-green-700 bg-green-50' %}
+            <div class="flex items-center p-4 border-l-4 {{ border_color }} shadow-sm rounded-r-lg" role="alert">
+                <span class="material-symbols-outlined mr-2">{{ 'error' if category == 'error' else 'info' }}</span>
+                <p class="font-medium">{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
 
-                <div class="row g-4">
-                    <!-- Quick Access Cards -->
-                    <div class="col-md-6">
-                        <div class="card feature-card h-100">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="fas fa-cogs fa-3x text-primary"></i>
-                                </div>
-                                <h5 class="card-title">Control Panel</h5>
-                                <p class="card-text">Access all business modules including employees, customers,
-                                    reports, and more.</p>
-                                <a href="{{ url_for('control_panel') }}" class="btn btn-primary">Go to Control Panel</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="card feature-card h-100">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="fas fa-calculator fa-3x text-success"></i>
-                                </div>
-                                <h5 class="card-title">Daily Close</h5>
-                                <p class="card-text">Process daily transactions with real-time calculations and
-                                    automated reporting.</p>
-                                <a href="{{ url_for('daily_close') }}" class="btn btn-success">Start Daily Close</a>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Hero Welcome Area -->
+        <section
+            class="relative overflow-hidden rounded-xl mb-12 border border-primary/10 shadow-sm bg-white dark:bg-slate-900">
+            <div class="absolute inset-0 pattern-bg opacity-30 dark:opacity-5"></div>
+            <div class="relative px-8 py-12 sm:px-16 sm:py-20 text-center">
+                <div class="inline-flex items-center justify-center p-2 bg-primary/10 rounded-full mb-6 text-primary">
+                    <span class="material-symbols-outlined px-2">waving_hand</span>
+                    <span class="text-xs font-bold uppercase tracking-widest px-2">Welcome Back</span>
                 </div>
+                <h1 class="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">
+                    Welcome to <span class="text-primary">Daily Close System</span>
+                </h1>
+                <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+                    Streamline your business operations with our integrated management tools. Manage your team, track
+                    your customers, and settle your books with ease.
+                </p>
+            </div>
+        </section>
 
-                <!-- Features Overview -->
-                <div class="row mt-5">
-                    <div class="col-12">
-                        <h3 class="text-center mb-4">System Features</h3>
-                        <div class="row g-3">
-                            <div class="col-md-4 text-center">
-                                <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
-                                <h6>Real-time Calculations</h6>
-                                <small class="text-muted">Automated calculations with live updates</small>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <i class="fas fa-mobile-alt fa-2x text-warning mb-2"></i>
-                                <h6>Mobile Responsive</h6>
-                                <small class="text-muted">Works seamlessly on all devices</small>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <i class="fas fa-shield-alt fa-2x text-danger mb-2"></i>
-                                <h6>Secure & Reliable</h6>
-                                <small class="text-muted">Enterprise-grade security</small>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Feature Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Control Panel Card -->
+            <div
+                class="group bg-white dark:bg-slate-900 p-8 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+                <div
+                    class="size-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <span class="material-symbols-outlined text-3xl">grid_view</span>
                 </div>
+                <h3 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Control Panel</h3>
+                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow">
+                    The central hub for your business administration. Manage all modules including <span
+                        class="text-primary/80 font-medium">Employees</span>, <span
+                        class="text-primary/80 font-medium">Customers</span>, and detailed <span
+                        class="text-primary/80 font-medium">Financial Reports</span>.
+                </p>
+                <a href="{{ url_for('control_panel') }}"
+                    class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg shadow-primary/20">
+                    Open Control Panel
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                </a>
+            </div>
+
+            <!-- Daily Close Card -->
+            <div
+                class="group bg-white dark:bg-slate-900 p-8 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+                <div
+                    class="size-16 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <span class="material-symbols-outlined text-3xl">fact_check</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Daily Close</h3>
+                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow">
+                    Efficiency at the end of the day. Process <span class="text-emerald-600/80 font-medium">daily
+                        transactions</span>, handle <span class="text-emerald-600/80 font-medium">credit sales</span>,
+                    and log <span class="text-emerald-600/80 font-medium">expenses</span> with real-time automated
+                    calculations.
+                </p>
+                <a href="{{ url_for('daily_close') }}"
+                    class="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg shadow-emerald-600/20">
+                    Start Daily Close
+                    <span class="material-symbols-outlined text-lg">rocket_launch</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Stats / Secondary Area -->
+        <div class="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div
+                class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-lg border border-primary/5 flex flex-col items-center text-center">
+                <span class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-1">Status</span>
+                <span class="flex items-center gap-1.5 text-emerald-500 font-bold text-sm">
+                    <span class="size-2 rounded-full bg-emerald-500"></span>
+                    Operational
+                </span>
+            </div>
+            <div
+                class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-lg border border-primary/5 flex flex-col items-center text-center">
+                <span class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-1">Last Close</span>
+                <span class="text-slate-600 dark:text-slate-300 font-bold text-sm">Yesterday, 11:45 PM</span>
+            </div>
+            <div
+                class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-lg border border-primary/5 flex flex-col items-center text-center">
+                <span class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-1">Active Users</span>
+                <span class="text-slate-600 dark:text-slate-300 font-bold text-sm">12 Team Members</span>
+            </div>
+            <div
+                class="bg-white/50 dark:bg-slate-900/50 p-4 rounded-lg border border-primary/5 flex flex-col items-center text-center">
+                <span class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-1">Support</span>
+                <span class="text-primary font-bold text-sm">Contact Center</span>
             </div>
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 mt-12 border-t border-primary/5">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <p class="text-slate-400 text-sm">
+                © 2024 DailyBizClose. All rights reserved. Premium SaaS Dashboard.
+            </p>
+            <div class="flex gap-8">
+                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Privacy Policy</a>
+                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Terms of Service</a>
+                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Contact Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Script Includes -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // Debug dropdown functionality
+        // Dropdown functionality for Tailwind Profile Menu
         document.addEventListener('DOMContentLoaded', function () {
             const dropdownButton = document.getElementById('profileDropdown');
-            const dropdownMenu = dropdownButton.nextElementSibling;
+            const dropdownMenu = document.getElementById('profileDropdownMenu');
 
-            console.log('Dropdown button found:', dropdownButton);
-            console.log('Dropdown menu found:', dropdownMenu);
+            if (dropdownButton && dropdownMenu) {
+                // Toggle via click (Tailwind handles group-hover, but click is good for mobile/accessibility)
+                dropdownButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isExpanded = dropdownButton.getAttribute('aria-expanded') === 'true';
 
-            // Test dropdown manually
-            dropdownButton.addEventListener('click', function (e) {
-                e.preventDefault();
-                console.log('Dropdown clicked!');
+                    if (!isExpanded) {
+                        dropdownMenu.classList.remove('opacity-0', 'invisible');
+                        dropdownMenu.classList.add('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'true');
+                    } else {
+                        dropdownMenu.classList.add('opacity-0', 'invisible');
+                        dropdownMenu.classList.remove('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'false');
+                    }
+                });
 
-                // Toggle dropdown manually if Bootstrap doesn't work
-                if (!dropdownMenu.classList.contains('show')) {
-                    dropdownMenu.classList.add('show');
-                    dropdownButton.setAttribute('aria-expanded', 'true');
-                } else {
-                    dropdownMenu.classList.remove('show');
-                    dropdownButton.setAttribute('aria-expanded', 'false');
-                }
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function (e) {
-                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                    dropdownMenu.classList.remove('show');
-                    dropdownButton.setAttribute('aria-expanded', 'false');
-                }
-            });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.classList.add('opacity-0', 'invisible');
+                        dropdownMenu.classList.remove('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
         });
     </script>
 </body>

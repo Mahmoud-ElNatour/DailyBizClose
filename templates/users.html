@@ -1,306 +1,448 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% block title %}Users Management - DailyBizClose{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users Management - Business Daily Close System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
-</head>
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Manage system user accounts and permissions.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto pb-2">
+        <button type="button" data-bs-toggle="modal" data-bs-target="#addUserModal"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30 w-full sm:w-auto">
+            <span class="material-symbols-outlined text-sm">person_add</span>
+            Add User
+        </button>
+    </div>
+</div>
 
-<body>
-    <!-- Header -->
-    <header class="navbar navbar-expand-lg sticky-top" id="main-header">
-        <div class="container-fluid">
-            <!-- Left Navigation -->
-            <div class="navbar-nav flex-row">
-                <a class="nav-link me-3" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-1"></i>Home
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('control_panel') }}">
-                    <i class="fas fa-cogs me-1"></i>Control Panel
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('daily_close') }}">
-                    <i class="fas fa-calculator me-1"></i>Daily Close
-                </a>
-            </div>
-
-            <!-- Right Profile Dropdown -->
-            <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
-                                class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
-                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container-fluid mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-11">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
-                    role="alert">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+<!-- Users Table -->
+<div
+    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mb-6 flex flex-col h-full">
+    <div class="overflow-x-auto flex-1">
+        <table class="w-full text-left text-sm whitespace-nowrap h-full">
+            <thead
+                class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 sticky top-0">
+                <tr>
+                    <th class="px-6 py-4 font-semibold w-24">ID</th>
+                    <th class="px-6 py-4 font-semibold">User Details</th>
+                    <th class="px-6 py-4 font-semibold hidden sm:table-cell">Created Date</th>
+                    <th class="px-6 py-4 font-semibold text-center w-28">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800 font-medium align-top">
+                {% for user in users %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono">#{{ "%04d"|format(user.id) }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
+                                {% if user.username == 'admin' %}
+                                <span class="material-symbols-outlined text-amber-500"
+                                    title="Administrator">shield_person</span>
+                                {% else %}
+                                <span class="material-symbols-outlined text-lg">person</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="text-slate-900 dark:text-white font-bold flex items-center gap-2">
+                                    {{ user.username }}
+                                    {% if user.username == 'admin' %}
+                                    <span
+                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 uppercase tracking-widest leading-none">Admin</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">mail</span>
+                                    {{ user.email or 'No email provided' }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
+                        {% if user.created_at %}
+                        <div class="flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px] text-slate-400">calendar_month</span>
+                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                        </div>
+                        {% else %}
+                        <span class="text-slate-400 italic">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="editUser('{{ user.id }}')"
+                                class="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                title="Edit User">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button onclick="deleteUser('{{ user.id }}')"
+                                class="p-1.5 rounded transition-colors {% if user.username == 'admin' %}text-slate-300 dark:text-slate-600 cursor-not-allowed{% else %}text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20{% endif %}"
+                                title="{% if user.username == 'admin' %}Cannot delete Admin{% else %}Delete User{% endif %}"
+                                {% if user.username=='admin' %}disabled{% endif %}>
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4"
+                        class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                        <div class="flex flex-col items-center justify-center">
+                            <span
+                                class="material-symbols-outlined text-4xl mb-3 text-slate-300 dark:text-slate-600">group_off</span>
+                            <p class="text-base font-medium">No users found</p>
+                            <p class="text-sm mt-1">Register a new system user to grant system access.</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
-                {% endif %}
-                {% endwith %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="display-6">Users Management</h2>
-                        <p class="text-muted">Manage system user accounts and permissions</p>
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white dark:bg-slate-900 border-none rounded-2xl shadow-2xl overflow-hidden">
+            <div
+                class="modal-header border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    id="addUserModalLabel">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Add New User
+                </h5>
+                <button type="button"
+                    class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors bg-transparent border-0 p-0"
+                    data-bs-dismiss="modal" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="addUserForm">
+                <div class="modal-body px-6 py-6 opacity-100">
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                </div>
+                                <input type="text" name="username"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="e.g. jdoe" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">mail</span>
+                                </div>
+                                <input type="email" name="email"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="jdoe@example.com" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">lock</span>
+                                </div>
+                                <input type="password" name="password"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="••••••••" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm
+                                Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">lock</span>
+                                </div>
+                                <input type="password" name="confirm_password"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="••••••••" required>
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                        <i class="fas fa-plus me-2"></i>Add User
+                </div>
+                <div
+                    class="modal-footer border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4 flex gap-3">
+                    <button type="button"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-primary/30 transition-colors">
+                        Add User
                     </button>
                 </div>
-
-                <!-- Users Table -->
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Username</th>
-                                        <th>Email</th>
-                                        <th>Created Date</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for user in users %}
-                                    <tr>
-                                        <td>{{ user.id }}</td>
-                                        <td>{{ user.username }}</td>
-                                        <td>{{ user.email or 'N/A' }}</td>
-                                        <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                onclick="editUser('{{ user.id }}')">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                onclick="deleteUser('{{ user.id }}')" {% if user.username=='admin'
-                                                %}disabled{% endif %}>
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">No users found</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Add User Modal -->
-    <div class="modal fade" id="addUserModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="addUserForm">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" name="password" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" name="confirm_password" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add User</button>
-                    </div>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Edit User Modal -->
-    <div class="modal fade" id="editUserModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="editUserForm">
-                    <input type="hidden" name="id" id="edit-user-id">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" id="edit-user-username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" id="edit-user-email" required>
-                        </div>
-                        <hr>
-                        <p class="text-muted small">Leave password fields blank to keep current password.</p>
-                        <div class="mb-3">
-                            <label class="form-label">New Password</label>
-                            <input type="password" class="form-control" name="password">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Confirm New Password</label>
-                            <input type="password" class="form-control" name="confirm_password">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white dark:bg-slate-900 border-none rounded-2xl shadow-2xl overflow-hidden">
+            <div
+                class="modal-header border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    id="editUserModalLabel">
+                    <span class="material-symbols-outlined text-primary">edit</span>
+                    Edit User
+                </h5>
+                <button type="button"
+                    class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors bg-transparent border-0 p-0"
+                    data-bs-dismiss="modal" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
             </div>
+            <form id="editUserForm">
+                <input type="hidden" name="id" id="edit-user-id">
+                <div class="modal-body px-6 py-6 opacity-100">
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                </div>
+                                <input type="text" name="username" id="edit-user-username"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    required>
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">mail</span>
+                                </div>
+                                <input type="email" name="email" id="edit-user-email"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="relative py-3">
+                            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
+                            </div>
+                            <div class="relative flex justify-center">
+                                <span
+                                    class="px-2 bg-white dark:bg-slate-900 text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Password
+                                    Management</span>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-slate-500 dark:text-slate-400 italic mb-2">Leave empty to keep the
+                            current password.</p>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New
+                                Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                                </div>
+                                <input type="password" name="password"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="••••••••">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New
+                                Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                                </div>
+                                <input type="password" name="confirm_password"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="modal-footer border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4 flex gap-3">
+                    <button type="button"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-primary/30 transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        // Add User Form Handler
-        document.getElementById('addUserForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
+{% block extra_scripts %}
+<script>
+    // Make sure bootstrap modal functionality is available
+    const bootstrapExists = typeof bootstrap !== 'undefined';
 
-            if (data.password !== data.confirm_password) {
-                showAlert('Passwords do not match!');
-                return;
-            }
+    // Add User Form Handler
+    document.getElementById('addUserForm').addEventListener('submit', function (e) {
+        e.preventDefault();
 
-            fetch('/api/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        if (data.password !== data.confirm_password) {
+            if (typeof showAlert === 'function') showAlert('Passwords do not match!', 'error');
+            else alert('Passwords do not match!');
+            return;
+        }
+
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Processing...';
+        submitBtn.disabled = true;
+
+        fetch('/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error adding user: ' + (data.message || data.error), 'error');
+                    else alert('Error adding user: ' + (data.message || data.error));
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        location.reload();
-                    } else {
-                        showAlert('Error adding user: ' + (data.message || data.error));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error adding user');
-                });
-        });
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error adding user', 'error');
+                else alert('Error adding user');
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            });
+    });
 
-        function editUser(id) {
-            fetch(`/api/users/${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('edit-user-id').value = data.id;
-                    document.getElementById('edit-user-username').value = data.username;
-                    document.getElementById('edit-user-email').value = data.email || '';
-                    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    function editUser(id) {
+        fetch(`/api/users/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('edit-user-id').value = data.id;
+                document.getElementById('edit-user-username').value = data.username;
+                document.getElementById('edit-user-email').value = data.email || '';
+
+                // Clear password fields
+                document.querySelector('#editUserForm input[name="password"]').value = '';
+                document.querySelector('#editUserForm input[name="confirm_password"]').value = '';
+
+                if (bootstrapExists) {
+                    const modalEl = document.getElementById('editUserModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                     modal.show();
-                })
-                .catch(err => {
-                    console.error('Error fetching user', err);
-                    showAlert('Error loading user data');
-                });
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching user', err);
+                if (typeof showAlert === 'function') showAlert('Error loading user data', 'error');
+                else alert('Error loading user data');
+            });
+    }
+
+    document.getElementById('editUserForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const id = document.getElementById('edit-user-id').value;
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        if (data.password && data.password !== data.confirm_password) {
+            if (typeof showAlert === 'function') showAlert('Passwords do not match!', 'error');
+            else alert('Passwords do not match!');
+            return;
         }
 
-        document.getElementById('editUserForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-user-id').value;
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Saving...';
+        submitBtn.disabled = true;
 
-            if (data.password && data.password !== data.confirm_password) {
-                showAlert('Passwords do not match!');
-                return;
-            }
+        fetch(`/api/users/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error updating user: ' + (data.message || data.error), 'error');
+                    else alert('Error updating user: ' + (data.message || data.error));
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error updating user', 'error');
+                else alert('Error updating user');
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            });
+    });
 
+    function deleteUser(id) {
+        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
             fetch(`/api/users/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
+                method: 'DELETE'
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         location.reload();
                     } else {
-                        showAlert('Error updating user: ' + (data.message || data.error));
+                        if (typeof showAlert === 'function') showAlert('Error deleting user: ' + data.message, 'error');
+                        else alert('Error deleting user: ' + data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showAlert('Error updating user');
+                    if (typeof showAlert === 'function') showAlert('Error deleting user', 'error');
+                    else alert('Error deleting user');
                 });
-        });
-
-        function deleteUser(id) {
-            if (confirm('Are you sure you want to delete this user?')) {
-                fetch(`/api/users/${id}`, {
-                    method: 'DELETE'
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            location.reload();
-                        } else {
-                            showAlert('Error deleting user: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showAlert('Error deleting user');
-                    });
-            }
         }
-    </script>
-</body>
-
-</html>
+    }
+</script>
+{% endblock %}

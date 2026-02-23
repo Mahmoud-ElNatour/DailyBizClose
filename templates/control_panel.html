@@ -2,254 +2,421 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Panel - Business Daily Close System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>DailyBizClose - Control Panel</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1e3fae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121520",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .module-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(30, 63, 174, 0.1), 0 8px 10px -6px rgba(30, 63, 174, 0.1);
+        }
+    </style>
 </head>
 
-<body>
-    <!-- Header -->
-    <header class="navbar navbar-expand-lg sticky-top" id="main-header">
-        <div class="container-fluid">
-            <!-- Left Navigation -->
-            <div class="navbar-nav flex-row">
-                <a class="nav-link me-3" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-1"></i>Home
-                </a>
-                <a class="nav-link active me-3" href="{{ url_for('control_panel') }}">
-                    <i class="fas fa-cogs me-1"></i>Control Panel
-                </a>
-                <a class="nav-link me-3" href="{{ url_for('daily_close') }}">
-                    <i class="fas fa-calculator me-1"></i>Daily Close
-                </a>
-            </div>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+    <!-- Sticky Header -->
+    <header
+        class="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo & Nav -->
+                <div class="flex items-center gap-8">
+                    <div class="flex items-center gap-2 group cursor-pointer">
+                        <div class="bg-primary p-1.5 rounded-lg text-white">
+                            <span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
+                        </div>
+                        <span
+                            class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">DailyBizClose</span>
+                    </div>
+                    <nav class="hidden md:flex items-center gap-1">
+                        <a class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
+                            href="{{ url_for('index') }}">Home</a>
+                        <a class="px-4 py-2 text-sm font-semibold text-primary bg-primary/10 rounded-lg"
+                            href="{{ url_for('control_panel') }}">Control Panel</a>
+                        <a class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
+                            href="{{ url_for('daily_close') }}">Daily Close</a>
+                    </nav>
+                </div>
 
-            <!-- Right Profile Dropdown -->
-            <div class="dropdown ms-auto">
-                <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i
-                                class="fas fa-cog me-2"></i>Settings</a></li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
-                                class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
+                <!-- Profile Dropdown -->
+                <div class="flex items-center gap-4 relative">
+                    <button
+                        class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                        <span class="material-symbols-outlined">notifications</span>
+                    </button>
+                    <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800 cursor-pointer group"
+                        id="profileDropdown" aria-expanded="false">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm font-bold leading-none text-slate-900 dark:text-white">{{
+                                current_user.username }}</p>
+                            <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">User</p>
+                        </div>
+                        <div
+                            class="size-10 rounded-full bg-primary/20 border-2 border-primary/10 overflow-hidden ring-2 ring-transparent group-hover:ring-primary/30 transition-all text-primary font-bold flex items-center justify-center">
+                            {{ current_user.username[:1]|upper }}
+                        </div>
+                        <span
+                            class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">expand_more</span>
+                    </div>
+
+                    <!-- Dropdown Menu -->
+                    <div class="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-primary/10 py-2 opacity-0 invisible transition-all duration-200 z-50"
+                        id="profileDropdownMenu">
+                        <a class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-primary/5 hover:text-primary"
+                            href="{{ url_for('settings') }}">
+                            <span class="material-symbols-outlined text-lg">settings</span>
+                            Settings
+                        </a>
+                        <div class="my-1 border-t border-primary/5"></div>
+                        <a class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                            href="{{ url_for('logout') }}">
+                            <span class="material-symbols-outlined text-lg">logout</span>
+                            Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="container-fluid mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4"
-                    role="alert">
-                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-                {% endif %}
-                {% endwith %}
-                <div class="text-center mb-4">
-                    <h2 class="display-5">Control Panel</h2>
-                    <p class="text-muted">Manage all aspects of your business operations</p>
-                </div>
-
-                <!-- Module Grid -->
-                <div class="row g-4 justify-content-center">
-                    <!-- Employees Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('employees') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="employees">
-                                <div class="module-icon">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <h5 class="module-title">Employees</h5>
-                                <p class="module-description">Manage staff information and schedules</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Customers Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('customers') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="customers">
-                                <div class="module-icon">
-                                    <i class="fas fa-user-friends"></i>
-                                </div>
-                                <h5 class="module-title">Customers</h5>
-                                <p class="module-description">Customer database and relationship management</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Users Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('users') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="users">
-                                <div class="module-icon">
-                                    <i class="fas fa-user-cog"></i>
-                                </div>
-                                <h5 class="module-title">Users</h5>
-                                <p class="module-description">System user accounts and permissions</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Reports Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('reports') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="reports">
-                                <div class="module-icon">
-                                    <i class="fas fa-chart-bar"></i>
-                                </div>
-                                <h5 class="module-title">Reports</h5>
-                                <p class="module-description">Business analytics and reporting</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Expenses Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('expenses') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="expenses">
-                                <div class="module-icon">
-                                    <i class="fas fa-receipt"></i>
-                                </div>
-                                <h5 class="module-title">Expenses</h5>
-                                <p class="module-description">Track and manage business expenses</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Sales Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('sales') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="sales">
-                                <div class="module-icon">
-                                    <i class="fas fa-shopping-cart"></i>
-                                </div>
-                                <h5 class="module-title">Sales</h5>
-                                <p class="module-description">Sales transactions and inventory</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Payroll Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('payroll') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="payroll">
-                                <div class="module-icon">
-                                    <i class="fas fa-money-check-alt"></i>
-                                </div>
-                                <h5 class="module-title">Payroll</h5>
-                                <p class="module-description">Employee payroll and benefits</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Receivers Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('receivers_view') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="receivers">
-                                <div class="module-icon">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                </div>
-                                <h5 class="module-title">Receivers</h5>
-                                <p class="module-description">Manage and view all payment recipients</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Ahmad Expenses Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('ahmad_expenses_view') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="ahmad-expenses">
-                                <div class="module-icon">
-                                    <i class="fas fa-user-edit"></i>
-                                </div>
-                                <h5 class="module-title">Ahmad Expenses</h5>
-                                <p class="module-description">Track and manage Ahmad's business expenses</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Samer Expenses Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('samer_expenses_view') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="samer-expenses">
-                                <div class="module-icon">
-                                    <i class="fas fa-user-tag"></i>
-                                </div>
-                                <h5 class="module-title">Samer Expenses</h5>
-                                <p class="module-description">Track and manage Samer's business expenses</p>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Deductions & Advances Module -->
-                    <div class="col-lg-3 col-md-4 col-sm-6">
-                        <a href="{{ url_for('deductions_advances_view') }}" class="text-decoration-none">
-                            <div class="module-card" data-module="deductions-advances">
-                                <div class="module-icon">
-                                    <i class="fas fa-file-contract"></i>
-                                </div>
-                                <h5 class="module-title">Deductions & Advances</h5>
-                                <p class="module-description">Track all employee adjustments and filters</p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-8 space-y-4">
+            {% for category, message in messages %}
+            {% set border_color = 'border-red-500 text-red-700 bg-red-50' if category == 'error' else 'border-green-500
+            text-green-700 bg-green-50' %}
+            <div class="flex items-center p-4 border-l-4 {{ border_color }} shadow-sm rounded-r-lg" role="alert">
+                <span class="material-symbols-outlined mr-2">{{ 'error' if category == 'error' else 'info' }}</span>
+                <p class="font-medium">{{ message }}</p>
             </div>
+            {% endfor %}
         </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Hero Section -->
+        <div class="mb-12">
+            <h1 class="text-4xl font-900 text-slate-900 dark:text-white tracking-tight">Control Panel</h1>
+            <p class="text-lg text-slate-500 dark:text-slate-400 mt-2 font-medium">Manage all aspects of your business
+                operations from a central dashboard.</p>
+        </div>
+
+        <!-- Operations Category -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                <h2 class="text-sm font-800 text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Operations
+                </h2>
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Employees -->
+                <a href="{{ url_for('employees') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="employees">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                            <span class="material-symbols-outlined text-2xl">badge</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Employees</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Manage staff profiles,
+                                shifts, and weekly performance schedules.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Customers -->
+                <a href="{{ url_for('customers') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="customers">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                            <span class="material-symbols-outlined text-2xl">groups</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Customers</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Access loyalty
+                                programs, purchase history, and contact database.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Receivers -->
+                <a href="{{ url_for('receivers_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="receivers">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                            <span class="material-symbols-outlined text-2xl">inventory_2</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Receivers</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Track incoming
+                                shipments, stock deliveries, and vendor receipts.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Deductions & Advances -->
+                <a href="{{ url_for('deductions_advances_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="deductions-advances">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                            <span class="material-symbols-outlined text-2xl">file_contract</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Deductions & Advances</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Track all employee
+                                adjustments and filter by type.</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Finance Category -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                <h2 class="text-sm font-800 text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Finance</h2>
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <!-- Expenses -->
+                <a href="{{ url_for('expenses') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="expenses">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">account_balance</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Expenses</h3>
+                            <p class="text-xs text-slate-500 mt-1">Global costs</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Sales -->
+                <a href="{{ url_for('sales') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="sales">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">payments</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Sales</h3>
+                            <p class="text-xs text-slate-500 mt-1">Revenue tracking</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Payroll -->
+                <a href="{{ url_for('payroll') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="payroll">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">receipt_long</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Payroll</h3>
+                            <p class="text-xs text-slate-500 mt-1">Staff compensation</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Ahmad Expenses -->
+                <a href="{{ url_for('ahmad_expenses_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="ahmad-expenses">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">person_search</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Ahmad Exp.</h3>
+                            <p class="text-xs text-slate-500 mt-1">Personal ledger</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Samer Expenses -->
+                <a href="{{ url_for('samer_expenses_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="samer-expenses">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">person_search</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Samer Exp.</h3>
+                            <p class="text-xs text-slate-500 mt-1">Personal ledger</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Admin Category -->
+        <section class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                <h2 class="text-sm font-800 text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                    Administration</h2>
+                <div class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Reports -->
+                <a href="{{ url_for('reports') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="reports">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <span class="material-symbols-outlined text-2xl">insights</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Reports</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Detailed analytics,
+                                custom date exports, and audit logs.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Users -->
+                <a href="{{ url_for('users') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="users">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <span class="material-symbols-outlined text-2xl">manage_accounts</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Users</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">System access control
+                                and permissions for office staff.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Settings -->
+                <a href="{{ url_for('settings') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="settings">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <span class="material-symbols-outlined text-2xl">settings</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Settings</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Global application
+                                preferences and store configurations.</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200 dark:border-slate-800">
+        <div
+            class="flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 dark:text-slate-500 text-sm font-medium">
+            <p>© 2024 DailyBizClose. All rights reserved.</p>
+            <div class="flex gap-6">
+                <a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+                <a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+                <a class="hover:text-primary transition-colors" href="#">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Script Includes -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // Debug dropdown functionality
+        // Dropdown functionality for Tailwind Profile Menu
         document.addEventListener('DOMContentLoaded', function () {
             const dropdownButton = document.getElementById('profileDropdown');
-            const dropdownMenu = dropdownButton.nextElementSibling;
+            const dropdownMenu = document.getElementById('profileDropdownMenu');
 
-            console.log('Dropdown button found:', dropdownButton);
-            console.log('Dropdown menu found:', dropdownMenu);
+            if (dropdownButton && dropdownMenu) {
+                // Toggle via click
+                dropdownButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isExpanded = dropdownButton.getAttribute('aria-expanded') === 'true';
 
-            // Test dropdown manually
-            dropdownButton.addEventListener('click', function (e) {
-                e.preventDefault();
-                console.log('Dropdown clicked!');
+                    if (!isExpanded) {
+                        dropdownMenu.classList.remove('opacity-0', 'invisible');
+                        dropdownMenu.classList.add('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'true');
+                    } else {
+                        dropdownMenu.classList.add('opacity-0', 'invisible');
+                        dropdownMenu.classList.remove('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'false');
+                    }
+                });
 
-                // Toggle dropdown manually if Bootstrap doesn't work
-                if (!dropdownMenu.classList.contains('show')) {
-                    dropdownMenu.classList.add('show');
-                    dropdownButton.setAttribute('aria-expanded', 'true');
-                } else {
-                    dropdownMenu.classList.remove('show');
-                    dropdownButton.setAttribute('aria-expanded', 'false');
-                }
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function (e) {
-                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                    dropdownMenu.classList.remove('show');
-                    dropdownButton.setAttribute('aria-expanded', 'false');
-                }
-            });
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function (e) {
+                    if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.classList.add('opacity-0', 'invisible');
+                        dropdownMenu.classList.remove('opacity-100', 'visible');
+                        dropdownButton.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
         });
     </script>
 </body>

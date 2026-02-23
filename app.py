@@ -698,10 +698,10 @@ def daily_closing_api():
         if not (safe_float(data.get('main_reading', 0)) > 0):
             return jsonify({'error': 'Main Reading is mandatory. Please provide the current counter value.'}), 400
 
-        # Check if already closed for this date
-        # For simplicity, we'll allow multiple or overwrite. Let's overwrite?
-        # Or just append. Usually, one close per day is expected.
-        # existing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == close_date.date()).first()
+        # Check if already closed for this date (prevent multiple daily closings per user request)
+        existing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == close_date.date()).first()
+        if existing:
+            return jsonify({'error': f'A daily closing record already exists for {close_date_str}. Please edit the existing record or choose another date.'}), 400
         
         daily_close = DailyClosing(
             date=close_date,
@@ -1457,20 +1457,26 @@ def sales_report():
         month = int(data.get('month'))
         year = int(data.get('year'))
         
-        from models import DailyClosing
+        from models import DailyClosing, Customers
         # Get closings for the specific month/year
         closings = DailyClosing.query.filter(
             db.extract('year', DailyClosing.date) == year,
             db.extract('month', DailyClosing.date) == month
         ).all()
         
-        total_sales = sum(c.adjusted_reading or 0 for c in closings)
+        total_sales = sum(c.main_reading or 0 for c in closings)
+        actual_cash = sum(c.adjusted_reading or 0 for c in closings)
+        
+        # Calculate total customer balances
+        all_customers = Customers.query.all()
+        total_customer_balance = sum(float(c.balance or 0) for c in all_customers)
         
         report_data = {
             'month': data.get('month'),
             'year': data.get('year'),
             'total_sales': total_sales,
-            'total_orders': len(closings),
+            'actual_cash': actual_cash,
+            'total_customer_balance': total_customer_balance,
             'sales': [{
                 'date': c.date.strftime('%Y-%m-%d') if c.date else 'N/A',
                 'amount': c.adjusted_reading or 0,
@@ -1532,91 +1538,44 @@ def payroll_report():
 @app.route('/api/reports/expenses', methods=['POST'])
 @login_required
 def expenses_report():
-    """Generate expenses report for a date range or month/year"""
+    """Generate expenses report for month/year"""
     try:
-        from datetime import datetime, timedelta
-        from models import Expenses, AhmadMistrahExpenses, SamerExpenses, Receivers
+        from datetime import datetime
+        from models import Expenses, Receivers
         data = request.get_json()
+        month = int(data.get('month'))
+        year = int(data.get('year'))
         
-        start_date_str = data.get('start_date')
-        end_date_str = data.get('end_date')
+        # Extract and format expenses
+        general_expenses = Expenses.query.filter(
+            db.extract('year', Expenses.date) == year,
+            db.extract('month', Expenses.date) == month
+        ).all()
         
-        if start_date_str and end_date_str:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-            # Set end_date to end of day for inclusive datetime filtering
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-        else:
-            month = int(data.get('month', datetime.now(UTC).month))
-            year = int(data.get('year', datetime.now(UTC).year))
-            start_date = datetime(year, month, 1)
-            if month == 12:
-                end_date = datetime(year + 1, 1, 1) - timedelta(seconds=1)
-            else:
-                end_date = datetime(year, month + 1, 1) - timedelta(seconds=1)
+        total_expenses = sum(float(e.amount or 0) for e in general_expenses)
         
-        # Helper to extract and format expenses within date range
-        def get_formatted_expenses(model, start, end):
-            return model.query.filter(model.date >= start, model.date <= end).all()
-
-        general_expenses = get_formatted_expenses(Expenses, start_date, end_date)
-        ahmad_expenses = get_formatted_expenses(AhmadMistrahExpenses, start_date, end_date)
-        samer_expenses = get_formatted_expenses(SamerExpenses, start_date, end_date)
-        
-        total_gen = sum(float(e.amount or 0) for e in general_expenses)
-        total_ahmad = sum(float(e.amount or 0) for e in ahmad_expenses)
-        total_samer = sum(float(e.amount or 0) for e in samer_expenses)
-        
-        # Calculate breakdown by receiver for all types
+        # Calculate breakdown by receiver
         receiver_breakdown = {}
         unique_receivers = set()
         
         all_expenses_list = []
         for exp in general_expenses:
-            name = exp.receiver.name if exp.receiver else 'General Expenses'
-            if exp.receiver_id: unique_receivers.add(f"gen_{exp.receiver_id}")
+            name = exp.receiver.name if exp.receiver else 'Unassigned'
+            if exp.receiver_id: unique_receivers.add(exp.receiver_id)
             receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
             all_expenses_list.append({
                 'type': 'General',
-                'date': exp.date.strftime('%Y-%m-%d'),
+                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
                 'receiver': name,
                 'amount': float(exp.amount or 0),
                 'note': exp.note or ''
             })
             
-        for exp in ahmad_expenses:
-            name = exp.receiver.name if exp.receiver else 'Ahmad General'
-            if exp.receiver_id: unique_receivers.add(f"ahmad_{exp.receiver_id}")
-            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
-            all_expenses_list.append({
-                'type': 'Ahmad',
-                'date': exp.date.strftime('%Y-%m-%d'),
-                'receiver': name,
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-
-        for exp in samer_expenses:
-            name = exp.receiver.name if exp.receiver else 'Samer General'
-            if exp.receiver_id: unique_receivers.add(f"samer_{exp.receiver_id}")
-            receiver_breakdown[name] = receiver_breakdown.get(name, 0) + float(exp.amount or 0)
-            all_expenses_list.append({
-                'type': 'Samer',
-                'date': exp.date.strftime('%Y-%m-%d'),
-                'receiver': name,
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-        
         report_data = {
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
-            'total_expenses': total_gen + total_ahmad + total_samer,
+            'month': month,
+            'year': year,
+            'total_expenses': total_expenses,
             'total_receivers': len(unique_receivers),
-            'breakdown': {
-                'general': total_gen,
-                'ahmad': total_ahmad,
-                'samer': total_samer
-            },
             'receiver_breakdown': receiver_breakdown,
             'expenses': all_expenses_list
         }
@@ -1628,6 +1587,301 @@ def expenses_report():
     except Exception as e:
         app.logger.error(f"Error generating expenses report: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/daily-close/<int:closing_id>', methods=['GET'])
+@login_required
+def get_daily_closing_details(closing_id):
+    """Get full details of a specific daily closing"""
+    try:
+        from models import DailyClosing
+        closing = DailyClosing.query.get_or_404(closing_id)
+        
+        # Format general expenses
+        general_expenses = []
+        for e in closing.expenses:
+            general_expenses.append({
+                'amount': e.amount,
+                'note': e.note,
+                'receiver': e.receiver.name if e.receiver else 'Unassigned'
+            })
+            
+        # Format Ahmad expenses
+        ahmad_expenses = []
+        for e in closing.ahmad_mistrah_expenses:
+            ahmad_expenses.append({
+                'amount': e.amount,
+                'note': e.note,
+                'receiver': e.receiver.name if e.receiver else 'Unassigned'
+            })
+            
+        # Format Samer expenses
+        samer_expenses = []
+        for e in closing.samer_expenses:
+            samer_expenses.append({
+                'amount': e.amount,
+                'note': e.note,
+                'receiver': e.receiver.name if e.receiver else 'Unassigned'
+            })
+            
+        # Format advances
+        advances = []
+        for a in closing.advances:
+            advances.append({
+                'amount': a.amount,
+                'note': a.note,
+                'employee': a.employee.name if a.employee else 'Unassigned'
+            })
+            
+        # Format deductions
+        deductions = []
+        for d in closing.deductions_rel:
+            deductions.append({
+                'amount': d.amount,
+                'note': d.note,
+                'employee': d.employee.name if d.employee else 'Unassigned'
+            })
+            
+        # Format credits
+        credits = []
+        for c in closing.credits:
+            credits.append({
+                'amount': c.amount,
+                'note': c.note,
+                'customer': c.customer.username if c.customer else 'Unassigned'
+            })
+            
+        # Format cashbacks
+        cashbacks = []
+        for c in closing.cashbacks:
+            cashbacks.append({
+                'amount': c.amount,
+                'note': c.note,
+                'customer': c.customer.username if c.customer else 'Unassigned'
+            })
+
+        data = {
+            'id': closing.id,
+            'date': closing.date.strftime('%Y-%m-%d'),
+            'main_reading': closing.main_reading,
+            'dr_smashed': closing.dr_smashed,
+            'adjusted_reading': closing.adjusted_reading,
+            'total_expenses': closing.total_expenses,
+            'total_advance': closing.total_advance,
+            'total_credit': closing.total_credit,
+            'total_cashback': closing.total_cashback,
+            'total_deductions': closing.total_deductions,
+            'five_percent': closing.five_percent,
+            'total_cashout': closing.total_cashout,
+            'actual_cash': closing.actual_cash,
+            'expenses': general_expenses,
+            'ahmad_expenses': ahmad_expenses,
+            'samer_expenses': samer_expenses,
+            'advances': advances,
+            'deductions': deductions,
+            'credits': credits,
+            'cashbacks': cashbacks
+        }
+        
+        return jsonify(data)
+    except Exception as e:
+        app.logger.error(f"Error fetching daily closing details {closing_id}: {e}")
+        return jsonify({'error': 'Failed to fetch details'}), 500
+
+@app.route('/api/exports/sales')
+@login_required
+def export_sales_csv():
+    try:
+        from models import DailyClosing
+        from datetime import datetime
+        import csv
+        from io import StringIO
+        from flask import make_response
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            month = now.month
+            year = now.year
+            
+        closings = DailyClosing.query.filter(
+            db.extract('year', DailyClosing.date) == year,
+            db.extract('month', DailyClosing.date) == month
+        ).order_by(DailyClosing.date.desc()).all()
+        
+        si = StringIO()
+        cw = csv.writer(si)
+        cw.writerow(['Date', 'Expenses', 'Advances', 'Credits', 'Cashback', 'Deductions', '5% Fee', 'Actual Cash'])
+        
+        for c in closings:
+            cw.writerow([
+                c.date.strftime('%Y-%m-%d'),
+                f"{c.total_expenses:.2f}",
+                f"{c.total_advance:.2f}",
+                f"{c.total_credit:.2f}",
+                f"{c.total_cashback:.2f}",
+                f"{(c.total_deductions or 0):.2f}",
+                f"{c.five_percent:.2f}",
+                f"{(c.actual_cash or 0):.2f}"
+            ])
+            
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=sales_export_{year}_{month}.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+    except Exception as e:
+        app.logger.error(f"Error exporting sales: {e}")
+        flash('Error exporting sales data', 'error')
+        return redirect(url_for('sales'))
+
+@app.route('/api/exports/payroll')
+@login_required
+def export_payroll_csv():
+    try:
+        from models import Employees
+        from datetime import datetime
+        import csv
+        from io import StringIO
+        from flask import make_response
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            month = now.month
+            year = now.year
+            
+        employees = Employees.query.filter_by(year=year, month=month).all()
+        
+        for emp in employees:
+            emp.calculate_salary()
+            
+        si = StringIO()
+        cw = csv.writer(si)
+        cw.writerow(['Employee', 'Position', 'Base Salary', 'Working Days', 'Advance', 'Deductions', 'Actual Salary', 'Total'])
+        
+        for e in employees:
+            cw.writerow([
+                e.name,
+                e.position or 'N/A',
+                f"{(e.base_salary or 0):.2f}",
+                e.working_days or 0,
+                f"{(e.advance or 0):.2f}",
+                f"{(e.deductions or 0):.2f}",
+                f"{(e.actual_salary or 0):.2f}",
+                f"{(e.total or 0):.2f}"
+            ])
+            
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=payroll_export_{year}_{month}.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+    except Exception as e:
+        app.logger.error(f"Error exporting payroll: {e}")
+        flash('Error exporting payroll data', 'error')
+        return redirect(url_for('payroll'))
+
+@app.route('/api/exports/reports')
+@login_required
+def export_reports_csv():
+    try:
+        from models import Expenses, AhmadMistrahExpenses, SamerExpenses
+        from datetime import datetime
+        import csv
+        from io import StringIO
+        from flask import make_response
+        
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        # We need to export all types of expenses
+        all_expenses_list = []
+        
+        # General Expenses
+        gen_q = Expenses.query
+        if start_date:
+            gen_q = gen_q.filter(Expenses.date >= start_date)
+        if end_date:
+            end_date_time = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            gen_q = gen_q.filter(Expenses.date <= end_date_time)
+        if month and year:
+            gen_q = gen_q.filter(db.extract('year', Expenses.date) == year, db.extract('month', Expenses.date) == month)
+        
+        for exp in gen_q.all():
+            all_expenses_list.append({
+                'type': 'General',
+                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
+                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+            
+        # Ahmad Expenses
+        ahmad_q = AhmadMistrahExpenses.query
+        if start_date:
+            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date >= start_date)
+        if end_date:
+            end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date <= end_date_dt)
+        if month and year:
+            ahmad_q = ahmad_q.filter(db.extract('year', AhmadMistrahExpenses.date) == year, db.extract('month', AhmadMistrahExpenses.date) == month)
+            
+        for exp in ahmad_q.all():
+            all_expenses_list.append({
+                'type': 'Ahmad Mistrah',
+                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
+                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+            
+        # Samer Expenses
+        samer_q = SamerExpenses.query
+        if start_date:
+            samer_q = samer_q.filter(SamerExpenses.date >= start_date)
+        if end_date:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            samer_q = samer_q.filter(SamerExpenses.date <= end_dt)
+        if month and year:
+            samer_q = samer_q.filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
+            
+        for exp in samer_q.all():
+            all_expenses_list.append({
+                'type': 'Samer Mistrah',
+                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
+                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+            
+        # Sort by date
+        all_expenses_list.sort(key=lambda x: x['date'])
+        
+        si = StringIO()
+        cw = csv.writer(si)
+        cw.writerow(['Type', 'Date', 'Receiver', 'Amount', 'Note'])
+        
+        for e in all_expenses_list:
+            cw.writerow([
+                e['type'],
+                e['date'],
+                e['receiver'],
+                f"{e['amount']:.2f}",
+                e['note']
+            ])
+            
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = "attachment; filename=expenses_report.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+    except Exception as e:
+        app.logger.error(f"Error exporting reports: {e}")
+        flash('Error exporting reports data', 'error')
+        return redirect(url_for('reports'))
 
 @app.route('/api/modules/<module_name>')
 @login_required

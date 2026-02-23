@@ -705,7 +705,7 @@ const DailyCloseApp = {
 
         const items = section.querySelectorAll('[class*="item"]');
         items.forEach((item, index) => {
-            const removeBtn = item.querySelector('.btn-outline-danger');
+            const removeBtn = Array.from(item.querySelectorAll('button')).find(btn => btn.className.match(/remove-/));
             if (removeBtn) {
                 // Always show remove button, even for first item
                 removeBtn.style.display = 'block';
@@ -717,148 +717,131 @@ const DailyCloseApp = {
     getSectionTemplate(type) {
         const templates = {
             'expense': `
-                <div class="expense-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control expense-description" placeholder="Receiver Name" list="receiversList">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control expense-amount" placeholder="0.00" step="0.01">
+                 <div class="expense-item flex gap-4 items-center">
+                            <input type="text"
+                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-description"
+                                placeholder="Receiver Name" list="receiversList" />
+                            <div class="relative w-32">
+                                <span
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                                <input type="number"
+                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right expense-amount"
+                                    placeholder="0.00" step="0.01" />
                             </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-expense" title="Add Expense">
-                                <i class="fas fa-plus"></i>
+                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
+                                title="Add Item">
+                                <span class="material-symbols-outlined">add_circle</span>
+                            </button>
+                            <button type="button" class="text-slate-300 hover:text-red-500 remove-expense" style=""
+                                title="Remove Item">
+                                <span class="material-symbols-outlined">delete</span>
                             </button>
                         </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-expense" title="Remove Expense">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>`,
+                    `,
             'advance': `
-                <div class="advance-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control advance-description" placeholder="Employee Name" list="employeesList">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control advance-amount" placeholder="0.00" step="0.01">
+               <div class="advance-item flex gap-4 items-center">
+                            <input type="text"
+                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-description"
+                                placeholder="Employee Name" list="employeesList" />
+                            <div class="relative w-32">
+                                <span
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                                <input type="number"
+                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
+                                    placeholder="0.00" step="0.01" />
                             </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-advance" title="Add Advance">
-                                <i class="fas fa-plus"></i>
+                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
+                                title="Add Item">
+                                <span class="material-symbols-outlined">add_circle</span>
                             </button>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-advance" title="Remove Advance">
-                                <i class="fas fa-minus"></i>
+                            <button type="button" class="text-slate-300 hover:text-red-500 remove-advance"
+                                style="display: none;" title="Remove Item">
+                                <span class="material-symbols-outlined">delete</span>
                             </button>
-                        </div>
-                    </div>
-                </div>`,
+                        </div>`,
             'deduction': `
-                <div class="deduction-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control deduction-description" placeholder="Employee Name" list="employeesList">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control deduction-amount" placeholder="0.00" step="0.01">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-deduction" title="Add Deduction">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-deduction" title="Remove Deduction">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
+                <div class="deduction-item flex gap-4 items-center">
+                    <input type="text"
+                        class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-description"
+                        placeholder="Employee Name" list="employeesList" />
+                    <div class="relative w-32">
+                        <span
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
+                            placeholder="0.00" step="0.01" />
                     </div>
+                    <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
+                        title="Add Item">
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                    <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction" style=""
+                        title="Remove Item">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>`,
             'credit': `
-                <div class="credit-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control credit-description" placeholder="Customer Name" list="customersList">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control credit-amount" placeholder="0.00" step="0.01">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-credit" title="Add Credit">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-credit" title="Remove Credit">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
+                <div class="credit-item flex gap-4 items-center">
+                    <input type="text"
+                        class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-description"
+                        placeholder="Customer Name" list="customersList" />
+                    <div class="relative w-32">
+                        <span
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
+                            placeholder="0.00" step="0.01" />
                     </div>
+                    <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
+                        title="Add Item">
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                    <button type="button" class="text-slate-300 hover:text-red-500 remove-credit" style=""
+                        title="Remove Item">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>`,
             'cashback': `
-                <div class="cashback-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control cashback-description" placeholder="Customer Name" list="customersList">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control cashback-amount" placeholder="0.00" step="0.01">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-cashback" title="Add Cashback">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-cashback" title="Remove Cashback">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
+                <div class="cashback-item flex gap-4 items-center">
+                    <input type="text"
+                        class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-description"
+                        placeholder="Customer Name" list="customersList" />
+                    <div class="relative w-32">
+                        <span
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
+                            placeholder="0.00" step="0.01" />
                     </div>
+                    <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
+                        title="Add Item">
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                    <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback" style=""
+                        title="Remove Item">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>`,
             'samer-expense': `
-                <div class="samer-expense-item mb-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" class="form-control samer-expense-description" placeholder="Samer's expense description">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" class="form-control samer-expense-amount" placeholder="0.00" step="0.01">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-success add-samer-expense" title="Add Samer Expense">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-outline-danger remove-samer-expense" title="Remove Samer Expense">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                        </div>
+                <div class="samer-expense-item flex gap-4 items-center">
+                    <input type="text"
+                        class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
+                        placeholder="Samer's expense description" />
+                    <div class="relative w-32">
+                        <span
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
+                            placeholder="0.00" step="0.01" />
                     </div>
+                    <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense"
+                        title="Add Item">
+                        <span class="material-symbols-outlined">add_circle</span>
+                    </button>
+                    <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense" style=""
+                        title="Remove Item">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>`
         };
 
