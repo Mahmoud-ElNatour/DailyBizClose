@@ -140,37 +140,55 @@ class Customers(db.Model):
         return f'<Customers {self.username}>'
 
 class Employees(db.Model):
-    """Employee records with salary calculations"""
+    """Employee records with basic info"""
     __tablename__ = 'employees'
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(20))
     position = db.Column(db.String(50))
-    year = db.Column(db.Integer, nullable=False, default=lambda: datetime.now(timezone.utc).year)
-    month = db.Column(db.Integer, nullable=False, default=lambda: datetime.now(timezone.utc).month)
     base_salary = db.Column(db.Float, nullable=False, default=0.0)
-    working_days = db.Column(db.Float, nullable=False, default=0.0)
-    actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
-    deductions = db.Column(db.Float, nullable=False, default=0.0)
-    advance = db.Column(db.Float, nullable=False, default=0.0)
-    actual_salary = db.Column(db.Float, nullable=False, default=0.0)
-    total = db.Column(db.Float, nullable=False, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
+    monthly_records = db.relationship('EmployeeWorking', backref='employee', cascade='all, delete-orphan')
     advances_rel = db.relationship('Advances', backref='employee')
     deductions_list = db.relationship('Deductions', backref='employee')
     
+    def __repr__(self):
+        return f'<Employees {self.name}>'
+
+class EmployeeWorking(db.Model):
+    """Monthly employee records for salary calculations"""
+    __tablename__ = 'employee_working'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='active')
+    working_days = db.Column(db.Float, nullable=False, default=0.0)
+    actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
+    deductions_total = db.Column(db.Float, nullable=False, default=0.0)
+    advance_total = db.Column(db.Float, nullable=False, default=0.0)
+    actual_salary = db.Column(db.Float, nullable=False, default=0.0)
+    total = db.Column(db.Float, nullable=False, default=0.0)
+    started_at = db.Column(db.DateTime)
+    ended_at = db.Column(db.DateTime)
+    note = db.Column(db.String(500))
+    
     def calculate_salary(self):
         """Calculate actual salary and total based on working days"""
-        # Ensure values are numeric
         try:
             working_days = float(self.working_days)
-            base_salary = float(self.base_salary)
+            # Use base_salary from the parent employee
+            base_salary = float(self.employee.base_salary)
             actual_working_days = float(self.actual_working_days)
-            deductions = float(self.deductions)
-            advance = float(self.advance)
-        except (TypeError, ValueError):
+            deductions = float(self.deductions_total)
+            advance = float(self.advance_total)
+        except (TypeError, ValueError, AttributeError):
             self.actual_salary = 0.0
             self.total = 0.0
             return
@@ -179,15 +197,15 @@ class Employees(db.Model):
             daily_rate = base_salary / working_days
             self.actual_salary = daily_rate * actual_working_days - deductions - advance
             if self.actual_salary < 0:
-                self.total=0.0
+                self.total = 0.0
             else:
-                self.total=self.actual_salary
+                self.total = self.actual_salary
         else:
             self.actual_salary = 0.0
             self.total = 0.0
     
     def __repr__(self):
-        return f'<Employees {self.name}>'
+        return f'<EmployeeWorking ID:{self.id} Emp:{self.employee_id} {self.year}-{self.month}>'
 
 class Advances(db.Model):
     """Employee salary advances from daily close"""

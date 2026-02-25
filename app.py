@@ -172,10 +172,10 @@ def settings():
 def employees():
     """Employees page - show available years"""
     try:
-        from models import Employees, db
-        from datetime import datetime
-        years = db.session.query(db.func.distinct(Employees.year)).order_by(Employees.year.desc()).all()
-        years = [y[0] for y in years]
+        from models import EmployeeWorking, db
+        from datetime import datetime, UTC
+        years = db.session.query(db.func.distinct(EmployeeWorking.year)).order_by(EmployeeWorking.year.desc()).all()
+        years = [y[0] for y in years if y[0]]
         current_year = datetime.now(UTC).year
         current_month = datetime.now(UTC).month
         return render_template('employees_years.html', years=years,
@@ -194,10 +194,10 @@ def employees():
 def employees_months(year):
     """Show months for a given year"""
     try:
-        from models import Employees, db
+        from models import EmployeeWorking, db
         import calendar
-        months = db.session.query(db.func.distinct(Employees.month)).filter_by(year=year).order_by(Employees.month).all()
-        months = [(m[0], calendar.month_name[m[0]]) for m in months]
+        months = db.session.query(db.func.distinct(EmployeeWorking.month)).filter_by(year=year).order_by(EmployeeWorking.month).all()
+        months = [(m[0], calendar.month_name[m[0]]) for m in months if m[0]]
         return render_template('employees_months.html', year=year, months=months)
     except Exception as e:
         app.logger.error(f"Error loading employee months: {e}")
@@ -208,13 +208,14 @@ def employees_months(year):
 @app.route('/control-panel/employees/<int:year>/<int:month>')
 @login_required
 def employees_list(year, month):
-    """Show employees for specific month and year"""
+    """Show employees (monthly records) for specific month and year"""
     try:
-        from models import Employees
+        from models import EmployeeWorking
         import calendar
-        employees = Employees.query.filter_by(year=year, month=month).all()
+        # Fetch monthly records
+        records = EmployeeWorking.query.filter_by(year=year, month=month).all()
         month_name = calendar.month_name[month]
-        return render_template('employees.html', employees=employees, year=year, month=month, month_name=month_name)
+        return render_template('employees.html', employees=records, year=year, month=month, month_name=month_name)
     except Exception as e:
         app.logger.error(f"Error loading employees: {e}")
         flash('Error loading employees data', 'error')
@@ -373,69 +374,82 @@ def sales():
 @app.route('/control-panel/payroll')
 @login_required
 def payroll():
-    """Payroll management page"""
+    """Payroll management page using monthly records"""
     try:
-        from models import Employees
+        from models import EmployeeWorking
         from datetime import datetime
         
         # Get filter parameters
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
 
-        query = Employees.query
+        query = EmployeeWorking.query
         if year is not None:
             query = query.filter_by(year=year)
         if month is not None:
             query = query.filter_by(month=month)
-        employees = query.all()
+        records = query.all()
 
-        return render_template('payroll.html', employees=employees)
+        return render_template('payroll.html', employees=records)
     except Exception as e:
         app.logger.error(f"Error loading payroll: {e}")
         flash('Error loading payroll data', 'error')
         return render_template('payroll.html', employees=[])
 
-@app.route('/api/employees/<int:employee_id>/calculate', methods=['POST'])
+@app.route('/api/employees/<int:record_id>/calculate', methods=['POST'])
 @login_required
-def calculate_employee_payroll(employee_id):
-    """Trigger payroll calculation for an employee"""
+def calculate_employee_payroll(record_id):
+    """Trigger payroll calculation for a monthly record"""
     try:
-        from models import Employees
-        employee = Employees.query.get_or_404(employee_id)
-        employee.calculate_salary()
+        from models import EmployeeWorking
+        record = EmployeeWorking.query.get_or_404(record_id)
+        record.calculate_salary()
         db.session.commit()
         return jsonify({
             'status': 'success',
             'message': 'Payroll calculated successfully',
-            'actual_salary': employee.actual_salary,
-            'total': employee.total
+            'actual_salary': record.actual_salary,
+            'total': record.total
         })
     except Exception as e:
         app.logger.error(f"Error calculating payroll: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to calculate payroll'}), 500
 
-@app.route('/payroll/payslip/<int:employee_id>')
+@app.route('/payroll/payslip/<int:record_id>')
 @login_required
-def generate_payslip_view(employee_id):
-    """Render printable payslip for an employee"""
+def generate_payslip_view(record_id):
+    """Render printable payslip for a monthly record"""
     try:
-        from models import Employees, Advances, Deductions
-        employee = Employees.query.get_or_404(employee_id)
+        from models import EmployeeWorking, Advances, Deductions
+        record = EmployeeWorking.query.get_or_404(record_id)
         
-        show_details = True
+        show_details = request.args.get('show_details') == 'true'
         details = None
         
         if show_details:
-            advances_list = Advances.query.filter_by(employee_id=employee_id).all()
-            deductions_list = Deductions.query.filter_by(employee_id=employee_id).all()
+            advances_list = Advances.query.filter_by(employee_id=record.employee_id, 
+                                                    date=record.year).all() # This needs fixing
+            # Wait, Advances/Deductions use date, not month/year directly.
+            # Let's filter by month and year of the record date or similar.
+            # Actually, Advances matches by employee_id. We should filter by record month/year.
+            from sqlalchemy import extract
+            advances_list = Advances.query.filter(
+                Advances.employee_id == record.employee_id,
+                extract('year', Advances.date) == record.year,
+                extract('month', Advances.date) == record.month
+            ).all()
+            deductions_list = Deductions.query.filter(
+                Deductions.employee_id == record.employee_id,
+                extract('year', Deductions.date) == record.year,
+                extract('month', Deductions.date) == record.month
+            ).all()
             details = {
                 'advances': advances_list,
                 'deductions': deductions_list
             }
-            print(details)
             
-        return render_template('payslip.html', employee=employee, show_details=show_details, details=details)
+        return render_template('payslip.html', record=record, employee=record.employee, show_details=show_details, details=details)
     except Exception as e:
         app.logger.error(f"Error generating payslip: {e}")
         flash('Error generating payslip', 'error')
@@ -743,13 +757,30 @@ def daily_closing_api():
                 db.session.add(expense)
         
         # Process Advances
+        from models import EmployeeWorking
         for adv_data in data.get('advances', []):
             employee_name = adv_data.get('employee_name')
             if employee_name:
-                employee = Employees.query.filter_by(name=employee_name, month=close_date.month, year=close_date.year).first()
+                # Find base employee
+                employee = Employees.query.filter_by(name=employee_name).first()
                 if not employee:
-                    employee = Employees(name=employee_name, month=close_date.month, year=close_date.year, advance=0.0, deductions=0.0)
+                    employee = Employees(name=employee_name, base_salary=0.0)
                     db.session.add(employee)
+                    db.session.flush()
+                
+                # Find or create monthly record
+                working_record = EmployeeWorking.query.filter_by(
+                    employee_id=employee.id, 
+                    month=close_date.month, 
+                    year=close_date.year
+                ).first()
+                if not working_record:
+                    working_record = EmployeeWorking(
+                        employee_id=employee.id,
+                        month=close_date.month,
+                        year=close_date.year
+                    )
+                    db.session.add(working_record)
                     db.session.flush()
                 
                 amount = safe_float(adv_data.get('amount', 0))
@@ -761,18 +792,34 @@ def daily_closing_api():
                     employee_id=employee.id
                 )
                 db.session.add(advance_rec)
-                employee.advance = safe_float(employee.advance or 0) + amount
-                employee.calculate_salary()
+                working_record.advance_total = safe_float(working_record.advance_total or 0) + amount
+                working_record.calculate_salary()
 
         # Process Deductions
         from models import Deductions
         for ded_data in data.get('deductions', []):
             employee_name = ded_data.get('employee_name')
             if employee_name:
-                employee = Employees.query.filter_by(name=employee_name, month=close_date.month, year=close_date.year).first()
+                # Find base employee
+                employee = Employees.query.filter_by(name=employee_name).first()
                 if not employee:
-                    employee = Employees(name=employee_name, month=close_date.month, year=close_date.year, advance=0.0, deductions=0.0)
+                    employee = Employees(name=employee_name, base_salary=0.0)
                     db.session.add(employee)
+                    db.session.flush()
+                
+                # Find or create monthly record
+                working_record = EmployeeWorking.query.filter_by(
+                    employee_id=employee.id, 
+                    month=close_date.month, 
+                    year=close_date.year
+                ).first()
+                if not working_record:
+                    working_record = EmployeeWorking(
+                        employee_id=employee.id,
+                        month=close_date.month,
+                        year=close_date.year
+                    )
+                    db.session.add(working_record)
                     db.session.flush()
                 
                 amount = safe_float(ded_data.get('amount', 0))
@@ -784,8 +831,8 @@ def daily_closing_api():
                     employee_id=employee.id
                 )
                 db.session.add(deduction_rec)
-                employee.deductions = safe_float(employee.deductions or 0) + amount
-                employee.calculate_salary()
+                working_record.deductions_total = safe_float(working_record.deductions_total or 0) + amount
+                working_record.calculate_salary()
         
         # Process Credits
         for cr_data in data.get('credits', []):
@@ -1012,33 +1059,34 @@ def customer_detail(customer_id):
 @app.route('/api/employees')
 @login_required
 def get_employees():
-    """Get all employees"""
+    """Get monthly employee records"""
     try:
-        from models import Employees
+        from models import EmployeeWorking
         year = request.args.get('year', type=int)
         month = request.args.get('month', type=int)
-        query = Employees.query
+        query = EmployeeWorking.query
         if year is not None:
             query = query.filter_by(year=year)
         if month is not None:
             query = query.filter_by(month=month)
-        employees = query.all()
+        records = query.all()
         return jsonify({
             'employees': [{
-                'id': e.id,
-                'name': e.name,
-                'phone_number': e.phone_number,
-                'position': e.position,
-                'base_salary': e.base_salary,
-                'working_days': e.working_days,
-                'actual_working_days': e.actual_working_days,
-                'deductions': e.deductions,
-                'advance': e.advance,
-                'actual_salary': e.actual_salary,
-                'total': e.total,
-                'year': e.year,
-                'month': e.month
-            } for e in employees]
+                'id': r.id,
+                'employee_id': r.employee_id,
+                'name': r.employee.name,
+                'phone_number': r.employee.phone_number,
+                'position': r.employee.position,
+                'base_salary': r.employee.base_salary,
+                'working_days': r.working_days,
+                'actual_working_days': r.actual_working_days,
+                'deductions': r.deductions_total,
+                'advance': r.advance_total,
+                'actual_salary': r.actual_salary,
+                'total': r.total,
+                'year': r.year,
+                'month': r.month
+            } for r in records]
         })
     except Exception as e:
         app.logger.error(f"Error fetching employees: {e}")
@@ -1047,87 +1095,113 @@ def get_employees():
 @app.route('/api/employees', methods=['POST'])
 @login_required
 def create_employee():
-    """Create new employee"""
+    """Create new employee and/or monthly record"""
     try:
-        from models import Employees
+        from models import Employees, EmployeeWorking
         from datetime import datetime
         data = request.get_json()
+        
+        name = data.get('name')
+        year = safe_int(data.get('year'), datetime.now(timezone.utc).year)
+        month = safe_int(data.get('month'), datetime.now(timezone.utc).month)
 
-        employee = Employees(
-            name=data.get('name'),
-            phone_number=data.get('phone_number'),
-            position=data.get('position'),
-            year=safe_int(data.get('year'), datetime.now(UTC).year),
-            month=safe_int(data.get('month'), datetime.now(UTC).month),
-            base_salary=safe_float(data.get('base_salary', 0)),
+        # 1. Find or create base employee
+        employee = Employees.query.filter_by(name=name).first()
+        if not employee:
+            employee = Employees(
+                name=name,
+                phone_number=data.get('phone_number'),
+                position=data.get('position'),
+                base_salary=safe_float(data.get('base_salary', 0))
+            )
+            db.session.add(employee)
+            db.session.flush()
+        
+        # 2. Check if monthly record already exists
+        record = EmployeeWorking.query.filter_by(employee_id=employee.id, year=year, month=month).first()
+        if record:
+            return jsonify({'error': f'A record for {name} already exists for {year}-{month}'}), 400
+
+        # 3. Create monthly record
+        record = EmployeeWorking(
+            employee_id=employee.id,
+            year=year,
+            month=month,
             working_days=safe_float(data.get('working_days', 0)),
             actual_working_days=safe_float(data.get('actual_working_days', 0)),
-            deductions=safe_float(data.get('deductions', 0)),
-            advance=safe_float(data.get('advance', 0))
+            deductions_total=safe_float(data.get('deductions', 0)),
+            advance_total=safe_float(data.get('advance', 0))
         )
-        employee.calculate_salary()
-        db.session.add(employee)
+        record.calculate_salary()
+        db.session.add(record)
         db.session.commit()
         
         return jsonify({
             'status': 'success',
-            'message': 'Employee created successfully',
-            'id': employee.id
+            'message': 'Employee record created successfully',
+            'id': record.id
         })
     except Exception as e:
         app.logger.error(f"Error creating employee: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to create employee'}), 500
 
-@app.route('/api/employees/<int:employee_id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/employees/<int:record_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
-def employee_detail(employee_id):
-    """Get, update, or delete an employee"""
+def employee_detail(record_id):
+    """Get, update, or delete a monthly employee record"""
     try:
-        from models import Employees
-        employee = Employees.query.get_or_404(employee_id)
+        from models import Employees, EmployeeWorking
+        record = EmployeeWorking.query.get_or_404(record_id)
+        employee = record.employee
 
         if request.method == 'GET':
             return jsonify({
-                'id': employee.id,
+                'id': record.id,
+                'employee_id': employee.id,
                 'name': employee.name,
                 'phone_number': employee.phone_number,
                 'position': employee.position,
-                'year': employee.year,
-                'month': employee.month,
+                'year': record.year,
+                'month': record.month,
                 'base_salary': employee.base_salary,
-                'working_days': employee.working_days,
-                'actual_working_days': employee.actual_working_days,
-                'deductions': employee.deductions,
-                'advance': employee.advance,
-                'actual_salary': employee.actual_salary,
-                'total': employee.total
+                'working_days': record.working_days,
+                'actual_working_days': record.actual_working_days,
+                'deductions': record.deductions_total,
+                'advance': record.advance_total,
+                'actual_salary': record.actual_salary,
+                'total': record.total
             })
 
         if request.method == 'PUT':
             data = request.get_json()
+            # Update base employee info
             employee.name = data.get('name', employee.name)
             employee.phone_number = data.get('phone_number', employee.phone_number)
             employee.position = data.get('position', employee.position)
-            if 'year' in data: employee.year = safe_int(data['year'], employee.year)
-            if 'month' in data: employee.month = safe_int(data['month'], employee.month)
-            if 'base_salary' in data: employee.base_salary = safe_float(data['base_salary'], employee.base_salary)
-            if 'working_days' in data: employee.working_days = safe_float(data['working_days'], employee.working_days)
-            if 'actual_working_days' in data: employee.actual_working_days = safe_float(data['actual_working_days'], employee.actual_working_days)
-            if 'deductions' in data: employee.deductions = safe_float(data['deductions'], employee.deductions)
-            if 'advance' in data: employee.advance = safe_float(data['advance'], employee.advance)
-            employee.calculate_salary()
+            if 'base_salary' in data: 
+                employee.base_salary = safe_float(data['base_salary'], employee.base_salary)
+            
+            # Update monthly record info
+            if 'year' in data: record.year = safe_int(data['year'], record.year)
+            if 'month' in data: record.month = safe_int(data['month'], record.month)
+            if 'working_days' in data: record.working_days = safe_float(data['working_days'], record.working_days)
+            if 'actual_working_days' in data: record.actual_working_days = safe_float(data['actual_working_days'], record.actual_working_days)
+            if 'deductions' in data: record.deductions_total = safe_float(data['deductions'], record.deductions_total)
+            if 'advance' in data: record.advance_total = safe_float(data['advance'], record.advance_total)
+            
+            record.calculate_salary()
             db.session.commit()
-            return jsonify({'status': 'success', 'message': 'Employee updated successfully'})
+            return jsonify({'status': 'success', 'message': 'Employee record updated successfully'})
 
         # DELETE
-        db.session.delete(employee)
+        db.session.delete(record)
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'Employee deleted successfully'})
+        return jsonify({'status': 'success', 'message': 'Monthly record deleted successfully'})
     except Exception as e:
-        app.logger.error(f"Error processing employee: {e}")
+        app.logger.error(f"Error processing employee record: {e}")
         db.session.rollback()
-        return jsonify({'error': 'Failed to process employee'}), 500
+        return jsonify({'error': 'Failed to process employee record'}), 500
 
 # API Routes for future AJAX integration
 @app.route('/api/users', methods=['POST'])

@@ -118,8 +118,8 @@
                 <h1 class="text-2xl font-bold text-slate-800 tracking-tight uppercase">Official Payslip</h1>
                 <p class="text-slate-500 mt-1 uppercase text-sm font-semibold tracking-wider">
                     {{
-                    ['January','February','March','April','May','June','July','August','September','October','November','December'][employee.month-1]
-                    }} {{ employee.year }}
+                    ['January','February','March','April','May','June','July','August','September','October','November','December'][record.month-1]
+                    }} {{ record.year }}
                 </p>
             </div>
         </div>
@@ -172,40 +172,42 @@
                     </tr>
                     <tr class="border-b border-slate-100 print-border-b bg-slate-50/50">
                         <td class="py-4 text-slate-600">Working Days (Scheduled)</td>
-                        <td class="py-4 text-right text-slate-700 font-medium">{{ employee.working_days or 0 }}</td>
+                        <td class="py-4 text-right text-slate-700 font-medium">{{ record.working_days or 0 }}</td>
                     </tr>
                     <tr class="border-b border-slate-100 print-border-b">
                         <td class="py-4 text-slate-600">Actual Working Days</td>
-                        <td class="py-4 text-right text-slate-700 font-medium">{{ employee.actual_working_days or 0 }}
+                        <td class="py-4 text-right text-slate-700 font-medium">{{ record.actual_working_days or 0 }}
                         </td>
                     </tr>
 
-                    {% if employee.deductions > 0 %}
+                    {% if record.deductions_total > 0 %}
                     <tr class="border-b border-slate-100 print-border-b bg-red-50/30">
                         <td class="py-4 text-slate-700 font-medium flex items-center gap-2">
                             <span class="material-symbols-outlined text-sm text-red-500">remove</span>
                             Deductions
                         </td>
                         <td class="py-4 text-right text-red-600 font-semibold font-mono">- ${{
-                            "%.2f"|format(employee.deductions or 0) }}</td>
+                            "%.2f"|format(record.deductions_total or 0) }}</td>
                     </tr>
                     {% endif %}
 
-                    {% if employee.advance > 0 %}
+                    {% if record.advance_total > 0 %}
                     <tr class="border-b border-slate-100 print-border-b bg-orange-50/30">
                         <td class="py-4 text-slate-700 font-medium flex items-center gap-2">
                             <span class="material-symbols-outlined text-sm text-orange-500">remove</span>
                             Advance Payment
                         </td>
                         <td class="py-4 text-right text-orange-600 font-semibold font-mono">- ${{
-                            "%.2f"|format(employee.advance or 0) }}</td>
+                            "%.2f"|format(record.advance_total or 0) }}</td>
                     </tr>
                     {% endif %}
 
-                    <!-- Missing Working Days Deduction Calculation (Implicit in the old design, but good to show) -->
+                    <!-- Missing Working Days Deduction Calculation -->
                     {% set expected_salary = (employee.base_salary or 0) %}
-                    {% if (employee.actual_salary or 0) < expected_salary and employee.working_days|int> 0 %}
-                        {% set absent_deduction = expected_salary - (employee.actual_salary or 0) %}
+                    {% if (record.actual_salary or 0) < expected_salary and record.working_days|int> 0 %}
+                        {% set absent_deduction = expected_salary - (record.actual_salary or 0) -
+                        (record.deductions_total or 0) - (record.advance_total or 0) %}
+                        {% if absent_deduction > 0.01 %}
                         <tr class="border-b border-slate-100 print-border-b bg-slate-50/50">
                             <td class="py-4 text-slate-600 italic pl-6 text-sm flex items-center gap-2">
                                 <span
@@ -215,10 +217,11 @@
                             <td class="py-4 text-right text-slate-500 italic text-sm font-mono">- ${{
                                 "%.2f"|format(absent_deduction) }}</td>
                         </tr>
+                        {% endif %}
                         <tr class="border-b border-slate-100 print-border-b">
                             <td class="py-4 text-slate-700 font-medium font-mono pl-6 text-sm">Actual Salary Earned</td>
                             <td class="py-4 text-right text-emerald-600 font-semibold font-mono">${{
-                                "%.2f"|format(employee.actual_salary or 0) }}</td>
+                                "%.2f"|format(record.actual_salary or 0) }}</td>
                         </tr>
                         {% endif %}
                 </tbody>
@@ -270,7 +273,7 @@
         <!-- Total Section -->
         <div class="flex justify-between items-center pt-6 border-t-[3px] border-slate-800 mb-16">
             <div class="text-xl font-black text-slate-800 tracking-tight uppercase">Net Payable</div>
-            <div class="text-4xl font-black text-emerald-600 tracking-tight font-mono">${{ "%.2f"|format(employee.total
+            <div class="text-4xl font-black text-emerald-600 tracking-tight font-mono">${{ "%.2f"|format(record.total
                 or 0) }}</div>
         </div>
 
@@ -278,7 +281,7 @@
         <div class="text-center pt-8 border-t border-slate-200">
             <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2 print-text-slate-500">This is a
                 computer-generated document and does not require a physical signature.</p>
-            <p class="text-xs text-slate-500 print-text-slate-500">&copy; {{ employee.year }} Misk Beirut Business
+            <p class="text-xs text-slate-500 print-text-slate-500">&copy; {{ record.year }} Misk Beirut Business
                 System</p>
         </div>
     </div>
