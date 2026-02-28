@@ -124,8 +124,9 @@
                         "%.2f"|format(closing.total_cashback) }}</td>
                     <td class="px-6 py-4 text-right text-red-600 dark:text-red-400 font-medium">${{
                         "%.2f"|format(closing.total_deductions or 0) }}</td>
-                    <td class="px-6 py-4 text-right text-amber-600 dark:text-amber-400 font-medium">${{
-                        "%.2f"|format(closing.five_percent) }}</td>
+                    <td class="px-6 py-4 text-right text-amber-600 dark:text-amber-400 font-medium">
+                        ${{ "%.2f"|format(closing.five_percent) }}
+                    </td>
                     <td
                         class="px-6 py-4 text-right font-bold {% if (closing.actual_cash or 0) < 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
                         ${{ "%.2f"|format(closing.actual_cash or 0) }}

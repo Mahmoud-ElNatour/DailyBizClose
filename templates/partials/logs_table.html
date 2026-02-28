@@ -1,0 +1,148 @@
+<div
+    class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[1000px]">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Timestamp</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Level</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Action</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">User</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                    <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Message</th>
+                    <th class="px-6 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                        Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for log in pagination.items %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white">{{
+                            log.created_at.strftime('%Y-%m-%d') }}</p>
+                        <p class="text-[10px] font-mono text-slate-500 mt-0.5">{{ log.created_at.strftime('%H:%M:%S') }}
+                        </p>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if log.level == 'SUCCESS' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            {{ log.level }}
+                        </span>
+                        {% elif log.level == 'INFO' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                            {{ log.level }}
+                        </span>
+                        {% elif log.level == 'WARNING' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            {{ log.level }}
+                        </span>
+                        {% elif log.level == 'ERROR' %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            {{ log.level }}
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                            {{ log.level }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ log.action or '-'
+                            }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="size-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-primary">
+                                {{ (log.username or 'A')[:1]|upper }}
+                            </div>
+                            <span class="text-xs font-medium text-slate-600 dark:text-slate-400">{{ log.username or
+                                'anonymous' }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if log.status_code %}
+                        <span
+                            class="font-mono text-[11px] font-bold {% if log.status_code < 300 %}text-emerald-500{% elif log.status_code < 500 %}text-amber-500{% else %}text-red-500{% endif %}">
+                            {{ log.status_code }}
+                        </span>
+                        {% else %}
+                        <span class="text-slate-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[300px]"
+                            title="{{ log.message }}">
+                            {{ log.message or '-' }}
+                        </p>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <button onclick="viewLogDetails({{ log.id }})"
+                            class="p-2 text-slate-400 hover:text-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group-hover:scale-110">
+                            <span class="material-symbols-outlined text-xl">visibility</span>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not pagination.items %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center gap-2">
+                            <span
+                                class="material-symbols-outlined text-4xl text-slate-200 dark:text-slate-800">search_off</span>
+                            <p class="text-sm font-medium text-slate-400 italic">No logs found matching your criteria.
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div
+        class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div class="text-xs font-medium text-slate-500">
+            Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ [(pagination.page *
+            pagination.per_page), pagination.total]|min }} of {{ pagination.total }} entries
+        </div>
+        <div class="flex items-center gap-1">
+            {% if pagination.has_prev %}
+            <button onclick="changePage({{ pagination.prev_num }})"
+                class="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-all">
+                <span class="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+            {% if page_num %}
+            <button onclick="changePage({{ page_num }})" class="size-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all
+                        {% if page_num == pagination.page %}
+                            bg-primary text-white shadow-lg shadow-primary/20
+                        {% else %}
+                            text-slate-500 hover:bg-white dark:hover:bg-slate-700 hover:text-primary
+                        {% endif %}">
+                {{ page_num }}
+            </button>
+            {% else %}
+            <span class="px-2 text-slate-300">...</span>
+            {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <button onclick="changePage({{ pagination.next_num }})"
+                class="p-2 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-400 hover:text-primary transition-all">
+                <span class="material-symbols-outlined text-lg">chevron_right</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

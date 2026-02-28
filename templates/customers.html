@@ -8,14 +8,31 @@
         <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Customers Management</h1>
         <p class="text-slate-500 dark:text-slate-400 mt-1">Manage customer information and account balances.</p>
     </div>
-    <div class="flex pb-4 gap-3 w-full md:w-auto">
+    <div class="flex flex-wrap pb-4 gap-3 w-full md:w-auto">
+        <div
+            class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 self-stretch md:self-auto">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">From</span>
+            <input type="date" id="start_date" value="{{ start_date or '' }}"
+                class="border-0 p-0 bg-transparent text-sm focus:ring-0 text-slate-700 dark:text-slate-300 w-32" />
+        </div>
+        <div
+            class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 self-stretch md:self-auto">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">To</span>
+            <input type="date" id="end_date" value="{{ end_date or '' }}"
+                class="border-0 p-0 bg-transparent text-sm focus:ring-0 text-slate-700 dark:text-slate-300 w-32" />
+        </div>
+        <button onclick="filterByDate()"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">filter_alt</span>
+            Filter
+        </button>
         <a href="{{ url_for('control_panel') }}"
-            class="flex-1 md:flex-none inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
             <span class="material-symbols-outlined text-sm">arrow_back</span>
             Back
         </a>
         <button data-bs-toggle="modal" data-bs-target="#addCustomerModal"
-            class="flex-1 md:flex-none inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30">
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30">
             <span class="material-symbols-outlined text-sm">add</span>
             Add Customer
         </button>
@@ -44,19 +61,36 @@
                     <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">{{ customer.username }}</td>
                     <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ customer.phone_number or 'N/A' }}</td>
                     <td class="px-6 py-4 text-right">
-                        {% if customer.balance < 0 %} <span
-                            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
-                            ${{ "%.2f"|format(customer.balance or 0) }}
-                            </span>
-                            {% elif customer.balance > 0 %}
+                        {% set display_balance = filtered_balances[customer.id] if customer.id in filtered_balances else
+                        customer.balance %}
+                        {% if display_balance < 0 %} <span class="inline-flex flex-col items-end">
                             <span
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                                ${{ "%.2f"|format(customer.balance or 0) }}
+                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800 whitespace-nowrap">
+                                ${{ "%.2f"|format(display_balance or 0) }}
+                            </span>
+                            {% if customer.id in filtered_balances %}
+                            <span class="text-[10px] text-slate-400 mt-1">Period Balance</span>
+                            {% endif %}
+                            </span>
+                            {% elif display_balance > 0 %}
+                            <span class="inline-flex flex-col items-end">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+                                    ${{ "%.2f"|format(display_balance or 0) }}
+                                </span>
+                                {% if customer.id in filtered_balances %}
+                                <span class="text-[10px] text-slate-400 mt-1">Period Balance</span>
+                                {% endif %}
                             </span>
                             {% else %}
-                            <span
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                ${{ "%.2f"|format(customer.balance or 0) }}
+                            <span class="inline-flex flex-col items-end">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                    ${{ "%.2f"|format(display_balance or 0) }}
+                                </span>
+                                {% if customer.id in filtered_balances %}
+                                <span class="text-[10px] text-slate-400 mt-1">Period Balance</span>
+                                {% endif %}
                             </span>
                             {% endif %}
                     </td>
@@ -119,7 +153,7 @@
                             Balance</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                            <input type="number" name="balance" step="0.01" value="0"
+                            <input type="number" name="balance" value="0"
                                 class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                         <p class="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><span
@@ -167,7 +201,7 @@
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Balance</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                            <input type="number" name="balance" id="edit-customer-balance" step="0.01"
+                            <input type="number" name="balance" id="edit-customer-balance"
                                 class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                     </div>
@@ -188,6 +222,17 @@
 
 {% block extra_scripts %}
 <script>
+    function filterByDate() {
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+        if (!start || !end) {
+            if (typeof showAlert === 'function') showAlert('Please select both start and end dates', 'warning');
+            else alert('Please select both start and end dates');
+            return;
+        }
+        window.location.href = `/control-panel/customers?start_date=${start}&end_date=${end}`;
+    }
+
     // Add Customer Form Handler
     document.getElementById('addCustomerForm').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -272,25 +317,45 @@
             });
     });
 
-    function deleteCustomer(id) {
+    async function deleteCustomer(id) {
         if (confirm('Are you sure you want to delete this customer?')) {
-            fetch(`/api/customers/${id}`, {
-                method: 'DELETE'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        location.reload();
-                    } else {
-                        if (typeof showAlert === 'function') showAlert('Error deleting customer: ' + (data.message || data.error), 'error');
-                        else alert('Error deleting customer: ' + (data.message || data.error));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    if (typeof showAlert === 'function') showAlert('Error deleting customer', 'error');
-                    else alert('Error deleting customer');
+            try {
+                const response = await fetch(`/api/customers/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
                 });
+                const result = await response.json();
+
+                if (response.status === 409 || result.toast) {
+                    if (typeof showToast === 'function') {
+                        showToast(result.toast?.title || 'Error', result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                    } else {
+                        alert(result.toast?.message || result.error?.message || 'Delete blocked');
+                    }
+                } else if (result.status === 'success' || result.ok) {
+                    if (typeof showToast === 'function') {
+                        showToast('Success', result.message, 'success');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(result.message, 'success');
+                    }
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    if (typeof showAlert === 'function') {
+                        showAlert(result.error || 'Failed to delete customer', 'error');
+                    } else {
+                        alert(result.error || 'Failed to delete customer');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') {
+                    showAlert('An error occurred', 'error');
+                } else {
+                    alert('An error occurred while deleting the customer.');
+                }
+            }
         }
     }
 </script>

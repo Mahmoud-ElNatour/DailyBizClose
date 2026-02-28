@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Cashback Records - DailyBizClose{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Cashback Records</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">View and filter customer cashback transactions.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto pb-2">
+        <a href="{{ url_for('control_panel') }}"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_back</span>
+            Back
+        </a>
+        <select id="recordMonth"
+            class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+            <option value="">All Months</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+        </select>
+        <select id="recordYear"
+            class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+            <option value="">All Years</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+        </select>
+        <button onclick="filterRecords()"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">filter_list</span>
+            Filter
+        </button>
+    </div>
+</div>
+
+<!-- Statistics Summary -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <div class="bg-primary text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">receipt_long</span>
+        </div>
+        <div class="relative z-10">
+            <h6 class="text-sm font-semibold text-primary-100 uppercase tracking-wider mb-2">Total Cashback</h6>
+            <h3 class="text-3xl font-bold">${{ "%.2f"|format(stats.total or 0) }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 dark:bg-slate-700 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">tag</span>
+        </div>
+        <div class="relative z-10">
+            <h6 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Record Count</h6>
+            <h3 class="text-3xl font-bold">{{ stats.count }}</h3>
+        </div>
+    </div>
+
+    <div class="bg-indigo-500 dark:bg-indigo-600 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">trending_up</span>
+        </div>
+        <div class="relative z-10">
+            <h6 class="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-2">Max Single Cashback</h6>
+            <h3 class="text-3xl font-bold">${{ "%.2f"|format(stats.max or 0) }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Records Table -->
+<div
+    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead
+                class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                <tr>
+                    <th class="px-6 py-4 font-semibold">ID</th>
+                    <th class="px-6 py-4 font-semibold">Date</th>
+                    <th class="px-6 py-4 font-semibold">Customer</th>
+                    <th class="px-6 py-4 font-semibold text-right">Amount</th>
+                    <th class="px-6 py-4 font-semibold flex-1">Note</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                {% for record in records %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ record.id }}</td>
+                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">{{ record.date.strftime('%Y-%m-%d')
+                        if record.date else 'N/A' }}</td>
+                    <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                        <span
+                            class="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">
+                            {{ record.customer.username if record.customer else 'Unknown' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-medium text-emerald-600 dark:text-emerald-400">+${{
+                        "%.2f"|format(record.amount or 0) }}</td>
+                    <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ record.note or 'N/A' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                        <div class="flex flex-col items-center justify-center">
+                            <span
+                                class="material-symbols-outlined text-4xl mb-3 text-slate-300 dark:text-slate-600">receipt_long</span>
+                            <p class="text-base font-medium">No cashback records found</p>
+                            <p class="text-sm mt-1">Adjust your filters to see data here.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function filterRecords() {
+        const month = document.getElementById('recordMonth').value;
+        const year = document.getElementById('recordYear').value;
+        const params = new URLSearchParams();
+        if (month) params.append('month', month);
+        if (year) params.append('year', year);
+        window.location.href = `/control-panel/cashbacks?${params.toString()}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentDate = new Date();
+        document.getElementById('recordMonth').value = urlParams.get('month') || '';
+        document.getElementById('recordYear').value = urlParams.get('year') || '';
+    });
+</script>
+{% endblock %}

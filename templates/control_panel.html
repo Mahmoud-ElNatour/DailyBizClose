@@ -8,11 +8,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
         rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500;600;700&amp;display=swap"
-        rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500;600;700&display=swap"
         rel="stylesheet" />
     <script id="tailwind-config">
         tailwind.config = {
@@ -186,7 +182,7 @@
                     <div class="flex items-start gap-4">
                         <div
                             class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                            <span class="material-symbols-outlined text-2xl">inventory_2</span>
+                            <span class="material-symbols-outlined text-2xl">inventory</span>
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Receivers</h3>
@@ -203,7 +199,7 @@
                     <div class="flex items-start gap-4">
                         <div
                             class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                            <span class="material-symbols-outlined text-2xl">file_contract</span>
+                            <span class="material-symbols-outlined text-2xl">receipt_long</span>
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Deductions & Advances</h3>
@@ -303,6 +299,38 @@
                         </div>
                     </div>
                 </a>
+
+                <!-- Credits -->
+                <a href="{{ url_for('credits_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="credits">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">payments</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Credits</h3>
+                            <p class="text-xs text-slate-500 mt-1">Customer credit sales</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Cashbacks -->
+                <a href="{{ url_for('cashbacks_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-5 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="cashbacks">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div
+                            class="bg-primary/10 text-primary p-3 rounded-full group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-2xl">receipt_long</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Cashbacks</h3>
+                            <p class="text-xs text-slate-500 mt-1">Customer cashback</p>
+                        </div>
+                    </div>
+                </a>
             </div>
         </section>
 
@@ -363,6 +391,23 @@
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Settings</h3>
                             <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Global application
                                 preferences and store configurations.</p>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Audit Logs -->
+                <a href="{{ url_for('admin_logs') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="logs">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-[#FFD700]/10 text-amber-600 dark:text-amber-400 p-3 rounded-full group-hover:bg-[#FFD700] group-hover:text-slate-900 transition-all duration-300">
+                            <span class="material-symbols-outlined text-2xl">history</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Audit Logs</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Monitor and review all
+                                administrative activities and system events.</p>
                         </div>
                     </div>
                 </a>

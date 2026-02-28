@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - DailyBizClose{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-900 text-slate-900 dark:text-white tracking-tight">Audit Logs Report</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Track system changes, user activities,
+                and administrative actions.</p>
+        </div>
+        <div>
+            <button onclick="exportLogs()"
+                class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#FFD700] hover:bg-[#FFC000] text-slate-900 rounded-lg text-sm font-bold transition-all shadow-lg shadow-yellow-500/20">
+                <span class="material-symbols-outlined text-lg">download</span>
+                Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div
+        class="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-6 mb-8 shadow-sm">
+        <form id="logsFilterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-end">
+            <!-- Search -->
+            <div class="xl:col-span-2">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Search</label>
+                <div class="relative">
+                    <span
+                        class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">search</span>
+                    <input type="text" name="search" id="logSearch" placeholder="Message, user, path..."
+                        class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+                </div>
+            </div>
+
+            <!-- Start Date -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Start Date</label>
+                <input type="date" name="startDate" id="logStartDate"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+            </div>
+
+            <!-- End Date -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">End Date</label>
+                <input type="date" name="endDate" id="logEndDate"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+            </div>
+
+            <!-- Level -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Level</label>
+                <select name="level" id="logLevel"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+                    <option value="All">All Levels</option>
+                    <option value="SUCCESS">SUCCESS</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+
+            <!-- Action -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Action</label>
+                <select name="action" id="logAction"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+                    <option value="All">All Actions</option>
+                    {% for act in actions %}
+                    <option value="{{ act }}">{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Status</label>
+                <select name="status" id="logStatus"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+                    <option value="All">All Status</option>
+                    <option value="200">200 OK</option>
+                    <option value="201">201 Created</option>
+                    <option value="400">400 Bad Request</option>
+                    <option value="401">401 Unauthorized</option>
+                    <option value="403">403 Forbidden</option>
+                    <option value="404">404 Not Found</option>
+                    <option value="409">409 Conflict</option>
+                    <option value="500">500 Server Error</option>
+                </select>
+            </div>
+
+            <!-- Page Size -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Page Size</label>
+                <select name="pageSize" id="logPageSize"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary focus:border-primary">
+                    <option value="10">10 per page</option>
+                    <option value="25" selected>25 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                </select>
+            </div>
+
+            <!-- Buttons -->
+            <div class="xl:col-span-2 flex gap-3 h-[42px]">
+                <button type="submit"
+                    class="flex-1 bg-[#FFD700] hover:bg-[#FFC000] text-slate-900 font-bold rounded-lg text-sm transition-colors">
+                    Apply Filters
+                </button>
+                <button type="button" onclick="resetFilters()"
+                    class="px-6 border border-slate-200 dark:border-slate-700 font-medium rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    Reset
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div id="logsTableContainer" class="relative min-h-[400px]">
+        <!-- Initial Loader -->
+        <div id="logsLoading"
+            class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] z-10">
+            <div class="flex flex-col items-center gap-4">
+                <div class="animate-spin size-12 border-4 border-[#FFD700]/20 border-t-[#FFD700] rounded-full"></div>
+                <p class="text-sm font-medium text-slate-500 animate-pulse">Loading logs...</p>
+            </div>
+        </div>
+        <!-- Table will be injected here via AJAX -->
+        <div id="logsContent"></div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div id="logDetailsModal" class="fixed inset-0 z-[60] hidden overflow-y-auto" aria-labelledby="modal-title"
+    role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Backdrop -->
+        <div id="modalBackdrop" class="fixed inset-0 transition-opacity bg-slate-900/75 backdrop-blur-sm"
+            aria-hidden="true" onclick="hideModal()"></div>
+
+        <!-- Modal Panel -->
+        <div
+            class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white dark:bg-slate-900 rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-slate-200 dark:border-slate-800">
+            <div
+                class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white" id="modal-title">Log Details</h3>
+                    <p class="text-xs text-slate-500 font-mono mt-0.5" id="modalLogId">ID: #0</p>
+                </div>
+                <button onclick="hideModal()"
+                    class="size-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="px-6 py-6 space-y-8">
+                <!-- Basic Info Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Action</p>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white" id="modalAction">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Method / Status
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono font-bold"
+                                id="modalMethod">-</span>
+                            <span id="modalStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-bold">-</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">User</p>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white" id="modalUser">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Timestamp</p>
+                        <p class="text-sm font-medium text-slate-600 dark:text-slate-400" id="modalTimestamp">-</p>
+                    </div>
+                    <div class="col-span-full">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Path</p>
+                        <p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all" id="modalPath">-</p>
+                    </div>
+                </div>
+
+                <!-- Message Section -->
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Message</p>
+                    <div
+                        class="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <p class="text-sm text-slate-700 dark:text-slate-300" id="modalMessage">-</p>
+                    </div>
+                </div>
+
+                <!-- Changes Section (Dynamic) -->
+                <div id="modalChangesSection" class="hidden">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">Data Changes</p>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50">
+                                <tr>
+                                    <th class="px-4 py-2 font-bold text-slate-500 uppercase text-[10px]">Attribute</th>
+                                    <th class="px-4 py-2 font-bold text-slate-500 uppercase text-[10px]">Old Value</th>
+                                    <th class="px-4 py-2 font-bold text-slate-500 uppercase text-[10px]">New Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalChangesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <!-- Rows dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- JSON Details Section -->
+                <div id="modalJsonSection" class="hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Context Details
+                            (JSON)</p>
+                        <button onclick="copyJsonToClipboard()"
+                            class="text-[10PX] text-primary hover:underline font-bold">COPY JSON</button>
+                    </div>
+                    <div class="p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                        <pre id="modalJsonContent" class="text-xs text-emerald-400 font-mono overflow-x-auto"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-right">
+                <button onclick="hideModal()"
+                    class="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initial load
+        fetchLogs();
+
+        // Filter form submission
+        document.getElementById('logsFilterForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            fetchLogs(1); // Reset to page 1
+        });
+    });
+
+    function fetchLogs(page = 1) {
+        const container = document.getElementById('logsContent');
+        const loader = document.getElementById('logsLoading');
+        const form = document.getElementById('logsFilterForm');
+
+        loader.classList.remove('hidden');
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        params.set('page', page);
+
+        fetch(`/admin/logs/table?${params.toString()}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load logs');
+                return response.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                loader.classList.add('hidden');
+                // Scroll to top of table
+                document.getElementById('logsTableContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            })
+            .catch(error => {
+                console.error(error);
+                if (typeof showAlert === 'function') showAlert('Failed to load logs.', 'error');
+                else alert('Failed to load logs.');
+                loader.classList.add('hidden');
+            });
+    }
+
+    function resetFilters() {
+        document.getElementById('logsFilterForm').reset();
+        fetchLogs(1);
+    }
+
+    function changePage(page) {
+        fetchLogs(page);
+    }
+
+    function viewLogDetails(id) {
+        fetch(`/api/admin/logs/${id}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load details');
+                return response.json();
+            })
+            .then(data => {
+                populateModal(data);
+                showModal();
+            })
+            .catch(error => {
+                console.error(error);
+                if (typeof showAlert === 'function') showAlert('Failed to load log details.', 'error');
+            });
+    }
+
+    function populateModal(data) {
+        document.getElementById('modalLogId').textContent = `ID: #${data.id}`;
+        document.getElementById('modalAction').textContent = data.action || 'Unknown';
+        document.getElementById('modalMethod').textContent = data.path ? `${data.method || 'GET'}` : '-';
+        document.getElementById('modalUser').textContent = data.username || 'anonymous';
+        document.getElementById('modalTimestamp').textContent = data.created_at;
+        document.getElementById('modalPath').textContent = data.path || '-';
+        document.getElementById('modalMessage').textContent = data.message || '(No message)';
+
+        // Status badge
+        const statusBadge = document.getElementById('modalStatusBadge');
+        const status = data.status_code || 0;
+        statusBadge.textContent = status || '-';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold ';
+
+        if (status >= 200 && status < 300) statusBadge.classList.add('bg-emerald-100', 'text-emerald-700', 'dark:bg-emerald-900/30', 'dark:text-emerald-400');
+        else if (status >= 400 && status < 500) statusBadge.classList.add('bg-amber-100', 'text-amber-700', 'dark:bg-amber-900/30', 'dark:text-amber-400');
+        else if (status >= 500) statusBadge.classList.add('bg-red-100', 'text-red-700', 'dark:bg-red-900/30', 'dark:text-red-400');
+        else statusBadge.classList.add('bg-amber-100', 'text-amber-700', 'dark:bg-amber-800', 'dark:text-amber-400'); // Default to amber for INFO if status unknown
+
+        // Changes Section
+        const changesSection = document.getElementById('modalChangesSection');
+        const changesTableBody = document.getElementById('modalChangesTableBody');
+        changesTableBody.innerHTML = '';
+
+        if (data.details && data.details.changes && Array.isArray(data.details.changes)) {
+            changesSection.classList.remove('hidden');
+            data.details.changes.forEach(change => {
+                const row = `
+                    <tr class="dark:bg-slate-900/30">
+                        <td class="px-4 py-2 font-mono text-slate-500">${change.field}</td>
+                        <td class="px-4 py-2 text-red-500 font-medium">${change.old !== null ? change.old : 'null'}</td>
+                        <td class="px-4 py-2 text-emerald-500 font-bold">${change.new !== null ? change.new : 'null'}</td>
+                    </tr>
+                `;
+                changesTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        } else {
+            changesSection.classList.add('hidden');
+        }
+
+        // JSON Section
+        const jsonSection = document.getElementById('modalJsonSection');
+        const jsonContent = document.getElementById('modalJsonContent');
+        if (data.details) {
+            jsonSection.classList.remove('hidden');
+            jsonContent.textContent = JSON.stringify(data.details, null, 2);
+        } else {
+            jsonSection.classList.add('hidden');
+        }
+    }
+
+    function showModal() {
+        const modal = document.getElementById('logDetailsModal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal() {
+        const modal = document.getElementById('logDetailsModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function copyJsonToClipboard() {
+        const text = document.getElementById('modalJsonContent').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            if (typeof showAlert === 'function') showAlert('Copied to clipboard!', 'success');
+        });
+    }
+
+    function exportLogs() {
+        const form = document.getElementById('logsFilterForm');
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        window.open(`/admin/logs/export?${params.toString()}`, '_blank');
+    }
+</script>
+{% endblock %}

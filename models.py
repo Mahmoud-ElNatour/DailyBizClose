@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import datetime, timezone
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -15,17 +16,17 @@ class DailyClosing(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    main_reading = db.Column(db.Float, nullable=False, default=0.0)
-    dr_smashed = db.Column(db.Float, nullable=False, default=0.0)
-    adjusted_reading = db.Column(db.Float, nullable=False, default=0.0)
-    total_expenses = db.Column(db.Float, nullable=False, default=0.0)
-    total_advance = db.Column(db.Float, nullable=False, default=0.0)
-    total_credit = db.Column(db.Float, nullable=False, default=0.0)
-    total_cashback = db.Column(db.Float, nullable=False, default=0.0)
-    five_percent = db.Column(db.Float, nullable=False, default=0.0)
-    total_cashout = db.Column(db.Float, nullable=False, default=0.0)
-    total_deductions = db.Column(db.Float, nullable=False, default=0.0)
-    actual_cash = db.Column(db.Float, nullable=False, default=0.0)
+    main_reading = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    dr_smashed = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    adjusted_reading = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_expenses = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_advance = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_credit = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_cashback = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    five_percent = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_cashout = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total_deductions = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    actual_cash = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('Expenses', backref='daily_closing', cascade='all, delete-orphan')
@@ -45,7 +46,7 @@ class Expenses(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     receiver_id = db.Column(db.Integer, db.ForeignKey('receivers.id'), nullable=True)
@@ -59,7 +60,7 @@ class AhmadMistrahExpenses(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     receiver_id = db.Column(db.Integer, db.ForeignKey('ahmad_expense_receivers.id'), nullable=True)
@@ -73,7 +74,7 @@ class AhmadExpenseReceivers(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    paid_amount = db.Column(db.Numeric(18, 2), nullable=False, default=0.0)
+    paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('AhmadMistrahExpenses', backref='receiver')
@@ -87,7 +88,7 @@ class SamerExpenses(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Numeric(18, 2), nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     receiver_id = db.Column(db.Integer, db.ForeignKey('samer_expense_receivers.id'), nullable=True)
@@ -101,7 +102,7 @@ class SamerExpenseReceivers(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    paid_amount = db.Column(db.Numeric(18, 2), nullable=False, default=0.0)
+    paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('SamerExpenses', backref='receiver')
@@ -115,7 +116,7 @@ class Receivers(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    paid_amount = db.Column(db.Float, nullable=False, default=0.0)
+    paid_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     
     # Relationships
     expenses = db.relationship('Expenses', backref='receiver')
@@ -129,7 +130,7 @@ class Customers(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    balance = db.Column(db.Float, nullable=False, default=0.0)
+    balance = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     phone_number = db.Column(db.String(20))
     
     # Relationships
@@ -147,7 +148,7 @@ class Employees(db.Model):
     name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(20))
     position = db.Column(db.String(50))
-    base_salary = db.Column(db.Float, nullable=False, default=0.0)
+    base_salary = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -169,18 +170,24 @@ class EmployeeWorking(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='active')
-    working_days = db.Column(db.Float, nullable=False, default=0.0)
-    actual_working_days = db.Column(db.Float, nullable=False, default=0.0)
-    deductions_total = db.Column(db.Float, nullable=False, default=0.0)
-    advance_total = db.Column(db.Float, nullable=False, default=0.0)
-    actual_salary = db.Column(db.Float, nullable=False, default=0.0)
-    total = db.Column(db.Float, nullable=False, default=0.0)
+    working_days = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    actual_working_days = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    deductions_total = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    advance_total = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    actual_salary = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    total = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     started_at = db.Column(db.DateTime)
     ended_at = db.Column(db.DateTime)
+    is_working = db.Column(db.Boolean, default=True)
     note = db.Column(db.String(500))
     
     def calculate_salary(self):
-        """Calculate actual salary and total based on working days"""
+        """Calculate actual salary and total based on working days and status"""
+        if not self.is_working:
+            self.actual_salary = 0.0
+            self.total = 0.0
+            return
+
         try:
             working_days = float(self.working_days)
             # Use base_salary from the parent employee
@@ -188,6 +195,24 @@ class EmployeeWorking(db.Model):
             actual_working_days = float(self.actual_working_days)
             deductions = float(self.deductions_total)
             advance = float(self.advance_total)
+            
+            # Carryover logic: Find previous month's negative salary
+            prev_month = self.month - 1
+            prev_year = self.year
+            if prev_month == 0:
+                prev_month = 12
+                prev_year -= 1
+            
+            prev_record = EmployeeWorking.query.filter_by(
+                employee_id=self.employee_id, 
+                year=prev_year, 
+                month=prev_month
+            ).first()
+            
+            carryover = 0.0
+            if prev_record and prev_record.actual_salary and prev_record.actual_salary < 0:
+                carryover = abs(float(prev_record.actual_salary))
+                
         except (TypeError, ValueError, AttributeError):
             self.actual_salary = 0.0
             self.total = 0.0
@@ -195,7 +220,7 @@ class EmployeeWorking(db.Model):
 
         if working_days > 0:
             daily_rate = base_salary / working_days
-            self.actual_salary = daily_rate * actual_working_days - deductions - advance
+            self.actual_salary = daily_rate * actual_working_days - deductions - advance - carryover
             if self.actual_salary < 0:
                 self.total = 0.0
             else:
@@ -212,7 +237,7 @@ class Advances(db.Model):
     __tablename__ = 'advances'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
@@ -222,7 +247,7 @@ class Credits(db.Model):
     __tablename__ = 'credits'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
@@ -232,7 +257,7 @@ class Cashbacks(db.Model):
     __tablename__ = 'cashbacks'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
@@ -242,19 +267,43 @@ class Deductions(db.Model):
     __tablename__ = 'deductions_records'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
     note = db.Column(db.String(500))
     daily_closing_id = db.Column(db.Integer, db.ForeignKey('daily_closing.id'), nullable=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=True)
 
 class User(db.Model, UserMixin):
     """Basic User model for future authentication"""
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    role = db.Column(db.String(20), default='user')
     # ensure password hash field has length of at least 256
     password_hash = db.Column(db.String(256))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def __repr__(self):
         return f'<User {self.username}>'
+
+class Logs(db.Model):
+    """Audit logs for system activities"""
+    __tablename__ = 'logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    level = db.Column(db.String(20), nullable=False, index=True) # SUCCESS, INFO, WARNING, ERROR
+    request_id = db.Column(db.String(100), index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    username = db.Column(db.String(100), index=True)
+    ip_address = db.Column(db.String(45))
+    method = db.Column(db.String(10))
+    path = db.Column(db.String(255))
+    action = db.Column(db.String(100), index=True)
+    status_code = db.Column(db.Integer, index=True)
+    message = db.Column(db.String(500))
+    details_json = db.Column(db.Text) # JSON string
+    duration_ms = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return f'<Logs {self.id} - {self.action} - {self.level}>'

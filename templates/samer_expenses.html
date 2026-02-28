@@ -195,7 +195,7 @@
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                            <input type="number" name="amount" step="0.01" min="0" required
+                            <input type="number" name="amount" min="0" required
                                 class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                     </div>
@@ -249,7 +249,7 @@
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                            <input type="number" name="amount" id="editSamerAmount" step="0.01" min="0" required
+                            <input type="number" name="amount" id="editSamerAmount" min="0" required
                                 class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                     </div>
@@ -364,20 +364,40 @@
 
         try {
             const response = await fetch(`/api/samer-expenses/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
             });
+            const result = await response.json();
 
-            if (response.ok) {
-                location.reload();
+            if (response.status === 409 || result.toast) {
+                if (typeof showToast === 'function') {
+                    showToast(result.toast?.title || 'Error', result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                } else if (typeof showAlert === 'function') {
+                    showAlert(result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                } else {
+                    alert(result.toast?.message || result.error?.message || 'Delete blocked');
+                }
+            } else if (result.status === 'success' || result.ok) {
+                if (typeof showToast === 'function') {
+                    showToast('Success', result.message, 'success');
+                } else if (typeof showAlert === 'function') {
+                    showAlert(result.message, 'success');
+                }
+                setTimeout(() => location.reload(), 500);
             } else {
-                const result = await response.json();
-                if (typeof showAlert === 'function') showAlert(result.error || 'Failed to delete expense', 'error');
-                else alert(result.error || 'Failed to delete expense');
+                if (typeof showAlert === 'function') {
+                    showAlert(result.error || 'Failed to delete expense', 'error');
+                } else {
+                    alert(result.error || 'Failed to delete expense');
+                }
             }
         } catch (error) {
             console.error('Error:', error);
-            if (typeof showAlert === 'function') showAlert('An error occurred', 'error');
-            else alert('An error occurred');
+            if (typeof showAlert === 'function') {
+                showAlert('An error occurred', 'error');
+            } else {
+                alert('An error occurred while deleting the expense.');
+            }
         }
     }
 

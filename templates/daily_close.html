@@ -205,7 +205,7 @@
                                     class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number" id="mainReading"
                                     class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
                         </div>
                         <!-- Dr Smashed -->
@@ -218,7 +218,7 @@
                                     class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number" id="drSmashed"
                                     class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
                         </div>
                     </div>
@@ -234,25 +234,31 @@
                         </h3>
                     </div>
                     <div id="expensesSection" class="space-y-3">
-                        <div class="expense-item flex gap-4 items-center">
+                        <div
+                            class="expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-description"
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-description"
                                 placeholder="Receiver Name" list="receiversList" />
-                            <div class="relative w-32">
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-note"
+                                placeholder="Note/Details" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right expense-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-expense"
-                                title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-expense"
+                                    title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -270,25 +276,31 @@
                         </h3>
                     </div>
                     <div id="advancesSection" class="space-y-3">
-                        <div class="advance-item flex gap-4 items-center">
+                        <div
+                            class="advance-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-description"
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-description"
                                 placeholder="Employee Name" list="employeesList" />
-                            <div class="relative w-32">
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-note"
+                                placeholder="Note/Reason" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-advance"
-                                style="display: none;" title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-advance"
+                                    style="display: none;" title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -306,25 +318,31 @@
                         </h3>
                     </div>
                     <div id="deductionsSection" class="space-y-3">
-                        <div class="deduction-item flex gap-4 items-center">
+                        <div
+                            class="deduction-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-description"
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-description"
                                 placeholder="Employee Name" list="employeesList" />
-                            <div class="relative w-32">
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-note"
+                                placeholder="Note/Reason" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction"
-                                style="display: none;" title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction"
+                                    style="display: none;" title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -342,25 +360,31 @@
                         </h3>
                     </div>
                     <div id="creditsSection" class="space-y-3">
-                        <div class="credit-item flex gap-4 items-center">
+                        <div
+                            class="credit-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-description"
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-description"
                                 placeholder="Customer Name" list="customersList" />
-                            <div class="relative w-32">
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-note"
+                                placeholder="Note/Reference" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-credit"
-                                style="display: none;" title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-credit"
+                                    style="display: none;" title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -378,25 +402,31 @@
                         </h3>
                     </div>
                     <div id="cashbacksSection" class="space-y-3">
-                        <div class="cashback-item flex gap-4 items-center">
+                        <div
+                            class="cashback-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-description"
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-description"
                                 placeholder="Customer Name" list="customersList" />
-                            <div class="relative w-32">
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-note"
+                                placeholder="Note/Reference" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback"
-                                style="display: none;" title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback"
+                                    style="display: none;" title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -414,25 +444,31 @@
                         </h3>
                     </div>
                     <div id="samerExpensesSection" class="space-y-3">
-                        <div class="samer-expense-item flex gap-4 items-center">
+                        <div
+                            class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
-                                class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
-                                placeholder="Samer's expense description" />
-                            <div class="relative w-32">
+                                class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
+                                placeholder="Receiver Name" list="receiversList" />
+                            <input type="text"
+                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
+                                placeholder="Note/Details" />
+                            <div class="relative w-32 shrink-0">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                                 <input type="number"
                                     class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
-                                    placeholder="0.00" step="0.01" />
+                                    placeholder="0.00" />
                             </div>
-                            <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense"
-                                title="Add Item">
-                                <span class="material-symbols-outlined">add_circle</span>
-                            </button>
-                            <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense"
-                                style="display: none;" title="Remove Item">
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            <div class="flex gap-2">
+                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense"
+                                    title="Add Item">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                </button>
+                                <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense"
+                                    style="display: none;" title="Remove Item">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
@@ -453,7 +489,7 @@
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                             <input type="number" id="ahmadExpenses"
                                 class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
-                                placeholder="0.00" step="0.01" />
+                                placeholder="0.00" />
                         </div>
                         <p class="text-xs text-slate-400 mt-2">Single total monthly or daily allocation for Ahmad.</p>
                     </div>
