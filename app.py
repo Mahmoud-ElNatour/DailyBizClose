@@ -2860,10 +2860,3 @@ def get_module(module_name):
     })
 
 
-if __name__ == '__main__':
-    # Debug: Print all registered routes
-    print("Registered routes:")
-    for rule in app.url_map.iter_rules():
-        print(f"  {rule.rule} -> {rule.endpoint}")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
