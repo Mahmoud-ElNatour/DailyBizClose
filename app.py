@@ -269,6 +269,7 @@ def daily_close():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    from models import User
     """Settings page route"""
     if request.method == 'POST':
         # Check if this is a password change submission
