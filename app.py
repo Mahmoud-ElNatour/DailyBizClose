@@ -150,6 +150,31 @@ def check_dependencies_and_respond(entity_type, entity_id, checks):
         
     return None
 
+def apply_carryover_debt(employee_id, current_year, current_month):
+    """Calculates carryover debt and issues a Deductions record if debt exists."""
+    from models import EmployeeWorking, Deductions
+    prev_month = current_month - 1
+    prev_year = current_year
+    if prev_month == 0:
+        prev_month = 12
+        prev_year -= 1
+        
+    prev_record = EmployeeWorking.query.filter_by(employee_id=employee_id, year=prev_year, month=prev_month).first()
+    
+    carryover_debt = 0.0
+    if prev_record and prev_record.actual_salary and prev_record.actual_salary < 0:
+        carryover_debt = abs(float(prev_record.actual_salary))
+        
+    if carryover_debt > 0:
+        deduction = Deductions(
+            amount=carryover_debt,
+            employee_id=employee_id,
+            note=f"Carryover debt from {prev_month}/{prev_year}"
+        )
+        db.session.add(deduction)
+        
+    return carryover_debt
+
 def create_user(username, email, password, role='user'):
     """Create a new user"""
     try:
@@ -306,6 +331,31 @@ def employees():
         if month is None: month = now.month
         
         month_name = calendar.month_name[month] if month > 0 else 'All Months'
+        
+        # Auto-rollover active employees into the CURRENT month if viewed
+        if year == now.year and month == now.month:
+            active_emps = Employees.query.filter_by(is_active=True).all()
+            for emp in active_emps:
+                existing = EmployeeWorking.query.filter_by(employee_id=emp.id, year=year, month=month).first()
+                if not existing:
+                    # Calculate if previous month had carryover debt
+                    carryover_debt = apply_carryover_debt(emp.id, year, month)
+
+                    # Create actual record
+                    new_record = EmployeeWorking(
+                        employee_id=emp.id,
+                        year=year,
+                        month=month,
+                        is_working=True,
+                        working_days=0,
+                        actual_working_days=0,
+                        deductions_total=carryover_debt,
+                        advance_total=0,
+                        actual_salary=-carryover_debt,
+                        total=0
+                    )
+                    db.session.add(new_record)
+            db.session.commit()
         
         if view_type == 'working':
             # Only those with records for this period
@@ -1059,10 +1109,13 @@ def daily_closing_api():
                     year=close_date.year
                 ).first()
                 if not working_record:
+                    carryover_debt = apply_carryover_debt(employee.id, close_date.year, close_date.month)
                     working_record = EmployeeWorking(
                         employee_id=employee.id,
                         month=close_date.month,
-                        year=close_date.year
+                        year=close_date.year,
+                        deductions_total=carryover_debt,
+                        actual_salary=-carryover_debt
                     )
                     db.session.add(working_record)
                     db.session.flush()
@@ -1098,10 +1151,13 @@ def daily_closing_api():
                     year=close_date.year
                 ).first()
                 if not working_record:
+                    carryover_debt = apply_carryover_debt(employee.id, close_date.year, close_date.month)
                     working_record = EmployeeWorking(
                         employee_id=employee.id,
                         month=close_date.month,
-                        year=close_date.year
+                        year=close_date.year,
+                        deductions_total=carryover_debt,
+                        actual_salary=-carryover_debt
                     )
                     db.session.add(working_record)
                     db.session.flush()
@@ -1497,13 +1553,15 @@ def create_employee():
             return jsonify({'error': f'A record for {name} already exists for {year}-{month}'}), 400
 
         # 3. Create monthly record
+        carryover_debt = apply_carryover_debt(employee.id, year, month)
+        base_deductions = safe_decimal(data.get('deductions', 0))
         record = EmployeeWorking(
             employee_id=employee.id,
             year=year,
             month=month,
             working_days=safe_decimal(data.get('working_days', 0)),
             actual_working_days=safe_decimal(data.get('actual_working_days', 0)),
-            deductions_total=safe_decimal(data.get('deductions', 0)),
+            deductions_total=base_deductions + safe_decimal(carryover_debt),
             advance_total=safe_decimal(data.get('advance', 0)),
             is_working=bool(data.get('is_working', True)) # Default to True if not provided
         )
@@ -2473,104 +2531,126 @@ def expenses_report():
         app.logger.error(f"Error generating expenses report: {e}")
         return jsonify({'error': str(e)}), 500
 
+def build_daily_close_payload(closing_id):
+    """Helper method to construct the JSON dictionary for a Daily Closing."""
+    from models import DailyClosing
+    closing = DailyClosing.query.get_or_404(closing_id)
+    
+    # Format general expenses
+    general_expenses = []
+    for e in closing.expenses:
+        general_expenses.append({
+            'amount': e.amount,
+            'note': e.note,
+            'receiver': e.receiver.name if e.receiver else 'Unassigned'
+        })
+        
+    # Format Ahmad expenses
+    ahmad_expenses = []
+    for e in closing.ahmad_mistrah_expenses:
+        ahmad_expenses.append({
+            'amount': e.amount,
+            'note': e.note,
+            'receiver': e.receiver.name if e.receiver else 'Unassigned'
+        })
+        
+    # Format Samer expenses
+    samer_expenses = []
+    for e in closing.samer_expenses:
+        samer_expenses.append({
+            'amount': e.amount,
+            'note': e.note,
+            'receiver': e.receiver.name if e.receiver else 'Unassigned'
+        })
+        
+    # Format advances
+    advances = []
+    for a in closing.advances:
+        advances.append({
+            'amount': a.amount,
+            'note': a.note,
+            'employee': a.employee.name if a.employee else 'Unassigned'
+        })
+        
+    # Format deductions
+    deductions = []
+    for d in closing.deductions_rel:
+        deductions.append({
+            'amount': d.amount,
+            'note': d.note,
+            'employee': d.employee.name if d.employee else 'Unassigned'
+        })
+        
+    # Format credits
+    credits = []
+    for c in closing.credits:
+        credits.append({
+            'amount': c.amount,
+            'note': c.note,
+            'customer': c.customer.username if c.customer else 'Unassigned'
+        })
+        
+    # Format cashbacks
+    cashbacks = []
+    for c in closing.cashbacks:
+        cashbacks.append({
+            'amount': c.amount,
+            'note': c.note,
+            'customer': c.customer.username if c.customer else 'Unassigned'
+        })
+
+    return {
+        'id': closing.id,
+        'date': closing.date.strftime('%Y-%m-%d'),
+        'main_reading': closing.main_reading,
+        'dr_smashed': closing.dr_smashed,
+        'adjusted_reading': closing.adjusted_reading,
+        'total_expenses': closing.total_expenses,
+        'total_advance': closing.total_advance,
+        'total_credit': closing.total_credit,
+        'total_cashback': closing.total_cashback,
+        'total_deductions': closing.total_deductions,
+        'five_percent': closing.five_percent,
+        'total_cashout': closing.total_cashout,
+        'actual_cash': closing.actual_cash,
+        'expenses': general_expenses,
+        'ahmad_expenses': ahmad_expenses,
+        'samer_expenses': samer_expenses,
+        'advances': advances,
+        'deductions': deductions,
+        'credits': credits,
+        'cashbacks': cashbacks
+    }
+
 @app.route('/api/daily-close/<int:closing_id>', methods=['GET'])
 @login_required
 def get_daily_closing_details(closing_id):
     """Get full details of a specific daily closing"""
     try:
-        from models import DailyClosing
-        closing = DailyClosing.query.get_or_404(closing_id)
-        
-        # Format general expenses
-        general_expenses = []
-        for e in closing.expenses:
-            general_expenses.append({
-                'amount': e.amount,
-                'note': e.note,
-                'receiver': e.receiver.name if e.receiver else 'Unassigned'
-            })
-            
-        # Format Ahmad expenses
-        ahmad_expenses = []
-        for e in closing.ahmad_mistrah_expenses:
-            ahmad_expenses.append({
-                'amount': e.amount,
-                'note': e.note,
-                'receiver': e.receiver.name if e.receiver else 'Unassigned'
-            })
-            
-        # Format Samer expenses
-        samer_expenses = []
-        for e in closing.samer_expenses:
-            samer_expenses.append({
-                'amount': e.amount,
-                'note': e.note,
-                'receiver': e.receiver.name if e.receiver else 'Unassigned'
-            })
-            
-        # Format advances
-        advances = []
-        for a in closing.advances:
-            advances.append({
-                'amount': a.amount,
-                'note': a.note,
-                'employee': a.employee.name if a.employee else 'Unassigned'
-            })
-            
-        # Format deductions
-        deductions = []
-        for d in closing.deductions_rel:
-            deductions.append({
-                'amount': d.amount,
-                'note': d.note,
-                'employee': d.employee.name if d.employee else 'Unassigned'
-            })
-            
-        # Format credits
-        credits = []
-        for c in closing.credits:
-            credits.append({
-                'amount': c.amount,
-                'note': c.note,
-                'customer': c.customer.username if c.customer else 'Unassigned'
-            })
-            
-        # Format cashbacks
-        cashbacks = []
-        for c in closing.cashbacks:
-            cashbacks.append({
-                'amount': c.amount,
-                'note': c.note,
-                'customer': c.customer.username if c.customer else 'Unassigned'
-            })
-
-        data = {
-            'id': closing.id,
-            'date': closing.date.strftime('%Y-%m-%d'),
-            'main_reading': closing.main_reading,
-            'dr_smashed': closing.dr_smashed,
-            'adjusted_reading': closing.adjusted_reading,
-            'total_expenses': closing.total_expenses,
-            'total_advance': closing.total_advance,
-            'total_credit': closing.total_credit,
-            'total_cashback': closing.total_cashback,
-            'total_deductions': closing.total_deductions,
-            'five_percent': closing.five_percent,
-            'total_cashout': closing.total_cashout,
-            'actual_cash': closing.actual_cash,
-            'expenses': general_expenses,
-            'ahmad_expenses': ahmad_expenses,
-            'samer_expenses': samer_expenses,
-            'advances': advances,
-            'deductions': deductions,
-            'credits': credits,
-            'cashbacks': cashbacks
-        }
-        
+        data = build_daily_close_payload(closing_id)
         return jsonify(data)
     except Exception as e:
         app.logger.error(f"Error fetching daily closing details {closing_id}: {e}")
         return jsonify({'error': 'Failed to fetch details'}), 500
+
+@app.route("/control-panel/daily-close/<int:close_id>/print")
+@login_required
+def print_daily_close(close_id):
+    from models import DailyClosing
+    closing = DailyClosing.query.get_or_404(close_id)
+
+    data = build_daily_close_payload(close_id)
+
+    date_obj = closing.date
+    title_ddmmyyyy = date_obj.strftime("%d-%m-%Y")
+    title_ddMonth = date_obj.strftime("%d-%B-%Y")
+
+    return render_template(
+        "daily_close_print.html",
+        data=data,
+        title=title_ddMonth,
+        title_ddmmyyyy=title_ddmmyyyy
+    )
 
 @app.route('/api/exports/sales')
 @login_required

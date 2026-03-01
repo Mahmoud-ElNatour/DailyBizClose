@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>{{ title }}</title>
+
+    <!-- Tailwind CDN for development -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <style>
+        /* Print rules */
+        @page {
+            margin: 10mm;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tr {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-white text-slate-900">
+    <div class="max-w-4xl mx-auto p-6">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Daily Close Details</h1>
+                <p class="text-slate-500 font-medium">{{ data.date }}</p>
+            </div>
+
+            <div class="no-print flex gap-2">
+                <button onclick="window.print()"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow transition-colors">Print</button>
+                <button onclick="window.close()"
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border border-slate-200 rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+
+        <hr class="mb-6 border-slate-200">
+
+        <!-- Summary -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="border border-slate-200 bg-slate-50 rounded-lg p-4 shadow-sm">
+                <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Main Reading</div>
+                <div class="text-xl font-black text-slate-800">${{ "%.2f"|format(data.main_reading or 0) }}</div>
+            </div>
+            <div class="border border-slate-200 bg-slate-50 rounded-lg p-4 shadow-sm">
+                <div class="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Dr Smashed</div>
+                <div class="text-xl font-black text-slate-800">${{ "%.2f"|format(data.dr_smashed or 0) }}</div>
+            </div>
+            <div class="border border-red-200 bg-red-50 rounded-lg p-4 shadow-sm">
+                <div class="text-xs text-red-500 uppercase tracking-wider font-bold mb-1">Total Deductions</div>
+                <div class="text-xl font-black text-red-600">${{ "%.2f"|format(data.total_deductions or 0) }}</div>
+            </div>
+            <div class="border border-emerald-200 bg-emerald-50 rounded-lg p-4 shadow-sm">
+                <div class="text-xs text-emerald-600 uppercase tracking-wider font-bold mb-1">Actual Cash</div>
+                <div class="text-xl font-black text-emerald-700">${{ "%.2f"|format(data.actual_cash or 0) }}</div>
+            </div>
+        </div>
+
+        <!-- Sections -->
+        {% macro section_table(title, items, name_key) %}
+        {% if items and items|length %}
+        <div class="mb-8 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div class="bg-slate-50 px-5 py-3 border-b border-slate-200">
+                <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">{{ title }}</h2>
+            </div>
+            <table class="w-full text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider bg-white">
+                        <th class="text-left py-3 px-5 font-semibold">Target</th>
+                        <th class="text-left py-3 px-5 font-semibold">Note</th>
+                        <th class="text-right py-3 px-5 font-semibold">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for it in items %}
+                    <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                        <td class="py-3 px-5 font-medium text-slate-800">{{ it[name_key] or "N/A" }}</td>
+                        <td class="py-3 px-5 text-slate-500">{{ it.note or "" }}</td>
+                        <td class="py-3 px-5 text-right font-bold text-slate-700">${{ "%.2f"|format(it.amount or 0) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% endmacro %}
+
+        {{ section_table("Advances", data.advances, "employee") }}
+        {{ section_table("Deductions", data.deductions, "employee") }}
+        {{ section_table("Credits", data.credits, "customer") }}
+        {{ section_table("Cashbacks", data.cashbacks, "customer") }}
+        {{ section_table("General Expenses", data.expenses, "receiver") }}
+        {{ section_table("Ahmad Expenses", data.ahmad_expenses, "receiver") }}
+        {{ section_table("Samer Expenses", data.samer_expenses, "receiver") }}
+
+        {% if not (data.advances or data.deductions or data.credits or data.cashbacks or data.expenses or
+        data.ahmad_expenses or data.samer_expenses) %}
+        <div class="text-center text-slate-500 bg-slate-50 rounded-xl py-12 border border-slate-200">
+            <span class="material-symbols-outlined text-4xl mb-3 text-slate-300 block">receipt_long</span>
+            No detailed items recorded for this close.
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // auto-open print immediately
+        window.onload = () => window.print();
+    </script>
+</body>
+
+</html>

@@ -195,24 +195,6 @@ class EmployeeWorking(db.Model):
             actual_working_days = float(self.actual_working_days)
             deductions = float(self.deductions_total)
             advance = float(self.advance_total)
-            
-            # Carryover logic: Find previous month's negative salary
-            prev_month = self.month - 1
-            prev_year = self.year
-            if prev_month == 0:
-                prev_month = 12
-                prev_year -= 1
-            
-            prev_record = EmployeeWorking.query.filter_by(
-                employee_id=self.employee_id, 
-                year=prev_year, 
-                month=prev_month
-            ).first()
-            
-            carryover = 0.0
-            if prev_record and prev_record.actual_salary and prev_record.actual_salary < 0:
-                carryover = abs(float(prev_record.actual_salary))
-                
         except (TypeError, ValueError, AttributeError):
             self.actual_salary = 0.0
             self.total = 0.0
@@ -220,14 +202,14 @@ class EmployeeWorking(db.Model):
 
         if working_days > 0:
             daily_rate = base_salary / working_days
-            self.actual_salary = daily_rate * actual_working_days - deductions - advance - carryover
-            if self.actual_salary < 0:
-                self.total = 0.0
-            else:
-                self.total = self.actual_salary
+            self.actual_salary = daily_rate * actual_working_days - deductions - advance
         else:
-            self.actual_salary = 0.0
+            self.actual_salary = -deductions - advance
+
+        if self.actual_salary < 0:
             self.total = 0.0
+        else:
+            self.total = self.actual_salary
     
     def __repr__(self):
         return f'<EmployeeWorking ID:{self.id} Emp:{self.employee_id} {self.year}-{self.month}>'
