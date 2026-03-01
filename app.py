@@ -51,8 +51,9 @@ login_manager.login_message_category = 'info'
 # Configure the database, relative to the app instance folder
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+mysqlconnector://root:Mah!moud123@localhost:3306/dailybizclose"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "connect_args": {"use_pure": True},
     "pool_recycle": 300,
-    "pool_pre_ping": True,
+    "pool_pre_ping": True
 }
 @login_manager.user_loader
 def load_user(user_id):
