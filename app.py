@@ -2844,7 +2844,7 @@ def get_module(module_name):
     })
 
 
-app=Flask(__name__)
+
 def init_db():
     with app.app_context():
         db.create_all()
