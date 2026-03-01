@@ -2756,7 +2756,7 @@ def export_sales_csv():
 @login_required
 def export_payroll_csv():
     try:
-        from models import Employees
+        from models import EmployeeWorking
         from datetime import datetime
         import csv
         from io import StringIO
@@ -2770,25 +2770,26 @@ def export_payroll_csv():
             month = now.month
             year = now.year
             
-        employees = Employees.query.filter_by(year=year, month=month).all()
+        employees_working = EmployeeWorking.query.filter_by(year=year, month=month).all()
         
-        for emp in employees:
-            emp.calculate_salary()
+        for record in employees_working:
+            record.calculate_salary()
             
         si = StringIO()
         cw = csv.writer(si)
-        cw.writerow(['Employee', 'Position', 'Base Salary', 'Working Days', 'Advance', 'Deductions', 'Actual Salary', 'Total'])
+        cw.writerow(['Employee', 'Position', 'Base Salary', 'Working Days', 'Actual Working Days', 'Advance', 'Deductions', 'Actual Salary', 'Total'])
         
-        for e in employees:
+        for record in employees_working:
             cw.writerow([
-                e.name,
-                e.position or 'N/A',
-                f"{(e.base_salary or 0):.2f}",
-                e.working_days or 0,
-                f"{(e.advance or 0):.2f}",
-                f"{(e.deductions or 0):.2f}",
-                f"{(e.actual_salary or 0):.2f}",
-                f"{(e.total or 0):.2f}"
+                record.employee.name,
+                record.employee.position or 'N/A',
+                f"{(record.employee.base_salary or 0):.2f}",
+                record.working_days or 0,
+                record.actual_working_days or 0,
+                f"{(record.advance_total or 0):.2f}",
+                f"{(record.deductions_total or 0):.2f}",
+                f"{(record.actual_salary or 0):.2f}",
+                f"{(record.total or 0):.2f}"
             ])
             
         output = make_response(si.getvalue())
