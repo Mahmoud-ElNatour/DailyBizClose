@@ -656,23 +656,28 @@ def payroll():
     try:
         from models import EmployeeWorking
         from datetime import datetime
+        now = datetime.now(UTC)
         
-        # Get filter parameters
+        # Get filter parameters, defaulting to current month/year
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
 
-        query = EmployeeWorking.query
-        if year is not None:
-            query = query.filter_by(year=year)
-        if month is not None:
-            query = query.filter_by(month=month)
+        if month is None:
+            month = now.month
+        if year is None:
+            year = now.year
+
+        query = EmployeeWorking.query.filter_by(year=year, month=month)
         records = query.all()
 
-        return render_template('payroll.html', employees=records)
+        return render_template('payroll.html', employees=records, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading payroll: {e}")
         flash('Error loading payroll data', 'error')
-        return render_template('payroll.html', employees=[])
+        
+        from datetime import datetime
+        now = datetime.now(UTC)
+        return render_template('payroll.html', employees=[], current_month=now.month, current_year=now.year)
 
 @app.route('/api/employees/<int:record_id>/calculate', methods=['POST'])
 @login_required
@@ -1657,24 +1662,6 @@ def employee_detail(record_id):
                     record.working_days = safe_decimal(data['working_days'], record.working_days)
                 if 'actual_working_days' in data:
                     record.actual_working_days = safe_decimal(data['actual_working_days'], record.actual_working_days or 0)
-                if 'deductions' in data:
-                    new_deductions = safe_decimal(data['deductions'], record.deductions_total or 0)
-                    if new_deductions != (record.deductions_total or 0):
-                        diff = new_deductions - (record.deductions_total or 0)
-                        if diff > 0:
-                            from models import Deductions
-                            new_deduction = Deductions(amount=diff, employee_id=employee.id, note=f"Added via Employee Edit for {record.month}/{record.year}")
-                            db.session.add(new_deduction)
-                    record.deductions_total = new_deductions
-                if 'advance' in data:
-                    new_advance = safe_decimal(data['advance'], record.advance_total or 0)
-                    if new_advance != (record.advance_total or 0):
-                        diff = new_advance - (record.advance_total or 0)
-                        if diff > 0:
-                            from models import Advances
-                            new_advance_rec = Advances(amount=diff, employee_id=employee.id, note=f"Added via Employee Edit for {record.month}/{record.year}")
-                            db.session.add(new_advance_rec)
-                    record.advance_total = new_advance
 
                 record.calculate_salary()
 
@@ -1737,6 +1724,53 @@ def employee_detail(record_id):
         app.logger.error(f"Error processing employee: {e}")
         db.session.rollback()
         return jsonify({'error': 'Failed to process employee'}), 500
+
+@app.route('/api/payroll/<int:record_id>', methods=['PUT'])
+@login_required
+def update_payroll_record(record_id):
+    """Update actual working days, advances, and deductions for a specific month's payroll record"""
+    try:
+        from models import EmployeeWorking, Advances, Deductions
+        record = EmployeeWorking.query.get_or_404(record_id)
+        data = request.get_json()
+
+        if 'actual_working_days' in data:
+            record.actual_working_days = safe_decimal(data['actual_working_days'], record.actual_working_days or 0)
+        
+        if 'deductions_total' in data:
+            new_deductions = safe_decimal(data['deductions_total'], record.deductions_total or 0)
+            if new_deductions != (record.deductions_total or 0):
+                diff = new_deductions - (record.deductions_total or 0)
+                if diff > 0:
+                    new_deduction = Deductions(amount=diff, employee_id=record.employee_id, note=f"Added via Payroll Edit for {record.month}/{record.year}")
+                    db.session.add(new_deduction)
+            record.deductions_total = new_deductions
+
+        if 'advance_total' in data:
+            new_advance = safe_decimal(data['advance_total'], record.advance_total or 0)
+            if new_advance != (record.advance_total or 0):
+                diff = new_advance - (record.advance_total or 0)
+                if diff > 0:
+                    new_advance_rec = Advances(amount=diff, employee_id=record.employee_id, note=f"Added via Payroll Edit for {record.month}/{record.year}")
+                    db.session.add(new_advance_rec)
+            record.advance_total = new_advance
+
+        record.calculate_salary()
+        db.session.commit()
+        
+        log_event(
+            level='INFO',
+            action='PAYROLL_UPDATED',
+            message=f"Payroll record {record_id} for {record.employee.name} updated.",
+            status_code=200,
+            details={'record_id': record_id, 'changes': data}
+        )
+        return jsonify({'status': 'success', 'message': 'Payroll updated successfully', 'success': True})
+
+    except Exception as e:
+        app.logger.error(f"Error updating payroll record {record_id}: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e), 'success': False}), 500
 
 # API Routes for future AJAX integration
 @app.route('/api/users', methods=['POST'])

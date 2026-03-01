@@ -260,24 +260,6 @@
                                 <input type="number" name="working_days" id="edit-working-days" min="0" step="0.5"
                                     class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                             </div>
-                            <div>
-                                <label
-                                    class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Deductions</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                                    <input type="number" name="deductions" id="edit-deductions" min="0" step="0.01"
-                                        class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
-                                </div>
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advance</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
-                                    <input type="number" name="advance" id="edit-advance" min="0" step="0.01"
-                                        class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
-                                </div>
-                            </div>
                         </div>
                     </div>
                     <!-- Working Status Toggle -->
@@ -360,8 +342,6 @@
                 document.getElementById('edit-position').value = data.position || '';
                 document.getElementById('edit-base-salary').value = data.base_salary || 0;
                 document.getElementById('edit-working-days').value = data.working_days || 0;
-                document.getElementById('edit-deductions').value = data.deductions || 0;
-                document.getElementById('edit-advance').value = data.advance || 0;
 
                 const isWorkingCheckbox = document.getElementById('edit-is-working');
                 isWorkingCheckbox.checked = data.is_working !== false;

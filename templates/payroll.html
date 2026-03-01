@@ -20,7 +20,6 @@
         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <select id="payrollMonth"
                 class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 flex-1 sm:flex-none">
-                <option value="">All Months</option>
                 <option value="1">January</option>
                 <option value="2">February</option>
                 <option value="3">March</option>
@@ -36,7 +35,6 @@
             </select>
             <select id="payrollYear"
                 class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300 flex-1 sm:flex-none">
-                <option value="">All Years</option>
                 <option value="2023">2023</option>
                 <option value="2024">2024</option>
                 <option value="2025">2025</option>
@@ -79,6 +77,8 @@
                     <th class="px-6 py-4 font-semibold">Position</th>
                     <th class="px-6 py-4 font-semibold text-right">Base Salary</th>
                     <th class="px-6 py-4 font-semibold text-center">Working Days</th>
+                    <th class="px-6 py-4 font-semibold text-center text-emerald-600 dark:text-emerald-400">Actual
+                        Working Days</th>
                     <th class="px-6 py-4 font-semibold text-right text-red-500">Advance</th>
                     <th class="px-6 py-4 font-semibold text-right text-red-500">Deductions</th>
                     <th class="px-6 py-4 font-semibold text-right text-emerald-500">Actual Salary</th>
@@ -100,6 +100,12 @@
                             {{ record.working_days or 0 }}
                         </span>
                     </td>
+                    <td class="px-6 py-4 text-center text-emerald-700 dark:text-emerald-400 font-bold">
+                        <span
+                            class="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-900/30 text-xs border border-emerald-200 dark:border-emerald-800/50">
+                            {{ record.actual_working_days or 0 }}
+                        </span>
+                    </td>
                     <td class="px-6 py-4 text-right text-red-600 dark:text-red-400">${{
                         "%.2f"|format(record.advance_total
                         or 0) }}</td>
@@ -111,6 +117,12 @@
                         or 0) }}</td>
                     <td class="px-6 py-4">
                         <div class="flex items-center justify-center gap-2">
+                            <button type="button"
+                                onclick="editPayroll('{{ record.id }}', '{{ record.employee.name|escape }}', '{{ record.actual_working_days or 0 }}', '{{ record.advance_total or 0 }}', '{{ record.deductions_total or 0 }}')"
+                                class="p-1.5 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 rounded transition-colors"
+                                title="Edit Payroll">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
                             <button type="button" onclick="calculatePayroll('{{ record.id }}')"
                                 class="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
                                 title="Calculate">
@@ -141,10 +153,122 @@
         </table>
     </div>
 </div>
+
+<!-- Edit Payroll Modal -->
+<div class="modal fade" id="editPayrollModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-bold text-slate-900 dark:text-white">Edit Payroll Record - <span
+                        id="edit-payroll-name" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPayrollForm">
+                <input type="hidden" name="record_id" id="edit-payroll-id">
+                <div class="modal-body p-6">
+                    <div class="grid grid-cols-1 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Actual
+                                Working Days</label>
+                            <input type="number" name="actual_working_days" id="edit-actual-working-days" min="0"
+                                step="0.5" required
+                                class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Advances</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                                <input type="number" name="advance_total" id="edit-advance-total" min="0" step="0.01"
+                                    required
+                                    class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Deductions</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                                <input type="number" name="deductions_total" id="edit-deductions-total" min="0"
+                                    step="0.01" required
+                                    class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-slate-50 dark:bg-slate-800/50">
+                    <button type="button"
+                        class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30">Save
+                        Payroll</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    function editPayroll(id, name, actualWorkingDays, advances, deductions) {
+        document.getElementById('edit-payroll-id').value = id;
+        document.getElementById('edit-payroll-name').textContent = name;
+        document.getElementById('edit-actual-working-days').value = actualWorkingDays;
+        document.getElementById('edit-advance-total').value = advances;
+        document.getElementById('edit-deductions-total').value = deductions;
+
+        const modal = new bootstrap.Modal(document.getElementById('editPayrollModal'));
+        modal.show();
+    }
+
+    document.getElementById('editPayrollForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const id = document.getElementById('edit-payroll-id').value;
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        fetch(`/api/payroll/` + id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' || data.success === true) {
+                    if (typeof showToast === 'function') showToast('Success', 'Payroll record updated successfully', 'success');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error updating payroll: ' + (data.message || data.error), 'error');
+                    else alert('Error updating payroll: ' + (data.message || data.error));
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error updating payroll', 'error');
+                else alert('Error updating payroll');
+                submitBtn.disabled = false;
+            });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // If there are explicit params, use them. Otherwise, use the backend-provided defaults.
+        const month = urlParams.get('month') || '{{ current_month }}';
+        const year = urlParams.get('year') || '{{ current_year }}';
+
+        if (month) document.getElementById('payrollMonth').value = month;
+        if (year) document.getElementById('payrollYear').value = year;
+    });
+
     function calculatePayroll(id) {
         // Find button to show loading state if possible
 
