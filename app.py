@@ -265,11 +265,43 @@ def control_panel():
 def daily_close():
     """Daily close page route"""
     return render_template('daily_close.html')
-
-@app.route('/settings')
+@app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     """Settings page route"""
+    if request.method == 'POST':
+        # Check if this is a password change submission
+        old_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        
+        # In the template, the names are "current_password" and "new_password"
+        # The user's original code used 'old_password' but the form has name="current_password"
+        
+        if old_password and new_password:
+            user = User.query.get(current_user.id)
+            if user.password_hash == hashlib.sha256(old_password.encode()).hexdigest():
+                user.password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+                db.session.commit()
+                log_event(level='SUCCESS', action='USER_PASSWORD_CHANGE', message=f"User {user.username} changed password successfully")
+                app.logger.debug(f"User {user.username} changed password successfully")
+                flash('Password changed successfully', 'success')
+            else:
+                log_event(level='WARNING', action='USER_PASSWORD_CHANGE_FAILED', message=f"Failed password change attempt for user {current_user.username}", status_code=401)
+                app.logger.debug("Password change failed - invalid current password")
+                flash('Password change failed: Incorrect current password.', 'error')
+            return redirect(url_for('settings'))
+            
+        # If they are saving profile changes (username/email)
+        username = request.form.get('username')
+        email = request.form.get('email')
+        if username and email:
+            user = User.query.get(current_user.id)
+            user.username = username
+            user.email = email
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('settings'))
+
     app.logger.debug(f"Settings route accessed. Current user: {current_user}")
     return render_template('settings.html')
 
