@@ -196,22 +196,6 @@ def create_user(username, email, password, role='user'):
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
-with app.app_context():
-    # Make sure to import the models here or their tables won't be created
-    try:
-        import models  # noqa: F401
-    except ImportError:
-        pass  # Models file doesn't exist yet
-    db.create_all()
-
-# Create admin user if it doesn't exist
-with app.app_context():
-    try:
-        from models import User
-        if not User.query.filter_by(username='admin').first():
-            create_user("admin", "admin@admin.com", "admin", role='admin')
-    except Exception as e:
-        app.logger.error(f"Error creating admin user: {e}")
 # Routes
 @app.route('/')
 @login_required
