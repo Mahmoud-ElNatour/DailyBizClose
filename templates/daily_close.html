@@ -208,11 +208,12 @@
                                     placeholder="0.00" />
                             </div>
                         </div>
-                        <!-- Dr Smashed -->
-                        <div>
+                        <!-- Ahmad Moghrabi -->
+                        <div
+                            class="col-span-1 border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/80 rounded-xl p-4 transition-all focus-within:ring-2 focus-within:ring-primary focus-within:border-primary shadow-sm">
                             <label for="drSmashed"
-                                class="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Dr
-                                Smashed</label>
+                                class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ahmad
+                                Moghrabi</label>
                             <div class="relative">
                                 <span
                                     class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
@@ -448,7 +449,7 @@
                             class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                             <input type="text"
                                 class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
-                                placeholder="Receiver Name" list="receiversList" />
+                                placeholder="Receiver Name" list="samerReceiversList" />
                             <input type="text"
                                 class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
                                 placeholder="Note/Details" />
@@ -506,7 +507,8 @@
                             <div>
                                 <p class="text-xs font-medium text-white/60 mb-1">Adjusted Reading</p>
                                 <p class="text-xl font-bold" id="adjustedReading">$0.00</p>
-                                <p class="text-[10px] text-white/40 mt-1 italic">Calculated: Main - Smashed - Credits +
+                                <p class="text-[10px] text-white/40 mt-1 italic">Calculated: Main - Ahmad Moghrabi -
+                                    Credits +
                                     Cashback</p>
                             </div>
                             <span class="material-symbols-outlined text-white/30">calculate</span>
@@ -564,6 +566,7 @@
         <datalist id="receiversList"></datalist>
         <datalist id="employeesList"></datalist>
         <datalist id="customersList"></datalist>
+        <datalist id="samerReceiversList"></datalist>
 
         <!-- Admin Password Modal (Styled via Tailwind + Bootstrap minimal CSS) -->
         <div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-labelledby="adminPasswordModalLabel"

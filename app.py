@@ -376,8 +376,8 @@ def employees():
             db.session.commit()
         
         if view_type == 'working':
-            # Only those with records for this period
-            query = EmployeeWorking.query
+            # Only those with records for this period AND are actively marked as working
+            query = EmployeeWorking.query.filter_by(is_working=True)
             if year != 0: query = query.filter_by(year=year)
             if month != 0: query = query.filter_by(month=month)
             
@@ -403,11 +403,13 @@ def employees():
                 if year != 0: working_query = working_query.filter_by(year=year)
                 if month != 0: working_query = working_query.filter_by(month=month)
                 
-                if not working_query.first():
-                    # Create a transient record for display - set is_working=True by default
-                    record = EmployeeWorking(employee_id=emp.id, year=year, month=month, is_working=True)
-                    record.employee = emp
-                    record.working_days = 0 
+                record = working_query.first()
+                if not record or not record.is_working:
+                    if not record:
+                        # Create a transient record for display - set is_working=False by default
+                        record = EmployeeWorking(employee_id=emp.id, year=year, month=month, is_working=False)
+                        record.employee = emp
+                        record.working_days = 0 
                     records.append(record)
         else: # 'all' (Roster View)
             # All active employees. For each, show the most relevant record in period or transient.
@@ -1008,6 +1010,18 @@ def get_customer_suggestions():
         app.logger.error(f"Error fetching customer suggestions: {e}")
         return jsonify([]), 500
 
+@app.route('/api/suggestions/samer-receivers')
+@login_required
+def get_samer_receiver_suggestions():
+    """Get unique Samer receiver names for autocomplete"""
+    try:
+        from models import SamerExpenseReceivers
+        receivers = SamerExpenseReceivers.query.with_entities(SamerExpenseReceivers.name).distinct().all()
+        return jsonify([r[0] for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching Samer receiver suggestions: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/ahmad-receivers/suggestions')
 @login_required
 def get_ahmad_receiver_suggestions():
@@ -1020,17 +1034,6 @@ def get_ahmad_receiver_suggestions():
         app.logger.error(f"Error fetching Ahmad receiver suggestions: {e}")
         return jsonify([]), 500
 
-@app.route('/api/samer-receivers/suggestions')
-@login_required
-def get_samer_receiver_suggestions():
-    """Get unique Samer receiver names for autocomplete"""
-    try:
-        from models import SamerExpenseReceivers
-        receivers = SamerExpenseReceivers.query.with_entities(SamerExpenseReceivers.name).distinct().all()
-        return jsonify([r[0] for r in receivers])
-    except Exception as e:
-        app.logger.error(f"Error fetching Samer receiver suggestions: {e}")
-        return jsonify([]), 500
 
 @app.route('/api/receivers')
 @login_required
@@ -2458,8 +2461,8 @@ def sales_report():
         all_customers = Customers.query.all()
         total_customer_balance = sum(float(c.balance or 0) for c in all_customers)
 
-        # Calculate actual cash using the formula: Total Sales - Customer Balances
-        actual_cash = safe_float(total_sales) - safe_float(total_customer_balance)
+        # Calculate actual cash using the formula: Total Sales + Customer Balances
+        actual_cash = safe_float(total_sales) + safe_float(total_customer_balance)
         
         report_data = {
             'month': data.get('month'),
@@ -2729,11 +2732,16 @@ def export_sales_csv():
         
         si = StringIO()
         cw = csv.writer(si)
-        cw.writerow(['Date', 'Expenses', 'Advances', 'Credits', 'Cashback', 'Deductions', '5% Fee', 'Actual Cash'])
+        cw.writerow(['Date', 'Main Reading', 'Expenses', 'Advances', 'Credits', 'Cashback', 'Deductions', '5% Fee', 'Actual Cash'])
         
+        total_main_reading = 0
+
         for c in closings:
+            main_reading_val = float(c.main_reading or 0)
+            total_main_reading += main_reading_val
             cw.writerow([
                 c.date.strftime('%Y-%m-%d'),
+                f"{main_reading_val:.2f}",
                 f"{c.total_expenses:.2f}",
                 f"{c.total_advance:.2f}",
                 f"{c.total_credit:.2f}",
@@ -2743,6 +2751,17 @@ def export_sales_csv():
                 f"{(c.actual_cash or 0):.2f}"
             ])
             
+        # Append summary at the bottom
+        from models import Customers
+        total_customers_balance = float(db.session.query(db.func.sum(Customers.balance)).scalar() or 0)
+        final_actual_cash = total_main_reading + total_customers_balance
+        
+        cw.writerow([])
+        cw.writerow(['--- SUMMARY ---', '', '', '', '', '', '', '', ''])
+        cw.writerow(['Total Main Readings', f"{total_main_reading:.2f}", '', '', '', '', '', '', ''])
+        cw.writerow(['Total Customer Balances', f"{total_customers_balance:.2f}", '', '', '', '', '', '', ''])
+        cw.writerow(['Final Actual Cash', f"{final_actual_cash:.2f}", '', '', '', '', '', '', ''])
+
         output = make_response(si.getvalue())
         output.headers["Content-Disposition"] = f"attachment; filename=sales_export_{year}_{month}.csv"
         output.headers["Content-type"] = "text/csv"

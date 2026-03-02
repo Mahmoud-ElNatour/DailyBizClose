@@ -215,8 +215,8 @@ const DailyCloseApp = {
             // Calculate 5% of Adjusted Reading
             const fivePercent = adjustedReading * 0.05;
 
-            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses - Total Deductions
-            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalDeductions - totalCredits + totalCashback;
+            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses
+            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalCredits + totalCashback;
 
             // Update calculated field displays
             const displays = {
@@ -894,7 +894,7 @@ const DailyCloseApp = {
                 <div class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                     <input type="text"
                         class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
-                        placeholder="Receiver Name" list="receiversList" />
+                        placeholder="Receiver Name" list="samerReceiversList" />
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
                         placeholder="Note/Details" />
@@ -1062,15 +1062,17 @@ const DailyCloseApp = {
     // Fetch and populate autocomplete suggestions
     async fetchAutocompleteSuggestions() {
         try {
-            const [receivers, employees, customers] = await Promise.all([
+            const [receivers, employees, customers, samerReceivers] = await Promise.all([
                 fetch('/api/suggestions/receivers').then(res => res.json()),
                 fetch('/api/suggestions/employees').then(res => res.json()),
-                fetch('/api/suggestions/customers').then(res => res.json())
+                fetch('/api/suggestions/customers').then(res => res.json()),
+                fetch('/api/suggestions/samer-receivers').then(res => res.json())
             ]);
 
             this.populateDatalist('receiversList', receivers);
             this.populateDatalist('employeesList', employees);
             this.populateDatalist('customersList', customers);
+            this.populateDatalist('samerReceiversList', samerReceivers);
         } catch (error) {
             console.error('Error fetching autocomplete suggestions:', error);
         }
