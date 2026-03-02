@@ -197,14 +197,81 @@ def create_user(username, email, password, role='user'):
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
+def get_setting(key, default=None):
+    """Retrieve a single key-value setting from the database safely"""
+    try:
+        from models import SiteSettings
+        setting = SiteSettings.query.filter_by(key=key).first()
+        if setting and setting.value is not None and str(setting.value).strip() != '':
+            return setting.value
+    except Exception as e:
+        app.logger.error(f"Error fetching setting {key}: {e}")
+    return default
+
+def set_setting(key, value, user_id=None):
+    """Upsert a key-value setting"""
+    try:
+        from models import SiteSettings, db
+        if value is not None and str(value).strip() == '':
+            value = None
+            
+        setting = SiteSettings.query.filter_by(key=key).first()
+        if not setting:
+            setting = SiteSettings(key=key, value=value, updated_by_id=user_id)
+            db.session.add(setting)
+        else:
+            setting.value = value
+            setting.updated_by_id = user_id
+            
+        db.session.commit()
+        return True
+    except Exception as e:
+        app.logger.error(f"Error saving setting {key}: {e}")
+        db.session.rollback()
+        return False
+
+def get_landing_context():
+    """Build the dictionary of variables required by the frontend Landing Page"""
+    from models import SiteGalleryImages
+    import re
+    
+    phone_tel = get_setting('phone_tel')
+    
+    # Deriving digits-only for WhatsApp link logic
+    whatsapp_digits = ''
+    if phone_tel:
+        whatsapp_digits = re.sub(r'[^\d]', '', phone_tel)
+
+    is_admin = False
+    if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
+        is_admin = True
+        
+    try:
+        gallery_images = SiteGalleryImages.query.filter_by(is_active=True).order_by(SiteGalleryImages.sort_order, SiteGalleryImages.id).all()
+    except Exception:
+        gallery_images = []
+
+    return {
+        'brand_name': get_setting('brand_name'),
+        'address': get_setting('address'),
+        'hours': get_setting('hours'),
+        'phone_display': get_setting('phone_display'),
+        'phone_tel': phone_tel,
+        'whatsapp_digits': whatsapp_digits if whatsapp_digits else None,
+        'instagram_url': get_setting('instagram_url'),
+        'maps_url': get_setting('maps_url'),
+        'menu_url': get_setting('menu_url'),
+        'gallery_images': gallery_images,
+        'is_admin': is_admin
+    }
+
 # Routes
 @app.route('/')
-@login_required
-def main():
-    """Main route - redirects to index"""
-    app.logger.debug(f"Main route accessed. Current user: {current_user}")
-    app.logger.debug(f"Is authenticated: {current_user.is_authenticated}")
-    return redirect(url_for('index'))
+@app.route('/landing')
+def landing():
+    """Public landing page route"""
+    context = get_landing_context()
+    return render_template('customer/landing.html', **context)
 
 @app.route('/index',methods=['GET'])
 @login_required
@@ -260,6 +327,125 @@ def logout():
 def control_panel():
     """Control panel page route"""
     return render_template('control_panel.html')
+
+@app.route('/control-panel/site-settings', methods=['GET'])
+@login_required
+@admin_required
+def site_settings():
+    """Admin UI to edit public landing page settings"""
+    from models import SiteSettings
+    settings = {s.key: s.value for s in SiteSettings.query.all()}
+    return render_template('customer/site_settings.html', settings=settings)
+
+@app.route('/api/site-settings', methods=['POST'])
+@login_required
+@admin_required
+def update_site_settings():
+    """Update settings via AJAX or form POST"""
+    try:
+        data = request.get_json(silent=True) or request.form
+        keys = ['brand_name', 'address', 'hours', 'phone_display', 'phone_tel', 'instagram_url', 'maps_url', 'menu_url']
+        for key in keys:
+            if key in data:
+                set_setting(key, data[key], current_user.id)
+                
+        # Handle form submission redirect vs API json
+        if request.form and not request.is_json:
+            flash('Site settings updated successfully!', 'success')
+            return redirect(url_for('site_settings'))
+            
+        return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Updated', 'message': 'Site settings updated successfully!'}})
+    except Exception as e:
+        app.logger.error(f"Error updating site settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/control-panel/site-gallery', methods=['GET'])
+@login_required
+@admin_required
+def site_gallery():
+    """Admin UI to manage gallery images"""
+    from models import SiteGalleryImages
+    images = SiteGalleryImages.query.order_by(SiteGalleryImages.sort_order, SiteGalleryImages.id).all()
+    return render_template('customer/site_gallery.html', images=images)
+
+@app.route('/api/site-gallery/add', methods=['POST'])
+@login_required
+@admin_required
+def add_gallery_image():
+    """Uploads a new file locally, saves it, and maps to the gallery"""
+    try:
+        import os
+        from werkzeug.utils import secure_filename
+        from models import SiteGalleryImages, db
+        import time
+
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No image part'}), 400
+            
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No selected image'}), 400
+            
+        if file:
+            filename = secure_filename(f"{int(time.time())}_{file.filename}")
+            filepath = os.path.join(app.root_path, 'static', 'img', 'gallery')
+            os.makedirs(filepath, exist_ok=True)
+            
+            file.save(os.path.join(filepath, filename))
+            
+            # Save relative URL to database
+            image_url = f"/static/img/gallery/{filename}"
+            
+            alt_text = request.form.get('alt_text', '')
+            
+            max_order = db.session.query(db.func.max(SiteGalleryImages.sort_order)).scalar() or 0
+            
+            new_image = SiteGalleryImages(
+                image_url=image_url,
+                alt_text=alt_text,
+                sort_order=max_order + 1,
+                is_active=True
+            )
+            db.session.add(new_image)
+            db.session.commit()
+            
+            # Handle form submission
+            if request.form and not request.is_json:
+                flash('Image uploaded to gallery', 'success')
+                return redirect(url_for('site_gallery'))
+            
+            return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Uploaded', 'message': 'Image saved to gallery!'}})
+            
+    except Exception as e:
+        app.logger.error(f"Error uploading image: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/site-gallery/<int:img_id>', methods=['PUT', 'DELETE'])
+@login_required
+@admin_required
+def update_gallery_image(img_id):
+    """Toggle status, soft-delete, or re-order gallery images"""
+    try:
+        from models import SiteGalleryImages, db
+        img = SiteGalleryImages.query.get_or_404(img_id)
+        
+        if request.method == 'DELETE':
+            db.session.delete(img)
+            db.session.commit()
+            return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Deleted', 'message': 'Image removed from gallery'}})
+            
+        data = request.json
+        if 'is_active' in data:
+            img.is_active = bool(data['is_active'])
+        if 'sort_order' in data:
+            img.sort_order = int(data['sort_order'])
+            
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Error updating gallery image {img_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/daily-close')
 @login_required

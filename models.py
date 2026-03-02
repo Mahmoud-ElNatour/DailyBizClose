@@ -289,3 +289,34 @@ class Logs(db.Model):
     
     def __repr__(self):
         return f'<Logs {self.id} - {self.action} - {self.level}>'
+
+class SiteSettings(db.Model):
+    """Dynamic settings for the public landing page"""
+    __tablename__ = 'site_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value = db.Column(db.Text, nullable=True) # Null represents a truly missing value
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Relationships
+    updated_by = db.relationship('User', backref='settings_updates')
+
+    def __repr__(self):
+        return f'<SiteSettings {self.key}>'
+
+class SiteGalleryImages(db.Model):
+    """Images displayed on the public landing page gallery"""
+    __tablename__ = 'site_gallery_images'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    image_url = db.Column(db.Text, nullable=False) # Will store the relative static path or full URL
+    alt_text = db.Column(db.Text, nullable=True)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    def __repr__(self):
+        return f'<SiteGalleryImages {self.id} Active:{self.is_active}>'

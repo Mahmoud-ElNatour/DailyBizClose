@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Gallery Management - DailyBizClose{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Gallery Images</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Upload and manage images shown on the public landing page.
+        </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto pb-2">
+        <a href="{{ url_for('landing') }}" target="_blank"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg text-sm font-medium transition-colors">
+            <span class="material-symbols-outlined text-sm">open_in_new</span>
+            View Live Site
+        </a>
+        <a href="{{ url_for('site_settings') }}"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">settings</span>
+            Site Settings
+        </a>
+        <a href="{{ url_for('control_panel') }}"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_back</span>
+            Back
+        </a>
+    </div>
+</div>
+
+<!-- Upload Form -->
+<div
+    class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm mb-8 max-w-4xl">
+    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Upload New Image</h2>
+    <form action="{{ url_for('add_gallery_image') }}" method="POST" enctype="multipart/form-data"
+        class="flex flex-col md:flex-row gap-4 items-end">
+        <div class="w-full md:w-1/2">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select File</label>
+            <input type="file" name="image" accept="image/*" required class="block w-full text-sm text-slate-500 dark:text-slate-400
+                       file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold file:bg-primary/10 file:text-primary
+                       hover:file:bg-primary/20 cursor-pointer">
+        </div>
+        <div class="w-full md:w-1/3">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Accessibility Text
+                (Optional)</label>
+            <input type="text" name="alt_text" placeholder="Description of the image..."
+                class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-primary focus:ring-primary text-sm">
+        </div>
+        <button type="submit"
+            class="w-full md:w-auto px-6 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 transition-colors shrink-0">
+            Upload
+        </button>
+    </form>
+</div>
+
+<!-- Gallery Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {% for img in images %}
+    <div
+        class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col relative group">
+        <div class="aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-700">
+            <img src="{{ img.image_url }}" alt="{{ img.alt_text }}"
+                class="w-full h-full object-cover {% if not img.is_active %}opacity-40 grayscale{% endif %}">
+
+            <!-- Quick Actions Overlay -->
+            <div
+                class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button onclick="toggleImageStatus({{ img.id }}, {{ 'false' if img.is_active else 'true' }})"
+                    title="{% if img.is_active %}Hide from public gallery{% else %}Show on public gallery{% endif %}"
+                    class="p-2 rounded-full bg-white text-slate-800 hover:text-primary shadow-lg transition-transform hover:scale-110">
+                    <span class="material-symbols-outlined">{{ 'visibility_off' if img.is_active else 'visibility'
+                        }}</span>
+                </button>
+                <button onclick="deleteImage({{ img.id }})" title="Delete Image"
+                    class="p-2 rounded-full bg-white text-red-600 hover:bg-red-50 shadow-lg transition-transform hover:scale-110">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-4 flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs text-slate-500 font-medium uppercase tracking-wider">
+                <span>Status:</span>
+                {% if img.is_active %}
+                <span class="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Visible</span>
+                {% else %}
+                <span class="text-amber-600 bg-amber-50 px-2 py-1 rounded-md">Hidden</span>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center gap-2 mt-2">
+                <label class="text-xs font-semibold text-slate-600 dark:text-slate-400">Sort Order</label>
+                <input type="number" value="{{ img.sort_order }}" onchange="updateImageOrder({{ img.id }}, this.value)"
+                    class="w-full max-w-[80px] text-center rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-primary focus:ring-primary text-sm py-1">
+            </div>
+
+            {% if img.alt_text %}
+            <p class="text-xs text-slate-500 truncate mt-1" title="{{ img.alt_text }}">Alt: {{ img.alt_text }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="col-span-full py-16 text-center text-slate-500 border-2 border-dashed border-slate-300 rounded-2xl">
+        <span class="material-symbols-outlined text-4xl mb-2 opacity-50">photo_library</span>
+        <p>No images in the gallery yet.</p>
+        <p class="text-sm">Use the form above to upload your first image.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- API Interactions -->
+<script>
+    async function toggleImageStatus(id, newStatus) {
+        if (!confirm(newStatus ? 'Show this image on the public page?' : 'Hide this image from the public page?')) return;
+        try {
+            const response = await fetch(`/api/site-gallery/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: newStatus })
+            });
+            if (response.ok) { window.location.reload(); }
+            else { alert('Failed to update status'); }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function deleteImage(id) {
+        if (!confirm('Permanently delete this image?')) return;
+        try {
+            const response = await fetch(`/api/site-gallery/${id}`, { method: 'DELETE' });
+            if (response.ok) { window.location.reload(); }
+            else { alert('Failed to delete image'); }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function updateImageOrder(id, newOrder) {
+        try {
+            const response = await fetch(`/api/site-gallery/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sort_order: newOrder })
+            });
+            if (!response.ok) { alert('Failed to update sort order'); }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{{ brand_name|default('Misk Beirut') }} — Resto-Café by the Sea</title>
+    <!-- Google Fonts: Epilogue -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e3fae',
+                        brandDark: '#1a1a1a',
+                        brandLight: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'custom': '12px',
+                    }
+                }
+            }
+        }
+    </script>
+    <style data-purpose="custom-typography">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+</head>
+
+<body class="antialiased">
+    <!-- BEGIN: Sticky Navbar -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" data-purpose="main-navigation">
+            <div class="flex justify-between h-20 items-center">
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-2 relative">
+                    <a class="flex items-center gap-2 group" href="#">
+                        <div
+                            class="w-10 h-10 bg-primary flex items-center justify-center rounded-custom text-white font-bold text-xl">
+                            M</div>
+                        <span class="text-xl font-bold tracking-tight text-brandDark">{{ brand_name|default('Misk
+                            Beirut') }}</span>
+                    </a>
+                    {% if is_admin and not brand_name %}
+                    <a href="/control-panel/site-settings"
+                        class="absolute -bottom-6 left-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Add
+                        Brand Name</a>
+                    {% endif %}
+                </div>
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8 relative">
+                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                        href="#about">About</a>
+                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                        href="#menu">Menu</a>
+                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                        href="#gallery">Gallery</a>
+                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
+                        href="#location">Location</a>
+                    <div class="relative inline-block">
+                        <a class="bg-primary text-white px-5 py-2.5 rounded-custom text-sm font-semibold hover:bg-opacity-90 transition-all shadow-sm"
+                            href="{{ maps_url|default('#') }}" target="_blank">Get Directions</a>
+                        {% if is_admin and not maps_url %}
+                        <a href="/control-panel/site-settings"
+                            class="absolute -top-8 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200 whitespace-nowrap">Add
+                            Maps URL</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button class="text-gray-600 hover:text-brandDark focus:outline-none" id="mobile-menu-button">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu Overlay (Hidden by default) -->
+            <div class="hidden md:hidden pb-6 space-y-4" id="mobile-menu">
+                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#about">About</a>
+                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#menu">Menu</a>
+                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#gallery">Gallery</a>
+                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary"
+                    href="#location">Location</a>
+                <a class="block w-full text-center bg-primary text-white px-5 py-3 rounded-custom font-semibold"
+                    href="{{ maps_url|default('#') }}" target="_blank">Get Directions</a>
+            </div>
+        </nav>
+    </header>
+    <!-- END: Sticky Navbar -->
+    <main>
+        <!-- BEGIN: Hero Section -->
+        <section class="relative bg-brandLight py-20 lg:py-32 overflow-hidden" data-purpose="hero">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="max-w-3xl">
+                    <h1 class="text-5xl lg:text-7xl font-bold text-brandDark leading-tight mb-6">{{
+                        brand_name|default('Misk Beirut') }} — <span class="text-primary italic">A Cozy
+                            Resto-Café</span> by the Sea</h1>
+                    <p class="text-lg lg:text-xl text-gray-600 mb-10 leading-relaxed">
+                        Fresh flavors, comforting dishes, and a relaxed Beirut atmosphere — any time of day. Join us for
+                        an authentic coastal dining experience.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="relative inline-block">
+                            <a class="inline-flex justify-center items-center px-8 py-4 bg-primary text-white font-bold rounded-custom hover:bg-primary/90 transition-all text-lg w-full sm:w-auto"
+                                href="{{ menu_url|default('#') }}">
+                                View Menu
+                            </a>
+                            {% if is_admin and not menu_url %}
+                            <a href="/control-panel/site-settings"
+                                class="absolute -top-3 -right-3 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200 whitespace-nowrap">Add
+                                Menu PDF/Link</a>
+                            {% endif %}
+                        </div>
+                        <a class="inline-flex justify-center items-center px-8 py-4 border-2 border-primary text-primary font-bold rounded-custom hover:bg-primary/5 transition-all text-lg w-full sm:w-auto"
+                            href="{{ maps_url|default('#') }}">
+                            Get Directions
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative element -->
+            <div
+                class="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 transform translate-x-20 hidden lg:block">
+            </div>
+        </section>
+        <!-- END: Hero Section -->
+        <!-- BEGIN: About Section -->
+        <section class="py-24 bg-white" data-purpose="about-text" id="about">
+            <div class="max-w-4xl mx-auto px-4 text-center">
+                <span class="text-primary font-bold tracking-widest uppercase text-sm mb-4 block">Our Story</span>
+                <h2 class="text-3xl lg:text-4xl font-bold mb-8 text-brandDark">A Taste of Coastal Comfort</h2>
+                <p class="text-xl text-gray-600 leading-relaxed">
+                    Inspired by the vibrant yet laid-back spirit of Beirut's coastline, {{ brand_name|default('Misk
+                    Beirut') }} is your all-day destination for warmth and flavor. We blend traditional hospitality with
+                    a contemporary café feel, serving everything from morning staples to hearty evening meals in a space
+                    designed for relaxation.
+                </p>
+            </div>
+        </section>
+        <!-- END: About Section -->
+        <!-- BEGIN: Menu Preview -->
+        <section class="py-24 bg-white" data-purpose="menu-preview" id="menu">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold text-brandDark mb-4">On The Menu</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Explore our diverse selection of all-day favorites,
+                        crafted with care.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                    <!-- Categories (Static For Now)-->
+                    <div class="relative group overflow-hidden rounded-custom h-48 flex items-center justify-center">
+                        <div
+                            class="absolute inset-0 bg-brandDark/40 group-hover:bg-brandDark/50 transition-colors z-10">
+                        </div>
+                        <img alt="Breakfast" class="absolute inset-0 w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXWcv5xjF4UFqbIo-igKgtAOlxvJlXhTNldnC7vUctM8QzIy9aFhjkLF848lpcxFjEaAf-XjFMIx9dHRPSrfzrC8VUqv1cQAQ2v4GsLADWAab2TH4QmwkWCGiDRqwMOobRR_RYCVfPGo7t5jM8fQ55x1FzQKElvaAO6ta544M8ZO8nqu6EOGWGgGBjty84S1Tzuye-Qu4ebnAI11BwiAuGKptlmQJxsv-hypjkEbcrGNllKQuNax6fXWzh2sd7_mcCJGKI70nNbPA" />
+                        <span class="relative z-20 text-white text-2xl font-bold">Breakfast</span>
+                    </div>
+                    <div class="relative group overflow-hidden rounded-custom h-48 flex items-center justify-center">
+                        <div
+                            class="absolute inset-0 bg-brandDark/40 group-hover:bg-brandDark/50 transition-colors z-10">
+                        </div>
+                        <img alt="Main Dishes" class="absolute inset-0 w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgblc5JgZGg7gOL8s9QjTaGlRR3M9FCZc9WktrCeIZH2AZNZJJpx6n55rHa0ZjdHHk0rLgeAeOEGTn1y02mchXFqYNdpM1gdIKg3FOmM8006XX63QDUVvdgc6FLP_VjjeuEwoHxSPREiBOYxwWsUdlebHW_SFnTDpXyC5E-BRD__6DYHkI7429WX3r98d7uic5stYPW2PtBcgspPj31ryUtFSAW9ywsK7vE1kfTrdJuxhuAwjRW9Q0qiSQ8WShGccGu8-rMm3bGY4" />
+                        <span class="relative z-20 text-white text-2xl font-bold">Main Dishes</span>
+                    </div>
+                    <div class="relative group overflow-hidden rounded-custom h-48 flex items-center justify-center">
+                        <div
+                            class="absolute inset-0 bg-brandDark/40 group-hover:bg-brandDark/50 transition-colors z-10">
+                        </div>
+                        <img alt="Sandwiches" class="absolute inset-0 w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCR4mhRYps12dFmbEfTzItK3aI_IY3fVAhMXQ4G8myAsEXtturlZDW-z8kS6MNGpvShF36JI0QeMJxr8nSJxjW_i96vh3OUcaC7tiByFu2whbErOuiiYc5XMluRV99aHQzRRexylzdv2v7YhSnwDJX0stK2hsQStH6qBKMhhF1FleJZpVK9YQ8i5xdPZ7ySm6NyZ5U3lYy0lModEVihfKcaG2lkc8V1XhMb8W0Loopkg1EoddnKU1R5dth44EF5UONqkoLX05HrCpQ" />
+                        <span class="relative z-20 text-white text-2xl font-bold">Sandwiches</span>
+                    </div>
+                    <div class="relative group overflow-hidden rounded-custom h-48 flex items-center justify-center">
+                        <div
+                            class="absolute inset-0 bg-brandDark/40 group-hover:bg-brandDark/50 transition-colors z-10">
+                        </div>
+                        <img alt="Desserts" class="absolute inset-0 w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDddeKkSmnj6M1SP7P8ps_kCdYfyP4fNDgaPZR3EokyCZdSDBAkwH3l8qDtc5Sn-JksIL5m_kBoAN8snYuFdvCsZ-S7i5VHAFfJE7OPv2VjhJ6EjWQDE_1MlWFDTuMMOF1SnefoedqrVMcFZas8enfh2wyVn1FNVGT7dFdxtg3wI0Eo6M4a2nyQtVNBwjCpsFuXA3qwFO9Tziuw2GBB-3PiVNx1OFs2IQC35RK1jTUZxfMy9zgj7lx60df1tA7aY_PQ4_IDpk-5CzM" />
+                        <span class="relative z-20 text-white text-2xl font-bold">Desserts</span>
+                    </div>
+                    <div
+                        class="relative group overflow-hidden rounded-custom h-48 flex items-center justify-center lg:col-span-2">
+                        <div
+                            class="absolute inset-0 bg-brandDark/40 group-hover:bg-brandDark/50 transition-colors z-10">
+                        </div>
+                        <img alt="Drinks" class="absolute inset-0 w-full h-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi1cQ6-BF2UNmyc43gYsLvVlQk_I8a6yp252yKqFoRrdrRGP3kbXJ4EoTp4yrturxBr15Mcs5IyOI48aMCZMPmhybzOQDliEyiyF6SywF4WdpeiK_BxcVKdLcuSad71gaOMwPQSa75qlO4z0llOSQEbycsom3cBqREhI6J-gUhAPpEK94cwVpn_dsjquNzITRXEwZJRp1LilrPwl5KBuMUn9XVMHS7yqf3gEzBYr0drs42Av4_qOGJno6hQxVcda8NCRotuccTgBA" />
+                        <span class="relative z-20 text-white text-2xl font-bold">Hot &amp; Cold Drinks</span>
+                    </div>
+                </div>
+                <div class="text-center relative inline-block">
+                    <a class="inline-flex justify-center items-center px-8 py-4 bg-primary text-white font-bold rounded-custom hover:bg-primary/90 transition-all text-lg"
+                        href="{{ menu_url|default('#') }}">
+                        Explore Full Menu
+                    </a>
+                </div>
+            </div>
+        </section>
+        <!-- END: Menu Preview -->
+        <!-- BEGIN: Gallery -->
+        <section class="py-24 bg-brandLight" data-purpose="photo-gallery" id="gallery">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                <h2 class="text-3xl font-bold text-center mb-12 text-brandDark uppercase tracking-widest">The Experience
+                </h2>
+                {% if is_admin and not gallery_images %}
+                <div class="absolute top-0 right-4 sm:right-6 lg:right-8">
+                    <a href="/control-panel/site-gallery"
+                        class="bg-red-100 text-red-600 font-bold px-4 py-2 rounded-lg shadow-sm border border-red-200 hover:bg-red-200 transition-colors">Add
+                        Gallery Images</a>
+                </div>
+                {% endif %}
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for img in gallery_images %}
+                    <img alt="{{ img.alt_text|default('Gallery Image') }}"
+                        class="w-full aspect-square object-cover rounded-custom" loading="lazy"
+                        src="{{ img.image_url }}" />
+                    {% else %}
+                    {% if is_admin %}
+                    <div
+                        class="col-span-full py-12 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-xl">
+                        No gallery images uploaded yet.
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        <!-- END: Gallery -->
+        <!-- BEGIN: Location & Hours -->
+        <section class="py-24 bg-white" data-purpose="location-info" id="location">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h2 class="text-4xl font-bold text-brandDark mb-8">Visit Us</h2>
+                        <div class="space-y-6 mb-10">
+                            <div class="flex items-start gap-4 relative">
+                                <span class="text-primary text-xl"><span
+                                        class="material-symbols-outlined text-primary">location_on</span></span>
+                                <div>
+                                    <h4 class="font-bold text-lg">Address</h4>
+                                    <p class="text-gray-600">{{ address|default('Beirut, Coastal Road, Lebanon') }}</p>
+                                    {% if is_admin and not address %}
+                                    <a href="/control-panel/site-settings"
+                                        class="absolute -top-3 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Set
+                                        Address</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 relative">
+                                <span class="text-primary text-xl"><span
+                                        class="material-symbols-outlined text-primary">schedule</span></span>
+                                <div>
+                                    <h4 class="font-bold text-lg">Opening Hours</h4>
+                                    <p class="text-gray-600 whitespace-pre-line">{{ hours|default('Mon-Sun: 8:00 AM -
+                                        12:00 AM') }}</p>
+                                    {% if is_admin and not hours %}
+                                    <a href="/control-panel/site-settings"
+                                        class="absolute -top-3 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Set
+                                        Hours</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 relative">
+                                <span class="text-primary text-xl"><span
+                                        class="material-symbols-outlined text-primary">call</span></span>
+                                <div>
+                                    <h4 class="font-bold text-lg">Contact</h4>
+                                    <p class="text-gray-600">{{ phone_display|default('+961 1 000 000') }}</p>
+                                    {% if is_admin and not phone_display %}
+                                    <a href="/control-panel/site-settings"
+                                        class="absolute -top-3 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Set
+                                        Contact</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-4 relative">
+                            <a class="flex-1 min-w-[160px] text-center bg-primary text-white py-4 rounded-custom font-bold hover:shadow-lg transition-all"
+                                href="{{ maps_url|default('#') }}" target="_blank">Open in Maps</a>
+                            <a class="flex-1 min-w-[160px] text-center border-2 border-brandDark text-brandDark py-4 rounded-custom font-bold hover:bg-brandDark hover:text-white transition-all"
+                                href="tel:{{ phone_tel|default('#') }}">Call Now</a>
+                            <a class="flex-1 min-w-[160px] text-center bg-[#25D366] text-white py-4 rounded-custom font-bold hover:shadow-lg transition-all"
+                                href="{% if whatsapp_digits %}https://wa.me/{{ whatsapp_digits }}{% else %}#{% endif %}"
+                                target="_blank">WhatsApp</a>
+                            {% if is_admin and not phone_tel %}
+                            <a href="/control-panel/site-settings"
+                                class="absolute -bottom-8 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Add
+                                Live Phone Number</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div
+                        class="h-[400px] bg-gray-100 rounded-custom overflow-hidden shadow-inner flex items-center justify-center relative">
+                        <!-- Simulated Map View -->
+                        <img alt="Map" class="w-full h-full object-cover grayscale opacity-75"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgTd2SDGA0zeAh9xnF19lHmdI0T5_3DN5_8OSXflxrfcSwv5qsiKG_zfC_4ulzQqfqLX01DneTSubdn9cpKXv0bkngrmBETtMiyVfl0m4YHLbYtxFB0a5pTN8uOcRjQiAhqkLEi1gAnJh6ggFSelbrsTjpjM2HbQRn88SnTH7I1r7HAGGMr42i15DyukUAGmROsENISB83JT7YY0PrPqyi1ED2LDuW8T53oHxe1kHu8TTbSZvZiH3ZuooVE6RUmMY457JoERcH1mg" />
+                        <div
+                            class="absolute bg-white p-4 rounded-custom shadow-xl border border-primary/20 text-center">
+                            <p class="font-bold text-sm">{{ brand_name|default('Misk Beirut') }}</p>
+                            <p class="text-xs text-gray-500">Resto-Café by the Sea</p>
+                            <a href="{{ maps_url|default('#') }}" target="_blank"
+                                class="text-[10px] font-bold text-primary mt-2 block hover:underline">Get Directions</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- END: Location & Hours -->
+        <!-- BEGIN: Instagram CTA -->
+        <section class="py-16 bg-brandDark text-white overflow-hidden" data-purpose="social-cta">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+                <h2 class="text-3xl font-bold mb-6">Join Our Community</h2>
+                <p class="text-gray-400 mb-8 max-w-lg mx-auto">Follow us for updates, daily specials, and moments from
+                    the coast.</p>
+                <div class="relative inline-block">
+                    <a class="inline-flex items-center gap-3 text-2xl font-bold hover:text-white transition-colors text-primary hover:text-white"
+                        href="{{ instagram_url|default('#') }}" target="_blank">
+                        <span>@miskbeirut</span>
+                        <svg class="w-8 h-8" fill="currentColor" viewbox="0 0 24 24">
+                            <path
+                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z">
+                            </path>
+                        </svg>
+                    </a>
+                    {% if is_admin and not instagram_url %}
+                    <a href="/control-panel/site-settings"
+                        class="absolute -top-3 -right-20 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200 whitespace-nowrap">Add
+                        Link</a>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        <!-- END: Instagram CTA -->
+    </main>
+    <!-- BEGIN: Footer -->
+    <footer class="bg-white py-12 border-t border-gray-100" data-purpose="main-footer">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-center md:text-left relative inline-block">
+                    <h2 class="text-2xl font-bold text-brandDark mb-2">{{ brand_name|default('Misk Beirut') }}</h2>
+                    <p class="text-gray-500 text-sm">All-day coastal resto-café experience.</p>
+                </div>
+                <div class="flex space-x-6 text-sm font-medium text-gray-400">
+                    <a class="hover:text-primary" href="#">Home</a>
+                    <a class="hover:text-primary" href="#about">About</a>
+                    <a class="hover:text-primary" href="#menu">Menu</a>
+                    <a class="hover:text-primary" href="#location">Location</a>
+                    {% if is_admin %}
+                    <a class="text-primary font-bold hover:underline" href="/control-panel">Control Panel →</a>
+                    {% endif %}
+                </div>
+                <p class="text-gray-400 text-sm">
+                    ©
+                    <script>document.write(new Date().getFullYear())</script> {{ brand_name|default('Misk Beirut') }}.
+                    All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+    <!-- END: Footer -->
+    <script data-purpose="mobile-nav-handler">
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when a link is clicked
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+
+</html>
