@@ -260,7 +260,9 @@ def get_landing_context():
         'whatsapp_digits': whatsapp_digits if whatsapp_digits else None,
         'instagram_url': get_setting('instagram_url'),
         'maps_url': get_setting('maps_url'),
-        'menu_url': get_setting('menu_url'),
+        'menu_url': get_setting('menu_url') or '#',
+        'facebook_url': get_setting('facebook_url'),
+        'linkedin_url': get_setting('linkedin_url'),
         'gallery_images': gallery_images,
         'is_admin': is_admin
     }
@@ -272,6 +274,273 @@ def landing():
     """Public landing page route"""
     context = get_landing_context()
     return render_template('customer/landing.html', **context)
+
+@app.route('/menu')
+def menu():
+    """Public menu page route"""
+    from models import MenuCategory
+    
+    categories_query = MenuCategory.query.filter_by(is_active=True).order_by(MenuCategory.sort_order, MenuCategory.id).all()
+    
+    menu_data = []
+    for cat in categories_query:
+        items = [item for item in cat.items if item.is_active and item.is_available]
+        items.sort(key=lambda x: (x.sort_order, x.id))
+        
+        menu_data.append({
+            'id': cat.id,
+            'name': cat.name,
+            'description': cat.description,
+            'items': items
+        })
+            
+    is_admin = False
+    if current_user.is_authenticated and getattr(current_user, 'role', '') == 'admin':
+        is_admin = True
+        
+    context = get_landing_context()
+        
+    return render_template('customer/menu.html', categories=menu_data, user_is_admin=is_admin, **context)
+
+@app.route('/admin/menu')
+@login_required
+@admin_required
+def admin_menu():
+    """Admin Menu Management Page"""
+    from models import MenuCategory
+    categories = MenuCategory.query.filter_by(is_active=True).order_by(MenuCategory.sort_order, MenuCategory.id).all()
+    
+    menu_data = []
+    for cat in categories:
+        items = [item for item in cat.items if item.is_active]
+        items.sort(key=lambda x: (x.sort_order, x.id))
+        menu_data.append({
+            'id': cat.id,
+            'name': cat.name,
+            'description': cat.description,
+            'items': items
+        })
+        
+    return render_template('customer/admin_menu.html', categories=menu_data)
+
+@app.route('/admin/menu/categories', methods=['POST'])
+@login_required
+@admin_required
+def add_menu_category():
+    try:
+        from models import MenuCategory, db
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        
+        max_order = db.session.query(db.func.max(MenuCategory.sort_order)).scalar() or 0
+        new_category = MenuCategory(name=name, description=description, sort_order=max_order + 1)
+        db.session.add(new_category)
+        db.session.commit()
+        flash('Category added successfully', 'success')
+        return redirect(url_for('admin_menu'))
+    except Exception as e:
+        app.logger.error(f"Error adding category: {e}")
+        db.session.rollback()
+        flash('Failed to add category.', 'error')
+        return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        cat.name = request.form.get('name', cat.name)
+        cat.description = request.form.get('description', cat.description)
+        db.session.commit()
+        flash('Category updated successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error updating category: {e}")
+        db.session.rollback()
+        flash('Failed to update category.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        # Check for active items
+        active_items = [i for i in cat.items if i.is_active]
+        if active_items:
+            flash('Cannot delete category with active items. Remove items first.', 'error')
+        else:
+            cat.is_active = False
+            db.session.commit()
+            flash('Category deleted successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error deleting category: {e}")
+        db.session.rollback()
+        flash('Failed to delete category.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items', methods=['POST'])
+@login_required
+@admin_required
+def add_menu_item():
+    try:
+        from models import MenuItem, db
+        from werkzeug.utils import secure_filename
+        import os
+        
+        category_id = int(request.form.get('category_id'))
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        price = decimal.Decimal(request.form.get('price', '0.00'))
+        
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_folder = os.path.join(app.root_path, 'static', 'img', 'menu')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                image_url = url_for('static', filename=f'img/menu/{filename}')
+        
+        max_order = db.session.query(db.func.max(MenuItem.sort_order)).filter_by(category_id=category_id).scalar() or 0
+        
+        new_item = MenuItem(
+            category_id=category_id, name=name, description=description, price=price, 
+            image_url=image_url, sort_order=max_order + 1
+        )
+        db.session.add(new_item)
+        db.session.commit()
+        flash('Item added successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error adding item: {e}")
+        db.session.rollback()
+        flash('Failed to add item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        from werkzeug.utils import secure_filename
+        import os
+        
+        item = MenuItem.query.get_or_404(item_id)
+        item.name = request.form.get('name', item.name)
+        item.description = request.form.get('description', item.description)
+        item.price = decimal.Decimal(request.form.get('price', item.price))
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_folder = os.path.join(app.root_path, 'static', 'img', 'menu')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                item.image_url = url_for('static', filename=f'img/menu/{filename}')
+                
+        db.session.commit()
+        flash('Item updated successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error updating item: {e}")
+        db.session.rollback()
+        flash('Failed to update item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        item.is_active = False
+        db.session.commit()
+        flash('Item deleted successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error deleting item: {e}")
+        db.session.rollback()
+        flash('Failed to delete item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/availability', methods=['POST'])
+@login_required
+@admin_required
+def toggle_item_availability(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        item.is_available = not item.is_available
+        db.session.commit()
+        if request.is_json:
+            return jsonify({'success': True, 'is_available': item.is_available})
+        flash('Item availability updated', 'success')
+    except Exception as e:
+        app.logger.error(f"Error toggling availability: {e}")
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash('Failed to toggle availability.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/move', methods=['POST'])
+@login_required
+@admin_required
+def move_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        direction = request.form.get('direction')
+        
+        neighbor = None
+        if direction == 'up':
+            neighbor = MenuCategory.query.filter(MenuCategory.sort_order < cat.sort_order, MenuCategory.is_active==True).order_by(MenuCategory.sort_order.desc()).first()
+        elif direction == 'down':
+            neighbor = MenuCategory.query.filter(MenuCategory.sort_order > cat.sort_order, MenuCategory.is_active==True).order_by(MenuCategory.sort_order.asc()).first()
+            
+        if neighbor:
+            # Swap
+            cat.sort_order, neighbor.sort_order = neighbor.sort_order, cat.sort_order
+            db.session.commit()
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error moving category: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/menu/items/<int:item_id>/move', methods=['POST'])
+@login_required
+@admin_required
+def move_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        direction = request.form.get('direction')
+        
+        neighbor = None
+        if direction in ['up', 'left']:
+            neighbor = MenuItem.query.filter(MenuItem.category_id == item.category_id, MenuItem.sort_order < item.sort_order, MenuItem.is_active==True).order_by(MenuItem.sort_order.desc()).first()
+        elif direction in ['down', 'right']:
+            neighbor = MenuItem.query.filter(MenuItem.category_id == item.category_id, MenuItem.sort_order > item.sort_order, MenuItem.is_active==True).order_by(MenuItem.sort_order.asc()).first()
+            
+        if neighbor:
+            # Swap
+            item.sort_order, neighbor.sort_order = neighbor.sort_order, item.sort_order
+            db.session.commit()
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error moving item: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/index',methods=['GET'])
 @login_required
@@ -3135,4 +3404,4 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0',port=5000)

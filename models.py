@@ -320,3 +320,40 @@ class SiteGalleryImages(db.Model):
     
     def __repr__(self):
         return f'<SiteGalleryImages {self.id} Active:{self.is_active}>'
+
+class MenuCategory(db.Model):
+    """Categories for the public menu"""
+    __tablename__ = 'menu_categories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    items = db.relationship('MenuItem', backref='category', cascade='all, delete-orphan', lazy=True)
+    
+    def __repr__(self):
+        return f'<MenuCategory {self.name}>'
+
+class MenuItem(db.Model):
+    """Items within menu categories"""
+    __tablename__ = 'menu_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('menu_categories.id'), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(db.Numeric(12, 2), nullable=False)
+    image_url = db.Column(db.Text, nullable=True)
+    is_available = db.Column(db.Boolean, default=True, nullable=False)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    def __repr__(self):
+        return f'<MenuItem {self.name} (${self.price})>'

@@ -69,7 +69,7 @@
                     <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
                         href="#about">About</a>
                     <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-                        href="#menu">Menu</a>
+                        href="/menu">Menu</a>
                     <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
                         href="#gallery">Gallery</a>
                     <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
@@ -97,7 +97,7 @@
             <!-- Mobile Menu Overlay (Hidden by default) -->
             <div class="hidden md:hidden pb-6 space-y-4" id="mobile-menu">
                 <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#about">About</a>
-                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#menu">Menu</a>
+                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="/menu">Menu</a>
                 <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#gallery">Gallery</a>
                 <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary"
                     href="#location">Location</a>
@@ -122,7 +122,7 @@
                     <div class="flex flex-col sm:flex-row gap-4">
                         <div class="relative inline-block">
                             <a class="inline-flex justify-center items-center px-8 py-4 bg-primary text-white font-bold rounded-custom hover:bg-primary/90 transition-all text-lg w-full sm:w-auto"
-                                href="{{ menu_url|default('#') }}">
+                                href="/menu">
                                 View Menu
                             </a>
                             {% if is_admin and not menu_url %}
@@ -212,7 +212,7 @@
                 </div>
                 <div class="text-center relative inline-block">
                     <a class="inline-flex justify-center items-center px-8 py-4 bg-primary text-white font-bold rounded-custom hover:bg-primary/90 transition-all text-lg"
-                        href="{{ menu_url|default('#') }}">
+                        href="/menu">
                         Explore Full Menu
                     </a>
                 </div>
@@ -365,7 +365,7 @@
                 <div class="flex space-x-6 text-sm font-medium text-gray-400">
                     <a class="hover:text-primary" href="#">Home</a>
                     <a class="hover:text-primary" href="#about">About</a>
-                    <a class="hover:text-primary" href="#menu">Menu</a>
+                    <a class="hover:text-primary" href="/menu">Menu</a>
                     <a class="hover:text-primary" href="#location">Location</a>
                     {% if is_admin %}
                     <a class="text-primary font-bold hover:underline" href="/control-panel">Control Panel →</a>
