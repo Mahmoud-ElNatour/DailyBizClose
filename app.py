@@ -267,6 +267,20 @@ def get_landing_context():
         'is_admin': is_admin
     }
 
+# Global Context Processor
+@app.context_processor
+def inject_site_settings():
+    """Inject global site settings into all templates."""
+    try:
+        from models import SiteSettings
+        settings = SiteSettings.query.all()
+        # Convert list of SiteSettings objects into a dictionary
+        settings_dict = {s.key: s.value for s in settings}
+        return {'site_setting': settings_dict}
+    except Exception as e:
+        app.logger.error(f"Error in context processor: {e}")
+        return {'site_setting': {}}
+
 # Routes
 @app.route('/')
 @app.route('/landing')
@@ -1201,13 +1215,115 @@ def generate_payslip_view(record_id):
 def receivers_view():
     """Receivers list page"""
     try:
-        from models import Receivers
-        receivers = Receivers.query.all()
-        return render_template('receivers.html', receivers=receivers)
+        from models import Receivers, Expenses
+        from datetime import datetime
+        import csv
+        from sqlalchemy import func
+        from io import StringIO
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        # Base query to sum expenses
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
+        
+        # Join with receivers
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+        
+        # Set dynamic attribute for frontend
+        for receiver, total in results:
+            receiver.period_total = float(total)
+            
+        return render_template('receivers.html', receivers=[r[0] for r in results], current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading receivers: {e}")
         flash('Error loading receivers page', 'error')
         return redirect(url_for('control_panel'))
+
+@app.route('/control-panel/receivers/export')
+@login_required
+@admin_required
+def export_receivers_stats():
+    """Export receivers and their aggregated expenses as CSV"""
+    try:
+        from models import Receivers, Expenses
+        import csv
+        from sqlalchemy import func
+        from io import StringIO
+        from flask import Response
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
+        
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+
+        si = StringIO()
+        cw = csv.writer(si)
+        
+        # Write header
+        period_str = ""
+        if month and year:
+            period_str = f" ({month}/{year})"
+        elif year:
+            period_str = f" ({year})"
+            
+        cw.writerow(['ID', 'Name', f'Total Paid Amount{period_str}', 'All-Time Record Amount'])
+        
+        # Write rows
+        for receiver, total in results:
+            cw.writerow([
+                f"#{receiver.id:04d}",
+                receiver.name,
+                f"{float(total):.2f}",
+                f"{float(receiver.paid_amount or 0):.2f}"
+            ])
+            
+        output = si.getvalue()
+        
+        filename = f"receivers_export_{year or 'all'}_{month or 'all'}.csv"
+        
+        return Response(
+            output,
+            mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename={filename}"}
+        )
+            
+    except Exception as e:
+        app.logger.error(f"Error exporting receivers stats: {e}")
+        flash('Error exporting data', 'error')
+        return redirect(url_for('receivers_view'))
 
 @app.route('/control-panel/ahmad-expenses')
 @login_required
@@ -3279,9 +3395,10 @@ def export_payroll_csv():
 @login_required
 def export_reports_csv():
     try:
-        from models import Expenses, AhmadMistrahExpenses, SamerExpenses
+        from models import Receivers, Expenses, AhmadMistrahExpenses, SamerExpenses
         from datetime import datetime
         import csv
+        from sqlalchemy import func
         from io import StringIO
         from flask import make_response
         
@@ -3290,84 +3407,60 @@ def export_reports_csv():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
-        # We need to export all types of expenses
-        all_expenses_list = []
+        # Base query to sum expenses
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
         
-        # General Expenses
-        gen_q = Expenses.query
         if start_date:
-            gen_q = gen_q.filter(Expenses.date >= start_date)
+            expense_query = expense_query.filter(Expenses.date >= start_date)
         if end_date:
             end_date_time = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            gen_q = gen_q.filter(Expenses.date <= end_date_time)
-        if month and year:
-            gen_q = gen_q.filter(db.extract('year', Expenses.date) == year, db.extract('month', Expenses.date) == month)
+            expense_query = expense_query.filter(Expenses.date <= end_date_time)
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
         
-        for exp in gen_q.all():
-            all_expenses_list.append({
-                'type': 'General',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Ahmad Expenses
-        ahmad_q = AhmadMistrahExpenses.query
-        if start_date:
-            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date >= start_date)
-        if end_date:
-            end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date <= end_date_dt)
-        if month and year:
-            ahmad_q = ahmad_q.filter(db.extract('year', AhmadMistrahExpenses.date) == year, db.extract('month', AhmadMistrahExpenses.date) == month)
-            
-        for exp in ahmad_q.all():
-            all_expenses_list.append({
-                'type': 'Ahmad Mistrah',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Samer Expenses
-        samer_q = SamerExpenses.query
-        if start_date:
-            samer_q = samer_q.filter(SamerExpenses.date >= start_date)
-        if end_date:
-            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            samer_q = samer_q.filter(SamerExpenses.date <= end_dt)
-        if month and year:
-            samer_q = samer_q.filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
-            
-        for exp in samer_q.all():
-            all_expenses_list.append({
-                'type': 'Samer Mistrah',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Sort by date
-        all_expenses_list.sort(key=lambda x: x['date'])
-        
+        # Join with receivers
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+
         si = StringIO()
         cw = csv.writer(si)
-        cw.writerow(['Type', 'Date', 'Receiver', 'Amount', 'Note'])
         
-        for e in all_expenses_list:
+        # Write header
+        period_str = ""
+        if month and year:
+            period_str = f" ({month}/{year})"
+        elif year:
+            period_str = f" ({year})"
+        elif start_date and end_date:
+            period_str = f" ({start_date} to {end_date})"
+            
+        cw.writerow(['ID', 'Name', f'Total Expenses Amount{period_str}', 'All-Time Record Amount'])
+        
+        # Write rows
+        for receiver, total in results:
             cw.writerow([
-                e['type'],
-                e['date'],
-                e['receiver'],
-                f"{e['amount']:.2f}",
-                e['note']
+                f"#{receiver.id:04d}",
+                receiver.name,
+                f"{float(total):.2f}",
+                f"{float(receiver.paid_amount or 0):.2f}"
             ])
             
         output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = "attachment; filename=expenses_report.csv"
+        
+        filename = f"expenses_report_export_{year or 'all'}_{month or 'all'}.csv"
+        
+        output.headers["Content-Disposition"] = f"attachment; filename={filename}"
         output.headers["Content-type"] = "text/csv"
         return output
     except Exception as e:

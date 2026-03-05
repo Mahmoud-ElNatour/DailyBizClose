@@ -12,20 +12,33 @@
         rel="stylesheet" />
     <!-- Tailwind CSS v3 CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
     <!-- Tailwind Configuration -->
-    <script>
+    <script id="tailwind-config">
         tailwind.config = {
+            darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        primary: '#1e3fae',
+                        "primary": "#1e3fae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121520",
+                        miskBlue: '#E3F2FD',
+                        miskDarkBlue: '#1E3A8A',
+                        miskAccent: '#0284C7',
                         brandDark: '#1a1a1a',
                         brandLight: '#f8fafc',
                     },
                     fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        serif: ['Georgia', 'serif'],
                         sans: ['Inter', 'sans-serif'],
                     },
                     borderRadius: {
+                        "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px",
                         'custom': '12px',
                     }
                 }
@@ -39,74 +52,12 @@
             color: #0f172a;
         }
     </style>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
 </head>
 
 <body class="antialiased">
-    <!-- BEGIN: Sticky Navbar -->
-    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" data-purpose="main-navigation">
-            <div class="flex justify-between h-20 items-center">
-                <!-- Logo & Brand -->
-                <div class="flex items-center gap-2 relative">
-                    <a class="flex items-center gap-2 group" href="#">
-                        <div
-                            class="w-10 h-10 bg-primary flex items-center justify-center rounded-custom text-white font-bold text-xl">
-                            M</div>
-                        <span class="text-xl font-bold tracking-tight text-brandDark">{{ brand_name|default('Misk
-                            Beirut') }}</span>
-                    </a>
-                    {% if is_admin and not brand_name %}
-                    <a href="/control-panel/site-settings"
-                        class="absolute -bottom-6 left-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200">Add
-                        Brand Name</a>
-                    {% endif %}
-                </div>
-                <!-- Desktop Navigation -->
-                <div class="hidden md:flex items-center space-x-8 relative">
-                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-                        href="#about">About</a>
-                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-                        href="/menu">Menu</a>
-                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-                        href="#gallery">Gallery</a>
-                    <a class="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
-                        href="#location">Location</a>
-                    <div class="relative inline-block">
-                        <a class="bg-primary text-white px-5 py-2.5 rounded-custom text-sm font-semibold hover:bg-opacity-90 transition-all shadow-sm"
-                            href="{{ maps_url|default('#') }}" target="_blank">Get Directions</a>
-                        {% if is_admin and not maps_url %}
-                        <a href="/control-panel/site-settings"
-                            class="absolute -top-8 right-0 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200 whitespace-nowrap">Add
-                            Maps URL</a>
-                        {% endif %}
-                    </div>
-                </div>
-                <!-- Mobile Menu Button -->
-                <div class="md:hidden flex items-center">
-                    <button class="text-gray-600 hover:text-brandDark focus:outline-none" id="mobile-menu-button">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <!-- Mobile Menu Overlay (Hidden by default) -->
-            <div class="hidden md:hidden pb-6 space-y-4" id="mobile-menu">
-                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#about">About</a>
-                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="/menu">Menu</a>
-                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary" href="#gallery">Gallery</a>
-                <a class="block text-base font-medium text-gray-600 py-2 hover:text-primary"
-                    href="#location">Location</a>
-                <a class="block w-full text-center bg-primary text-white px-5 py-3 rounded-custom font-semibold"
-                    href="{{ maps_url|default('#') }}" target="_blank">Get Directions</a>
-            </div>
-        </nav>
-    </header>
-    <!-- END: Sticky Navbar -->
+    <!-- BEGIN: Navbar Component -->
+    {% include 'components/_navbar.html' %}
+    <!-- END: Navbar Component -->
     <main>
         <!-- BEGIN: Hero Section -->
         <section class="relative bg-brandLight py-20 lg:py-32 overflow-hidden" data-purpose="hero">

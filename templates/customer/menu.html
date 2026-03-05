@@ -8,21 +8,31 @@
     <title>Menu | Misk Beirut Resto-Café</title>
     <!-- BEGIN: Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
     <!-- END: Tailwind CSS CDN -->
     <!-- BEGIN: Custom Configuration -->
-    <script>
+    <script id="tailwind-config">
         tailwind.config = {
+            darkMode: "class",
             theme: {
                 extend: {
                     colors: {
+                        "primary": "#1e3fae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121520",
                         miskBlue: '#E3F2FD',
                         miskDarkBlue: '#1E3A8A',
                         miskAccent: '#0284C7',
                     },
                     fontFamily: {
+                        "display": ["Inter", "sans-serif"],
                         serif: ['Georgia', 'serif'],
                         sans: ['Inter', 'sans-serif'],
-                    }
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
                 }
             }
         }
@@ -53,59 +63,8 @@
 </head>
 
 <body class="bg-white text-gray-800 font-sans antialiased">
-    <!-- BEGIN: Sticky Navbar -->
-    <nav class="sticky top-0 z-50 border-b border-miskBlue sticky-nav" data-purpose="main-navigation">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <!-- Brand -->
-                <div class="flex-shrink-0 flex items-center">
-                    <span class="text-2xl font-serif font-bold tracking-tight text-miskDarkBlue">MISK BEIRUT</span>
-                </div>
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex space-x-8 items-center">
-                    <a class="text-gray-600 hover:text-miskAccent font-medium" href="/">Home</a>
-                    <a class="text-miskDarkBlue font-bold border-b-2 border-miskAccent" href="/menu">Menu</a>
-                    <a class="text-gray-600 hover:text-miskAccent font-medium" href="/location">Location</a>
-                    {% if user_is_admin %}
-                    <a class="text-red-600 hover:text-red-700 font-bold" href="/admin/menu">Admin Panel</a>
-                    {% endif %}
-                    <a class="bg-miskDarkBlue text-white px-6 py-2 rounded-full font-medium hover:bg-opacity-90 transition shadow-sm"
-                        href="https://maps.google.com" target="_blank">
-                        Get Directions
-                    </a>
-                </div>
-                <!-- Mobile Menu Toggle (simplified) -->
-                <div class="md:hidden">
-                    <button id="mobileMenuBtn" class="text-miskDarkBlue p-2" type="button" aria-expanded="false"
-                        aria-controls="mobileMenu">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                            <path d="M4 6h16M4 12h16m-7 6h7" stroke-linecap="round" stroke-linejoin="round"
-                                stroke-width="2"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Mobile Menu Dropdown -->
-            <div id="mobileMenu"
-                class="hidden md:hidden bg-white border-t border-miskBlue absolute w-full left-0 shadow-lg top-full z-50">
-                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                    <a href="/"
-                        class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-miskAccent hover:bg-gray-50">Home</a>
-                    <a href="/menu"
-                        class="block px-3 py-2 rounded-md text-base font-bold text-miskDarkBlue bg-miskBlue/20">Menu</a>
-                    <a href="/location"
-                        class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-miskAccent hover:bg-gray-50">Location</a>
-                    {% if user_is_admin %}
-                    <a href="/admin/menu"
-                        class="block px-3 py-2 rounded-md text-base font-bold text-red-600 hover:text-red-700 hover:bg-red-50">Admin
-                        Panel</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
-    <!-- END: Sticky Navbar -->
+    <!-- Navbar -->
+    {% include 'components/_navbar.html' %}
     <main>
         <!-- BEGIN: Header Section -->
         <section class="bg-miskBlue py-16 px-4 text-center" data-purpose="page-header">
