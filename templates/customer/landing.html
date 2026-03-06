@@ -262,75 +262,33 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div
-                        class="h-[400px] bg-gray-100 rounded-custom overflow-hidden shadow-inner flex items-center justify-center relative">
-                        <!-- Simulated Map View -->
-                        <img alt="Map" class="w-full h-full object-cover grayscale opacity-75"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgTd2SDGA0zeAh9xnF19lHmdI0T5_3DN5_8OSXflxrfcSwv5qsiKG_zfC_4ulzQqfqLX01DneTSubdn9cpKXv0bkngrmBETtMiyVfl0m4YHLbYtxFB0a5pTN8uOcRjQiAhqkLEi1gAnJh6ggFSelbrsTjpjM2HbQRn88SnTH7I1r7HAGGMr42i15DyukUAGmROsENISB83JT7YY0PrPqyi1ED2LDuW8T53oHxe1kHu8TTbSZvZiH3ZuooVE6RUmMY457JoERcH1mg" />
-                        <div
-                            class="absolute bg-white p-4 rounded-custom shadow-xl border border-primary/20 text-center">
-                            <p class="font-bold text-sm">{{ brand_name|default('Misk Beirut') }}</p>
-                            <p class="text-xs text-gray-500">Resto-Café by the Sea</p>
-                            <a href="{{ maps_url|default('#') }}" target="_blank"
-                                class="text-[10px] font-bold text-primary mt-2 block hover:underline">Get Directions</a>
-                        </div>
+                    <!-- Live Google Map View -->
+                    {% if maps_url %}
+                    <iframe src="{{ maps_url }}" width="100%" height="100%" style="border:0;" allowfullscreen=""
+                        loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                    {% else %}
+                    <!-- Fallback map structure if no maps_url is set in the database -->
+                    <div class="w-full h-full bg-slate-200 flex flex-col items-center justify-center p-6 text-center">
+                        <span class="material-symbols-outlined text-4xl text-slate-400 mb-2">map</span>
+                        <p class="text-slate-500 font-medium">Map location not yet configured.</p>
+                        {% if is_admin %}
+                        <a href="/control-panel/site-settings"
+                            class="mt-4 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition">Configure
+                            Map URL</a>
+                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
+            </div>
             </div>
         </section>
         <!-- END: Location & Hours -->
-        <!-- BEGIN: Instagram CTA -->
-        <section class="py-16 bg-brandDark text-white overflow-hidden" data-purpose="social-cta">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-                <h2 class="text-3xl font-bold mb-6">Join Our Community</h2>
-                <p class="text-gray-400 mb-8 max-w-lg mx-auto">Follow us for updates, daily specials, and moments from
-                    the coast.</p>
-                <div class="relative inline-block">
-                    <a class="inline-flex items-center gap-3 text-2xl font-bold hover:text-white transition-colors text-primary hover:text-white"
-                        href="{{ instagram_url|default('#') }}" target="_blank">
-                        <span>@miskbeirut</span>
-                        <svg class="w-8 h-8" fill="currentColor" viewbox="0 0 24 24">
-                            <path
-                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z">
-                            </path>
-                        </svg>
-                    </a>
-                    {% if is_admin and not instagram_url %}
-                    <a href="/control-panel/site-settings"
-                        class="absolute -top-3 -right-20 bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-red-200 z-50 hover:bg-red-200 whitespace-nowrap">Add
-                        Link</a>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
-        <!-- END: Instagram CTA -->
+
     </main>
-    <!-- BEGIN: Footer -->
-    <footer class="bg-white py-12 border-t border-gray-100" data-purpose="main-footer">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="text-center md:text-left relative inline-block">
-                    <h2 class="text-2xl font-bold text-brandDark mb-2">{{ brand_name|default('Misk Beirut') }}</h2>
-                    <p class="text-gray-500 text-sm">All-day coastal resto-café experience.</p>
-                </div>
-                <div class="flex space-x-6 text-sm font-medium text-gray-400">
-                    <a class="hover:text-primary" href="#">Home</a>
-                    <a class="hover:text-primary" href="#about">About</a>
-                    <a class="hover:text-primary" href="/menu">Menu</a>
-                    <a class="hover:text-primary" href="#location">Location</a>
-                    {% if is_admin %}
-                    <a class="text-primary font-bold hover:underline" href="/control-panel">Control Panel →</a>
-                    {% endif %}
-                </div>
-                <p class="text-gray-400 text-sm">
-                    ©
-                    <script>document.write(new Date().getFullYear())</script> {{ brand_name|default('Misk Beirut') }}.
-                    All rights reserved.
-                </p>
-            </div>
-        </div>
-    </footer>
-    <!-- END: Footer -->
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
     <script data-purpose="mobile-nav-handler">
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');

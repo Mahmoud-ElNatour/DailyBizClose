@@ -4,7 +4,7 @@
         <div class="flex justify-between items-center h-16">
             <!-- Logo & Nav -->
             <div class="flex items-center gap-8">
-                <a href="{{ url_for('index') }}"
+                <a href="{{ url_for('landing') }}"
                     class="flex items-center gap-2 group cursor-pointer hover:opacity-90 transition-opacity">
                     <div class="bg-primary p-1.5 rounded-lg text-white">
                         <span class="material-symbols-outlined text-2xl">account_balance_wallet</span>
@@ -15,8 +15,8 @@
 
                 <nav class="hidden md:flex items-center gap-1">
                     <!-- Everyone sees Home -->
-                    <a class="px-4 py-2 text-sm font-medium {% if request.endpoint == 'index' %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors{% endif %}"
-                        href="{{ url_for('index') }}">Home</a>
+                    <a class="px-4 py-2 text-sm font-medium {% if request.endpoint == 'landing' %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors{% endif %}"
+                        href="{{ url_for('landing') }}">Home</a>
 
                     <!-- Everyone sees Menu -->
                     <a class="px-4 py-2 text-sm font-medium {% if request.endpoint in ['menu', 'admin_menu'] %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors{% endif %}"
@@ -94,8 +94,8 @@
 
         <!-- Mobile Navigation Menu -->
         <div id="mobileNav" class="md:hidden hidden border-t border-slate-200 dark:border-slate-800 py-4 space-y-2">
-            <a class="block px-4 py-2 text-base font-medium {% if request.endpoint == 'index' %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors{% endif %}"
-                href="{{ url_for('index') }}">Home</a>
+            <a class="block px-4 py-2 text-base font-medium {% if request.endpoint == 'landing' %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors{% endif %}"
+                href="{{ url_for('landing') }}">Home</a>
 
             <a class="block px-4 py-2 text-base font-medium {% if request.endpoint in ['menu', 'admin_menu'] %}text-primary bg-primary/10 rounded-lg font-semibold{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors{% endif %}"
                 href="{% if current_user.is_authenticated and current_user.role == 'admin' %}{{ url_for('admin_menu') }}{% else %}{{ url_for('menu') }}{% endif %}">Menu</a>

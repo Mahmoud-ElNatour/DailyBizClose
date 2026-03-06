@@ -101,6 +101,15 @@
                         </svg>
                         Directions
                     </a>
+                    <a class="flex items-center gap-2 bg-white border border-miskDarkBlue/10 px-5 py-2.5 rounded-full text-miskDarkBlue font-medium hover:bg-miskDarkBlue hover:text-white transition"
+                        href="{{ instagram_url if instagram_url else '#' }}" {% if instagram_url %}target="_blank" {%
+                        endif %}>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
+                            <path
+                                d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12.2 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z" />
+                        </svg>
+                        Instagram
+                    </a>
                 </div>
             </div>
         </section>
@@ -233,75 +242,9 @@
         </section>
         <!-- END: Menu Items Content -->
     </main>
-    <!-- BEGIN: Footer -->
-    <footer class="bg-miskDarkBlue text-white py-16" data-purpose="main-footer">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
-                <!-- Logo & Story -->
-                <div class="col-span-1 md:col-span-2">
-                    <span class="text-3xl font-serif font-bold tracking-tight mb-6 block">MISK BEIRUT</span>
-                    <p class="text-blue-100 leading-relaxed max-w-md">
-                        Bringing the soul of Lebanese hospitality to your table. From traditional breakfast to artisanal
-                        wraps, we celebrate the rich culinary heritage of Beirut.
-                    </p>
-                </div>
-                <!-- Quick Links -->
-                <div>
-                    <h4 class="text-lg font-bold mb-6">Explore</h4>
-                    <ul class="space-y-4 text-blue-100">
-                        <li><a class="hover:text-white transition" href="/">Home</a></li>
-                        <li><a class="hover:text-white transition underline underline-offset-8" href="/menu">Menu</a>
-                        </li>
-                        <li><a class="hover:text-white transition" href="/location">Location</a></li>
-                        <li><a class="hover:text-white transition" href="/about">About Us</a></li>
-                    </ul>
-                </div>
-                <!-- Contact Info -->
-                <div>
-                    <h4 class="text-lg font-bold mb-6">Join Us</h4>
-                    <ul class="space-y-4 text-blue-100">
-                        <li class="flex items-center gap-3">
-                            <svg class="w-5 h-5 text-miskAccent" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                                <path
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round"
-                                    stroke-linejoin="round" stroke-width="2"></path>
-                            </svg>
-                            Hamra St, Beirut
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <svg class="w-5 h-5 text-miskAccent" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-                                <path
-                                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                            </svg>
-                            +961 1 234 567
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <div
-                class="border-t border-white/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p class="text-sm text-blue-200">© 2024 Misk Beirut Resto-Café. All rights reserved.</p>
-                <div class="flex gap-6">
-                    {% if instagram_url %}
-                    <a class="text-blue-200 hover:text-white transition" href="{{ instagram_url }}"
-                        target="_blank">Instagram</a>
-                    {% endif %}
-                    {% if facebook_url %}
-                    <a class="text-blue-200 hover:text-white transition" href="{{ facebook_url }}"
-                        target="_blank">Facebook</a>
-                    {% endif %}
-                    {% if linkedin_url %}
-                    <a class="text-blue-200 hover:text-white transition" href="{{ linkedin_url }}"
-                        target="_blank">LinkedIn</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </footer>
-    <!-- END: Footer -->
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
     <!-- BEGIN: Scripts -->
     <script data-purpose="interaction-logic">
         // Smooth scrolling

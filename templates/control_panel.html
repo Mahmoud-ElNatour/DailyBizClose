@@ -387,17 +387,9 @@
         </section>
     </main>
 
-    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200 dark:border-slate-800">
-        <div
-            class="flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 dark:text-slate-500 text-sm font-medium">
-            <p>© 2024 DailyBizClose. All rights reserved.</p>
-            <div class="flex gap-6">
-                <a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-                <a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
-                <a class="hover:text-primary transition-colors" href="#">Support</a>
-            </div>
-        </div>
-    </footer>
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
 
     <!-- Script Includes -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>

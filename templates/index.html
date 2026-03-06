@@ -157,19 +157,9 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 mt-12 border-t border-primary/5">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-            <p class="text-slate-400 text-sm">
-                © 2024 DailyBizClose. All rights reserved. Premium SaaS Dashboard.
-            </p>
-            <div class="flex gap-8">
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Privacy Policy</a>
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Terms of Service</a>
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Contact Support</a>
-            </div>
-        </div>
-    </footer>
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
 
     <!-- Script Includes -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
