@@ -1,0 +1,1212 @@
+[
+  {
+    "id": 16791,
+    "name": "Morning Rush",
+    "items": [
+      {
+        "id": 154385,
+        "name": "Medley plate",
+        "description": "Mozzarella cheese , Halloumi , feta , turkey , olives and fresh vegetables",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154386,
+        "name": "Omelet",
+        "description": "3 eggs , salt , black pepper and cherry tomato ( optional with cheese or fungi )",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154387,
+        "name": "Labneh",
+        "description": "Traditional labneh with olive oil",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154388,
+        "name": "Pesto halloumi wrap",
+        "description": "Tortilla bread , grilled halloumi , homemade pesto sauce , cherry tomato , ice berg side pomodoro salad",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154389,
+        "name": "Turkey and cheese wrap",
+        "description": "Tortilla bread , mozzarella cheese , smoked turkey , pickles ,",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154390,
+        "name": "Vegetables platter",
+        "description": "Fresh vegetables ( tomato , cucumber , mint and black olives )",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16795,
+    "name": "Salads",
+    "items": [
+      {
+        "id": 154391,
+        "name": "Ceasar Salad",
+        "description": "Romain lettuce , cherry tomato , croutons , permasan cheese and ceasar sauce dressing",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154392,
+        "name": "Fiesta Salad",
+        "description": "Ice burg lettuce , cherry tomato , cucumber , black olives sliced and fussili pasta , lemon mustard dressing or pesto optional",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154393,
+        "name": "Halloumi Salad",
+        "description": "Mixed lettuce , grilled halloumi ,  cherry tomato , cucumber , fresh mushroom , sliced olives , sweet corn topped with almond raw , Lemon mustard dressing",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "image": "./Restbits_files/e1e14879-198c-4376-9dfd-d32298d3a231_large.jpg",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154394,
+        "name": "Smoked Turkey Salad",
+        "description": "Mixed lettuce , smoked turkey ,  cherry tomato , cucumber , fresh mushroom , sliced olives , sweet corn topped with almond raw , Lemon mustard dressing",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154395,
+        "name": "Tuna Salad",
+        "description": "Mixed lettuce , 180 g of Tuna , cherry tomato , cucumber , fresh mushroom , sliced olives , sweet corn topped with almond raw , Lemon mustard dressing",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "image": "./Restbits_files/64e567af-ffa3-476e-b001-643d4db78101_large.jpg",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154397,
+        "name": "Greek Salad",
+        "description": "Romain lettuce , feta cheese , tomato , cucumber , green pepper , thym , mint leaves , indian onion rings , sliced black olives , greek sauce dressing",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16798,
+    "name": "International Appetizers",
+    "items": [
+      {
+        "id": 154401,
+        "name": "Fries",
+        "description": "Crispy Golden Fries",
+        "price": 3.5,
+        "price_text": "$3.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154402,
+        "name": "Wedges",
+        "description": "Deep Fried Wedges",
+        "price": 3.5,
+        "price_text": "$3.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154403,
+        "name": "Curly Fries",
+        "description": "Crispy Golden Curly Fries",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154404,
+        "name": "Golden Wings",
+        "description": "6pcs of Deep Fried wings, With Your choice of side sauce",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154405,
+        "name": "Mozzarella Sticks",
+        "description": "5 pcs of deep fried Mozzarella Sticks",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154406,
+        "name": "Mac N Cheese",
+        "description": "Elbow pasta with creamy cheese sauce",
+        "price": 7.5,
+        "price_text": "$7.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154407,
+        "name": "Mac Pesto",
+        "description": "Elbow Pasta with creamy pesto Sauce",
+        "price": 8.5,
+        "price_text": "$8.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154408,
+        "name": "Mac Pizza",
+        "description": "Mac n' Cheese topped on our secret Italian dough recipe, creating a cheesy, delicious pizza experience.",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "image": "./Restbits_files/43f778ba-3861-48a4-913d-c156cc4ea31b_large.jpg",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154409,
+        "name": "Crunchy Strips",
+        "description": "4pcs of Deep fried crispy stripes",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154410,
+        "name": "Skinny Dippers",
+        "description": "Crispy fries seasoned with a special blend of spices, served with a side of creamy melted cheese dip for dipping delight.",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16799,
+    "name": "Burgers",
+    "items": [
+      {
+        "id": 154411,
+        "name": "Classic beef",
+        "description": "150g beef patty , cheddar cheese , dill chips pickles , tomato slice , onion,  our special sauce\nserved with fries",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154422,
+        "name": "mac burger",
+        "description": "150g beef patty ,topping with our special mac n cheese\nserved with fries and mac n cheese dip",
+        "price": 8.5,
+        "price_text": "$8.50",
+        "image": "./Restbits_files/fa0d4d91-02d0-4e09-81bf-d2409e0b3328_large.jpg",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154423,
+        "name": "Swiss Mushroom",
+        "description": "150 g meat patty , swiss cheese ,fresh mushroom ,dill chips pickles , our special sauce\nserved with fries",
+        "price": 9.0,
+        "price_text": "$9.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154425,
+        "name": "classic chicken",
+        "description": "150 g marinated chicken breast , ice berg ,dill chips pickles ,sliced tomato ,garlic mayo\nserved with fries",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154429,
+        "name": "crispy burger",
+        "description": "120 g breaded chicken breast ,ice burg ,dill chips pickles , garlic mayo , cheddar sauce\nserved with fries",
+        "price": 7.5,
+        "price_text": "$7.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154430,
+        "name": "volcano burger",
+        "description": "180 g breaded chicken breast , mozzarella patty , ice burg ,dill chips pickles , garlic mayo , buffalo sauce , honey mustard sauce\nserved with fries",
+        "price": 9.0,
+        "price_text": "$9.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154437,
+        "name": "Halloumi burger",
+        "description": "180 g grilled haloumi patty , tomato slice , ice berg , our homemade pesto sauce\nserved with mini-salad",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 18185,
+    "name": "Adds",
+    "items": [
+      {
+        "id": 165877,
+        "name": "Mozzarella Patty",
+        "description": "",
+        "price": 2.0,
+        "price_text": "$2.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 165878,
+        "name": "Cheddar Patty",
+        "description": "",
+        "price": 2.0,
+        "price_text": "$2.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 165879,
+        "name": "Cheese",
+        "description": "",
+        "price": 1.0,
+        "price_text": "$1.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 168965,
+        "name": "Beef Patty",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16801,
+    "name": "Wraps",
+    "items": [
+      {
+        "id": 154431,
+        "name": "steak",
+        "description": "tortilla bread , 150 g marinated sliced steak meat with fresh mushroom , indian onion , with our special sauce\nserved with fries",
+        "price": 11.0,
+        "price_text": "$11.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154432,
+        "name": "grilled chicken",
+        "description": "tortilla bread ,180 g marinated grilled chicken stripes with ice berg , tomato , pickles and garlic mayo sauce\nserved with fries",
+        "price": 9.0,
+        "price_text": "$9.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154433,
+        "name": "crunchy",
+        "description": "180 g breaded chicken breast with ice berg, pickles and our special sauce\nserved with fries",
+        "price": 9.0,
+        "price_text": "$9.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154434,
+        "name": "makanek",
+        "description": "Makanek with pomegranate sauce, tomato, fresh mint and pickles\nserved with fries",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154435,
+        "name": "sojouk",
+        "description": "sojouk with green pepper ,tomato , pickles\nserved with fries",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154436,
+        "name": "Halloumi pesto",
+        "description": "tortilla bread , grilled halloumi with our fresh homemade pesto sauce , cherry tomato, ice berg with pomodoro salad aside",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16802,
+    "name": "Pasta",
+    "items": [
+      {
+        "id": 154438,
+        "name": "Pesto pasta",
+        "description": "Penne pasta, white sauce, parmesan ,pesto sauce , topped with Almond raw nuts",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154439,
+        "name": "Pollo a la fungi",
+        "description": "fettuccini pasta, fresh mushroom, white sauce, parmesan",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154498,
+        "name": "penne Arrabbiata",
+        "description": "penne pasta , red sauce , slices olives with parmesan cheese",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154499,
+        "name": "Quattro formaggi",
+        "description": "penne pasta ,red sauce, quatro fromaggi",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154500,
+        "name": "Carbonara",
+        "description": "fettuccini pasta , beef bacon , scrambled egg , fresh cream cheese , peppers , parmesan cheese",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16806,
+    "name": "Platters",
+    "items": [
+      {
+        "id": 154501,
+        "name": "Grilled Chicken",
+        "description": "250 of grilled chicken breast with our special mushroom white sauce served with sauted vegetables and fresh wedgets",
+        "price": 16.0,
+        "price_text": "$16.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154502,
+        "name": "Piccata steak",
+        "description": "250 g of grilled grilled piccata meat topped with our special brown sauce( optional mushroom or pepper ) served with sauted vegetables and fresh wedgets",
+        "price": 22.0,
+        "price_text": "$22.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154503,
+        "name": "Misk Piccata",
+        "description": "250g of grilled  piccata steak meat , served with our special pink sauce, mushroom and indian onionserved with sauted vegetables and fresh wedgets",
+        "price": 22.0,
+        "price_text": "$22.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154504,
+        "name": "Scalopini",
+        "description": "2 pieces of deep fried chicken ( 1 piece with our special mushroom sauce and second piece with turkey, emmental topped with buffalo and BBQ sauce )served with sauted vegetables and fresh wedgets )",
+        "price": 18.0,
+        "price_text": "$18.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154505,
+        "name": "Chef Chicken",
+        "description": "250g of marinated chicken slices grilled with multi color pepper , indian onion , fresh mushroom mozzarella cheese served with fries , BBQ and cocktail sauce",
+        "price": 18.0,
+        "price_text": "$18.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154506,
+        "name": "Teriyaki Shrimps",
+        "description": "6pcs of grilled marinated shrimps with mixed vegetables (trio pepper , green onion , sesame seeds , and our special homemade teriyaki sauce",
+        "price": 22.0,
+        "price_text": "$22.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154507,
+        "name": "Crispy Chicken",
+        "description": "6 pcs of deep fried crispy chicken stripes , served with fries , cocktail sauce and melted cheddar cheese",
+        "price": 15.0,
+        "price_text": "$15.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154508,
+        "name": "Mix Grilled",
+        "description": "mix of 1 meat skewer , 1 tawouk skewer , 2 kafta skewer served with grilled vegetables ,garlic ,fries and biwaz",
+        "price": 20.0,
+        "price_text": "$20.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16808,
+    "name": "Authentic Italian Pizza",
+    "items": [
+      {
+        "id": 154509,
+        "name": "margueritta",
+        "description": "Italian dough with tomato sauce and mozzarella cheese",
+        "price": 12.0,
+        "price_text": "$12.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154510,
+        "name": "salmone",
+        "description": "italian dough with olive oil, mozarella cheese, fresh mushroom, rocca and fresh salmon",
+        "price": 19.0,
+        "price_text": "$19.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154511,
+        "name": "pepperoni",
+        "description": "Italian dough with tomato sauce and mozzarella cheese topped with pepperoni slices",
+        "price": 15.0,
+        "price_text": "$15.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154512,
+        "name": "Princi",
+        "description": "Italian dough with tomato sauce and mozzarella cheese topped with turkey and white permasan sauce",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154513,
+        "name": "Bianca",
+        "description": "Italian dough with white sauce pesto and mozzarella cheese , topped with indian onion and fresh mushroom",
+        "price": 15.0,
+        "price_text": "$15.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154514,
+        "name": "vegeterian",
+        "description": "Italian dough with tomato sauce with cheese topped with fresh mushroom, cherry tomato, zucchini, eggplant ,multi color pepper",
+        "price": 14.0,
+        "price_text": "$14.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154515,
+        "name": "Four cheese",
+        "description": "Italian dough with tomato sauce and mozzarella cheese , emmental cheese ,blue cheese ,permasan",
+        "price": 15.0,
+        "price_text": "$15.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154516,
+        "name": "la bella",
+        "description": "Italian dough with tomato sauce and mozzarella cheese topped with pepperoni slices",
+        "price": 16.0,
+        "price_text": "$16.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16809,
+    "name": "Cold beverages",
+    "items": [
+      {
+        "id": 154517,
+        "name": "Small water",
+        "description": "",
+        "price": 1.5,
+        "price_text": "$1.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154518,
+        "name": "Big water",
+        "description": "",
+        "price": 2.2,
+        "price_text": "$2.20",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154519,
+        "name": "Soft drinks",
+        "description": "",
+        "price": 2.5,
+        "price_text": "$2.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154520,
+        "name": "Energy drink",
+        "description": "",
+        "price": 3.5,
+        "price_text": "$3.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154521,
+        "name": "Sparkling water",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16810,
+    "name": "Hot beverages",
+    "items": [
+      {
+        "id": 154523,
+        "name": "Single Espresso",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154524,
+        "name": "Double espresso",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154525,
+        "name": "Lebanese coffee",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154526,
+        "name": "Americano",
+        "description": "",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154527,
+        "name": "Nescafe",
+        "description": "",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154528,
+        "name": "Hot chocolate",
+        "description": "",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154529,
+        "name": "Tea",
+        "description": "",
+        "price": 2.5,
+        "price_text": "$2.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154530,
+        "name": "Mix herbs",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 176146,
+        "name": "Espresso Decaf",
+        "description": "",
+        "price": 3.5,
+        "price_text": "$3.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 176147,
+        "name": "Nescafe Decaf",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 176863,
+        "name": "belgian hot chocolate",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 177481,
+        "name": "Lebanese Raqwa",
+        "description": "4 Cups",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 177482,
+        "name": "Tea Pot",
+        "description": "4 Cups",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16818,
+    "name": "Fresh Juices",
+    "items": [
+      {
+        "id": 154585,
+        "name": "Orange",
+        "description": "Freshly squeezed orange juice",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154586,
+        "name": "Lemonade",
+        "description": "Refreshing fresh lemonade",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154588,
+        "name": "Minted Lemonade",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154589,
+        "name": "Basil Lemonade",
+        "description": "",
+        "price": 5.5,
+        "price_text": "$5.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154590,
+        "name": "Our special juice",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154591,
+        "name": "Mixed Berries",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16819,
+    "name": "Smoothies & Mocktails",
+    "items": [
+      {
+        "id": 154592,
+        "name": "Mojito",
+        "description": "With your choice of flavor",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154593,
+        "name": "Piña colada",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154594,
+        "name": "Mango",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154595,
+        "name": "Strawberry",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154596,
+        "name": "Mixed Berries",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16820,
+    "name": "Shakes",
+    "items": [
+      {
+        "id": 154597,
+        "name": "Chocolate",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154598,
+        "name": "Caramel",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154599,
+        "name": "Vanilla",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154600,
+        "name": "Lotus",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154601,
+        "name": "Oreo",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154602,
+        "name": "Strawberry",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154603,
+        "name": "Mixed Berries",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154604,
+        "name": "Brownies",
+        "description": "",
+        "price": 4.5,
+        "price_text": "$4.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154656,
+        "name": "Tiramisu",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154657,
+        "name": "Cheese Cake",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154658,
+        "name": "Beetroot",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16822,
+    "name": "Coffee Based",
+    "items": [
+      {
+        "id": 154605,
+        "name": "Mocha Frappe",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154607,
+        "name": "Caramel Macchiato",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154608,
+        "name": "Dalgona Frappe",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154609,
+        "name": "Iced Latte",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16823,
+    "name": "Specialist coffee based",
+    "items": [
+      {
+        "id": 154612,
+        "name": "Cappuccino",
+        "description": "",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154614,
+        "name": "Cafe latte",
+        "description": "",
+        "price": 4.0,
+        "price_text": "$4.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154615,
+        "name": "Caramel Macchiato",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154617,
+        "name": "Mochaccino",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154618,
+        "name": "Misk Hot Chocolate",
+        "description": "",
+        "price": 5.5,
+        "price_text": "$5.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16829,
+    "name": "Desserts",
+    "items": [
+      {
+        "id": 154645,
+        "name": "Crepe",
+        "description": "",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154646,
+        "name": "Lazy Cake",
+        "description": "",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154647,
+        "name": "Brownie",
+        "description": "",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154648,
+        "name": "Calzoni",
+        "description": "",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154649,
+        "name": "Cheese Cake",
+        "description": "",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "UNAVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 174363,
+        "name": "Nutella fudge cake",
+        "description": "",
+        "price": 6.0,
+        "price_text": "$6.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 174364,
+        "name": "Fondant au chocolat",
+        "description": "",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 174365,
+        "name": "Pain Perdu",
+        "description": "",
+        "price": 8.0,
+        "price_text": "$8.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  },
+  {
+    "id": 16830,
+    "name": "Hookah",
+    "items": [
+      {
+        "id": 154650,
+        "name": "Mouassal",
+        "description": "",
+        "price": 7.0,
+        "price_text": "$7.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154651,
+        "name": "Ajami",
+        "description": "",
+        "price": 10.0,
+        "price_text": "$10.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154652,
+        "name": "Extra Ras Mouassal",
+        "description": "",
+        "price": 3.0,
+        "price_text": "$3.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154653,
+        "name": "Extra Ras Ajami",
+        "description": "",
+        "price": 5.0,
+        "price_text": "$5.00",
+        "availability": "AVAILABLE",
+        "is_available": true
+      },
+      {
+        "id": 154654,
+        "name": "Plastic Pipe",
+        "description": "",
+        "price": 2.5,
+        "price_text": "$2.50",
+        "availability": "AVAILABLE",
+        "is_available": true
+      }
+    ]
+  }
+]

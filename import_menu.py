@@ -71,5 +71,5 @@ def import_data(json_file_path):
 
 if __name__ == '__main__':
     # Adjust path if script is run outside the workspace root
-    json_path = r"c:\Users\mahmoud\Downloads\menu_extracted.json"
+    json_path = r"C:\apps\DailyBizClose\menu_extracted.json"
     import_data(json_path)
