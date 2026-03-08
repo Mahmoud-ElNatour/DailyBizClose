@@ -45,69 +45,8 @@
 </head>
 
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
-    <!-- Sticky Top Header -->
-    <header
-        class="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center gap-2">
-                    <div class="bg-primary p-1.5 rounded-lg">
-                        <span class="material-symbols-outlined text-white text-2xl">account_balance_wallet</span>
-                    </div>
-                    <span class="text-xl font-bold tracking-tight text-primary">DailyBizClose</span>
-                </div>
-
-                <!-- Navigation -->
-                <nav class="hidden md:flex space-x-8">
-                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-primary text-sm font-semibold text-primary"
-                        href="{{ url_for('index') }}">
-                        Home
-                    </a>
-                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-primary hover:border-primary/30 transition-all"
-                        href="{{ url_for('control_panel') }}">
-                        Control Panel
-                    </a>
-                    <a class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-slate-500 hover:text-primary hover:border-primary/30 transition-all"
-                        href="{{ url_for('daily_close') }}">
-                        Daily Close
-                    </a>
-                </nav>
-
-                <!-- Profile Dropdown -->
-                <div class="flex items-center gap-4">
-                    <div class="relative group">
-                        <button class="flex items-center gap-2 focus:outline-none" id="profileDropdown"
-                            aria-expanded="false">
-                            <div
-                                class="size-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden text-primary font-bold">
-                                {{ current_user.username[:1]|upper }}
-                            </div>
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{
-                                current_user.username }}</span>
-                            <span class="material-symbols-outlined text-slate-400">expand_more</span>
-                        </button>
-
-                        <!-- Dropdown Menu -->
-                        <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-primary/10 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-                            id="profileDropdownMenu">
-                            <a class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-primary/5 hover:text-primary"
-                                href="{{ url_for('settings') }}">
-                                <span class="material-symbols-outlined text-lg">settings</span>
-                                Settings
-                            </a>
-                            <div class="my-1 border-t border-primary/5"></div>
-                            <a class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
-                                href="{{ url_for('logout') }}">
-                                <span class="material-symbols-outlined text-lg">logout</span>
-                                Logout
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Navbar -->
+    {% include 'components/_navbar.html' %}
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <!-- Flash Messages -->
@@ -218,19 +157,9 @@
         </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 mt-12 border-t border-primary/5">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-            <p class="text-slate-400 text-sm">
-                © 2024 DailyBizClose. All rights reserved. Premium SaaS Dashboard.
-            </p>
-            <div class="flex gap-8">
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Privacy Policy</a>
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Terms of Service</a>
-                <a class="text-sm text-slate-400 hover:text-primary transition-colors" href="#">Contact Support</a>
-            </div>
-        </div>
-    </footer>
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
 
     <!-- Script Includes -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>

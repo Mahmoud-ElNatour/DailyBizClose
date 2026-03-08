@@ -197,14 +197,364 @@ def create_user(username, email, password, role='user'):
 # Initialize the app with the extension, flask-sqlalchemy >= 3.0.x
 db.init_app(app)
 
+def get_setting(key, default=None):
+    """Retrieve a single key-value setting from the database safely"""
+    try:
+        from models import SiteSettings
+        setting = SiteSettings.query.filter_by(key=key).first()
+        if setting and setting.value is not None and str(setting.value).strip() != '':
+            return setting.value
+    except Exception as e:
+        app.logger.error(f"Error fetching setting {key}: {e}")
+    return default
+
+def set_setting(key, value, user_id=None):
+    """Upsert a key-value setting"""
+    try:
+        from models import SiteSettings, db
+        if value is not None and str(value).strip() == '':
+            value = None
+            
+        setting = SiteSettings.query.filter_by(key=key).first()
+        if not setting:
+            setting = SiteSettings(key=key, value=value, updated_by_id=user_id)
+            db.session.add(setting)
+        else:
+            setting.value = value
+            setting.updated_by_id = user_id
+            
+        db.session.commit()
+        return True
+    except Exception as e:
+        app.logger.error(f"Error saving setting {key}: {e}")
+        db.session.rollback()
+        return False
+
+def get_landing_context():
+    """Build the dictionary of variables required by the frontend Landing Page"""
+    from models import SiteGalleryImages
+    import re
+    
+    phone_tel = get_setting('phone_tel')
+    
+    # Deriving digits-only for WhatsApp link logic
+    whatsapp_digits = ''
+    if phone_tel:
+        whatsapp_digits = re.sub(r'[^\d]', '', phone_tel)
+
+    is_admin = False
+    if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
+        is_admin = True
+        
+    try:
+        gallery_images = SiteGalleryImages.query.filter_by(is_active=True).order_by(SiteGalleryImages.sort_order, SiteGalleryImages.id).all()
+    except Exception:
+        gallery_images = []
+
+    return {
+        'brand_name': get_setting('brand_name'),
+        'address': get_setting('address'),
+        'hours': get_setting('hours'),
+        'phone_display': get_setting('phone_display'),
+        'phone_tel': phone_tel,
+        'whatsapp_digits': whatsapp_digits if whatsapp_digits else None,
+        'instagram_url': get_setting('instagram_url'),
+        'maps_url': get_setting('maps_url'),
+        'menu_url': get_setting('menu_url') or '#',
+        'facebook_url': get_setting('facebook_url'),
+        'linkedin_url': get_setting('linkedin_url'),
+        'gallery_images': gallery_images,
+        'is_admin': is_admin
+    }
+
+# Global Context Processor
+@app.context_processor
+def inject_site_settings():
+    """Inject global site settings into all templates."""
+    try:
+        from models import SiteSettings
+        settings = SiteSettings.query.all()
+        # Convert list of SiteSettings objects into a dictionary
+        settings_dict = {s.key: s.value for s in settings}
+        return {'site_setting': settings_dict}
+    except Exception as e:
+        app.logger.error(f"Error in context processor: {e}")
+        return {'site_setting': {}}
+
 # Routes
 @app.route('/')
+@app.route('/landing')
+def landing():
+    """Public landing page route"""
+    context = get_landing_context()
+    return render_template('customer/landing.html', **context)
+
+@app.route('/menu')
+def menu():
+    """Public menu page route"""
+    from models import MenuCategory
+    
+    categories_query = MenuCategory.query.filter_by(is_active=True).order_by(MenuCategory.sort_order, MenuCategory.id).all()
+    
+    menu_data = []
+    for cat in categories_query:
+        items = [item for item in cat.items if item.is_active and item.is_available]
+        items.sort(key=lambda x: (x.sort_order, x.id))
+        
+        menu_data.append({
+            'id': cat.id,
+            'name': cat.name,
+            'description': cat.description,
+            'items': items
+        })
+            
+    is_admin = False
+    if current_user.is_authenticated and getattr(current_user, 'role', '') == 'admin':
+        is_admin = True
+        
+    context = get_landing_context()
+        
+    return render_template('customer/menu.html', categories=menu_data, user_is_admin=is_admin, **context)
+
+@app.route('/admin/menu')
 @login_required
-def main():
-    """Main route - redirects to index"""
-    app.logger.debug(f"Main route accessed. Current user: {current_user}")
-    app.logger.debug(f"Is authenticated: {current_user.is_authenticated}")
-    return redirect(url_for('index'))
+@admin_required
+def admin_menu():
+    """Admin Menu Management Page"""
+    from models import MenuCategory
+    categories = MenuCategory.query.filter_by(is_active=True).order_by(MenuCategory.sort_order, MenuCategory.id).all()
+    
+    menu_data = []
+    for cat in categories:
+        items = [item for item in cat.items if item.is_active]
+        items.sort(key=lambda x: (x.sort_order, x.id))
+        menu_data.append({
+            'id': cat.id,
+            'name': cat.name,
+            'description': cat.description,
+            'items': items
+        })
+        
+    return render_template('customer/admin_menu.html', categories=menu_data)
+
+@app.route('/admin/menu/categories', methods=['POST'])
+@login_required
+@admin_required
+def add_menu_category():
+    try:
+        from models import MenuCategory, db
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        
+        max_order = db.session.query(db.func.max(MenuCategory.sort_order)).scalar() or 0
+        new_category = MenuCategory(name=name, description=description, sort_order=max_order + 1)
+        db.session.add(new_category)
+        db.session.commit()
+        flash('Category added successfully', 'success')
+        return redirect(url_for('admin_menu'))
+    except Exception as e:
+        app.logger.error(f"Error adding category: {e}")
+        db.session.rollback()
+        flash('Failed to add category.', 'error')
+        return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        cat.name = request.form.get('name', cat.name)
+        cat.description = request.form.get('description', cat.description)
+        db.session.commit()
+        flash('Category updated successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error updating category: {e}")
+        db.session.rollback()
+        flash('Failed to update category.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        # Check for active items
+        active_items = [i for i in cat.items if i.is_active]
+        if active_items:
+            flash('Cannot delete category with active items. Remove items first.', 'error')
+        else:
+            cat.is_active = False
+            db.session.commit()
+            flash('Category deleted successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error deleting category: {e}")
+        db.session.rollback()
+        flash('Failed to delete category.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items', methods=['POST'])
+@login_required
+@admin_required
+def add_menu_item():
+    try:
+        from models import MenuItem, db
+        from werkzeug.utils import secure_filename
+        import os
+        
+        category_id = int(request.form.get('category_id'))
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        price = decimal.Decimal(request.form.get('price', '0.00'))
+        
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_folder = os.path.join(app.root_path, 'static', 'img', 'menu')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                image_url = url_for('static', filename=f'img/menu/{filename}')
+        
+        max_order = db.session.query(db.func.max(MenuItem.sort_order)).filter_by(category_id=category_id).scalar() or 0
+        
+        new_item = MenuItem(
+            category_id=category_id, name=name, description=description, price=price, 
+            image_url=image_url, sort_order=max_order + 1
+        )
+        db.session.add(new_item)
+        db.session.commit()
+        flash('Item added successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error adding item: {e}")
+        db.session.rollback()
+        flash('Failed to add item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        from werkzeug.utils import secure_filename
+        import os
+        
+        item = MenuItem.query.get_or_404(item_id)
+        item.name = request.form.get('name', item.name)
+        item.description = request.form.get('description', item.description)
+        item.price = decimal.Decimal(request.form.get('price', item.price))
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_folder = os.path.join(app.root_path, 'static', 'img', 'menu')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                item.image_url = url_for('static', filename=f'img/menu/{filename}')
+                
+        db.session.commit()
+        flash('Item updated successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error updating item: {e}")
+        db.session.rollback()
+        flash('Failed to update item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        item.is_active = False
+        db.session.commit()
+        flash('Item deleted successfully', 'success')
+    except Exception as e:
+        app.logger.error(f"Error deleting item: {e}")
+        db.session.rollback()
+        flash('Failed to delete item.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/items/<int:item_id>/availability', methods=['POST'])
+@login_required
+@admin_required
+def toggle_item_availability(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        item.is_available = not item.is_available
+        db.session.commit()
+        if request.is_json:
+            return jsonify({'success': True, 'is_available': item.is_available})
+        flash('Item availability updated', 'success')
+    except Exception as e:
+        app.logger.error(f"Error toggling availability: {e}")
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash('Failed to toggle availability.', 'error')
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/menu/categories/<int:cat_id>/move', methods=['POST'])
+@login_required
+@admin_required
+def move_menu_category(cat_id):
+    try:
+        from models import MenuCategory, db
+        cat = MenuCategory.query.get_or_404(cat_id)
+        direction = request.form.get('direction')
+        
+        neighbor = None
+        if direction == 'up':
+            neighbor = MenuCategory.query.filter(MenuCategory.sort_order < cat.sort_order, MenuCategory.is_active==True).order_by(MenuCategory.sort_order.desc()).first()
+        elif direction == 'down':
+            neighbor = MenuCategory.query.filter(MenuCategory.sort_order > cat.sort_order, MenuCategory.is_active==True).order_by(MenuCategory.sort_order.asc()).first()
+            
+        if neighbor:
+            # Swap
+            cat.sort_order, neighbor.sort_order = neighbor.sort_order, cat.sort_order
+            db.session.commit()
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error moving category: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/menu/items/<int:item_id>/move', methods=['POST'])
+@login_required
+@admin_required
+def move_menu_item(item_id):
+    try:
+        from models import MenuItem, db
+        item = MenuItem.query.get_or_404(item_id)
+        direction = request.form.get('direction')
+        
+        neighbor = None
+        if direction in ['up', 'left']:
+            neighbor = MenuItem.query.filter(MenuItem.category_id == item.category_id, MenuItem.sort_order < item.sort_order, MenuItem.is_active==True).order_by(MenuItem.sort_order.desc()).first()
+        elif direction in ['down', 'right']:
+            neighbor = MenuItem.query.filter(MenuItem.category_id == item.category_id, MenuItem.sort_order > item.sort_order, MenuItem.is_active==True).order_by(MenuItem.sort_order.asc()).first()
+            
+        if neighbor:
+            # Swap
+            item.sort_order, neighbor.sort_order = neighbor.sort_order, item.sort_order
+            db.session.commit()
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        app.logger.error(f"Error moving item: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/index',methods=['GET'])
 @login_required
@@ -260,6 +610,125 @@ def logout():
 def control_panel():
     """Control panel page route"""
     return render_template('control_panel.html')
+
+@app.route('/control-panel/site-settings', methods=['GET'])
+@login_required
+@admin_required
+def site_settings():
+    """Admin UI to edit public landing page settings"""
+    from models import SiteSettings
+    settings = {s.key: s.value for s in SiteSettings.query.all()}
+    return render_template('customer/site_settings.html', settings=settings)
+
+@app.route('/api/site-settings', methods=['POST'])
+@login_required
+@admin_required
+def update_site_settings():
+    """Update settings via AJAX or form POST"""
+    try:
+        data = request.get_json(silent=True) or request.form
+        keys = ['brand_name', 'address', 'hours', 'phone_display', 'phone_tel', 'instagram_url', 'maps_url', 'menu_url']
+        for key in keys:
+            if key in data:
+                set_setting(key, data[key], current_user.id)
+                
+        # Handle form submission redirect vs API json
+        if request.form and not request.is_json:
+            flash('Site settings updated successfully!', 'success')
+            return redirect(url_for('site_settings'))
+            
+        return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Updated', 'message': 'Site settings updated successfully!'}})
+    except Exception as e:
+        app.logger.error(f"Error updating site settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/control-panel/site-gallery', methods=['GET'])
+@login_required
+@admin_required
+def site_gallery():
+    """Admin UI to manage gallery images"""
+    from models import SiteGalleryImages
+    images = SiteGalleryImages.query.order_by(SiteGalleryImages.sort_order, SiteGalleryImages.id).all()
+    return render_template('customer/site_gallery.html', images=images)
+
+@app.route('/api/site-gallery/add', methods=['POST'])
+@login_required
+@admin_required
+def add_gallery_image():
+    """Uploads a new file locally, saves it, and maps to the gallery"""
+    try:
+        import os
+        from werkzeug.utils import secure_filename
+        from models import SiteGalleryImages, db
+        import time
+
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No image part'}), 400
+            
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No selected image'}), 400
+            
+        if file:
+            filename = secure_filename(f"{int(time.time())}_{file.filename}")
+            filepath = os.path.join(app.root_path, 'static', 'img', 'gallery')
+            os.makedirs(filepath, exist_ok=True)
+            
+            file.save(os.path.join(filepath, filename))
+            
+            # Save relative URL to database
+            image_url = f"/static/img/gallery/{filename}"
+            
+            alt_text = request.form.get('alt_text', '')
+            
+            max_order = db.session.query(db.func.max(SiteGalleryImages.sort_order)).scalar() or 0
+            
+            new_image = SiteGalleryImages(
+                image_url=image_url,
+                alt_text=alt_text,
+                sort_order=max_order + 1,
+                is_active=True
+            )
+            db.session.add(new_image)
+            db.session.commit()
+            
+            # Handle form submission
+            if request.form and not request.is_json:
+                flash('Image uploaded to gallery', 'success')
+                return redirect(url_for('site_gallery'))
+            
+            return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Uploaded', 'message': 'Image saved to gallery!'}})
+            
+    except Exception as e:
+        app.logger.error(f"Error uploading image: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/site-gallery/<int:img_id>', methods=['PUT', 'DELETE'])
+@login_required
+@admin_required
+def update_gallery_image(img_id):
+    """Toggle status, soft-delete, or re-order gallery images"""
+    try:
+        from models import SiteGalleryImages, db
+        img = SiteGalleryImages.query.get_or_404(img_id)
+        
+        if request.method == 'DELETE':
+            db.session.delete(img)
+            db.session.commit()
+            return jsonify({'success': True, 'toast': {'type': 'success', 'title': 'Deleted', 'message': 'Image removed from gallery'}})
+            
+        data = request.json
+        if 'is_active' in data:
+            img.is_active = bool(data['is_active'])
+        if 'sort_order' in data:
+            img.sort_order = int(data['sort_order'])
+            
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Error updating gallery image {img_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/daily-close')
 @login_required
@@ -746,13 +1215,115 @@ def generate_payslip_view(record_id):
 def receivers_view():
     """Receivers list page"""
     try:
-        from models import Receivers
-        receivers = Receivers.query.all()
-        return render_template('receivers.html', receivers=receivers)
+        from models import Receivers, Expenses
+        from datetime import datetime
+        import csv
+        from sqlalchemy import func
+        from io import StringIO
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        # Base query to sum expenses
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
+        
+        # Join with receivers
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+        
+        # Set dynamic attribute for frontend
+        for receiver, total in results:
+            receiver.period_total = float(total)
+            
+        return render_template('receivers.html', receivers=[r[0] for r in results], current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading receivers: {e}")
         flash('Error loading receivers page', 'error')
         return redirect(url_for('control_panel'))
+
+@app.route('/control-panel/receivers/export')
+@login_required
+@admin_required
+def export_receivers_stats():
+    """Export receivers and their aggregated expenses as CSV"""
+    try:
+        from models import Receivers, Expenses
+        import csv
+        from sqlalchemy import func
+        from io import StringIO
+        from flask import Response
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
+        
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+
+        si = StringIO()
+        cw = csv.writer(si)
+        
+        # Write header
+        period_str = ""
+        if month and year:
+            period_str = f" ({month}/{year})"
+        elif year:
+            period_str = f" ({year})"
+            
+        cw.writerow(['ID', 'Name', f'Total Paid Amount{period_str}', 'All-Time Record Amount'])
+        
+        # Write rows
+        for receiver, total in results:
+            cw.writerow([
+                f"#{receiver.id:04d}",
+                receiver.name,
+                f"{float(total):.2f}",
+                f"{float(receiver.paid_amount or 0):.2f}"
+            ])
+            
+        output = si.getvalue()
+        
+        filename = f"receivers_export_{year or 'all'}_{month or 'all'}.csv"
+        
+        return Response(
+            output,
+            mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename={filename}"}
+        )
+            
+    except Exception as e:
+        app.logger.error(f"Error exporting receivers stats: {e}")
+        flash('Error exporting data', 'error')
+        return redirect(url_for('receivers_view'))
 
 @app.route('/control-panel/ahmad-expenses')
 @login_required
@@ -2824,9 +3395,10 @@ def export_payroll_csv():
 @login_required
 def export_reports_csv():
     try:
-        from models import Expenses, AhmadMistrahExpenses, SamerExpenses
+        from models import Receivers, Expenses, AhmadMistrahExpenses, SamerExpenses
         from datetime import datetime
         import csv
+        from sqlalchemy import func
         from io import StringIO
         from flask import make_response
         
@@ -2835,84 +3407,60 @@ def export_reports_csv():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
-        # We need to export all types of expenses
-        all_expenses_list = []
+        # Base query to sum expenses
+        expense_query = db.session.query(
+            Expenses.receiver_id, 
+            func.sum(Expenses.amount).label('total_amount')
+        )
         
-        # General Expenses
-        gen_q = Expenses.query
         if start_date:
-            gen_q = gen_q.filter(Expenses.date >= start_date)
+            expense_query = expense_query.filter(Expenses.date >= start_date)
         if end_date:
             end_date_time = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            gen_q = gen_q.filter(Expenses.date <= end_date_time)
-        if month and year:
-            gen_q = gen_q.filter(db.extract('year', Expenses.date) == year, db.extract('month', Expenses.date) == month)
+            expense_query = expense_query.filter(Expenses.date <= end_date_time)
+        if year:
+            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
+            
+        expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
         
-        for exp in gen_q.all():
-            all_expenses_list.append({
-                'type': 'General',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Ahmad Expenses
-        ahmad_q = AhmadMistrahExpenses.query
-        if start_date:
-            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date >= start_date)
-        if end_date:
-            end_date_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            ahmad_q = ahmad_q.filter(AhmadMistrahExpenses.date <= end_date_dt)
-        if month and year:
-            ahmad_q = ahmad_q.filter(db.extract('year', AhmadMistrahExpenses.date) == year, db.extract('month', AhmadMistrahExpenses.date) == month)
-            
-        for exp in ahmad_q.all():
-            all_expenses_list.append({
-                'type': 'Ahmad Mistrah',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Samer Expenses
-        samer_q = SamerExpenses.query
-        if start_date:
-            samer_q = samer_q.filter(SamerExpenses.date >= start_date)
-        if end_date:
-            end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            samer_q = samer_q.filter(SamerExpenses.date <= end_dt)
-        if month and year:
-            samer_q = samer_q.filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
-            
-        for exp in samer_q.all():
-            all_expenses_list.append({
-                'type': 'Samer Mistrah',
-                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
-                'receiver': exp.receiver.name if exp.receiver else 'Unassigned',
-                'amount': float(exp.amount or 0),
-                'note': exp.note or ''
-            })
-            
-        # Sort by date
-        all_expenses_list.sort(key=lambda x: x['date'])
-        
+        # Join with receivers
+        results = db.session.query(
+            Receivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, Receivers.id == expense_query.c.receiver_id
+        ).order_by(Receivers.name).all()
+
         si = StringIO()
         cw = csv.writer(si)
-        cw.writerow(['Type', 'Date', 'Receiver', 'Amount', 'Note'])
         
-        for e in all_expenses_list:
+        # Write header
+        period_str = ""
+        if month and year:
+            period_str = f" ({month}/{year})"
+        elif year:
+            period_str = f" ({year})"
+        elif start_date and end_date:
+            period_str = f" ({start_date} to {end_date})"
+            
+        cw.writerow(['ID', 'Name', f'Total Expenses Amount{period_str}', 'All-Time Record Amount'])
+        
+        # Write rows
+        for receiver, total in results:
             cw.writerow([
-                e['type'],
-                e['date'],
-                e['receiver'],
-                f"{e['amount']:.2f}",
-                e['note']
+                f"#{receiver.id:04d}",
+                receiver.name,
+                f"{float(total):.2f}",
+                f"{float(receiver.paid_amount or 0):.2f}"
             ])
             
         output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = "attachment; filename=expenses_report.csv"
+        
+        filename = f"expenses_report_export_{year or 'all'}_{month or 'all'}.csv"
+        
+        output.headers["Content-Disposition"] = f"attachment; filename={filename}"
         output.headers["Content-type"] = "text/csv"
         return output
     except Exception as e:
@@ -2949,4 +3497,4 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0',port=5000)

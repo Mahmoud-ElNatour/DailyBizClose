@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Menu | Misk Beirut Resto-Café</title>
+    <!-- BEGIN: Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <!-- END: Tailwind CSS CDN -->
+    <!-- BEGIN: Custom Configuration -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1e3fae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121520",
+                        miskBlue: '#E3F2FD',
+                        miskDarkBlue: '#1E3A8A',
+                        miskAccent: '#0284C7',
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        serif: ['Georgia', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                }
+            }
+        }
+    </script>
+    <!-- END: Custom Configuration -->
+    <!-- BEGIN: Custom Styles -->
+    <style data-purpose="layout-refinements">
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .sticky-nav {
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .menu-card:hover {
+            transform: translateY(-4px);
+            transition: all 0.3s ease;
+        }
+    </style>
+    <!-- END: Custom Styles -->
+</head>
+
+<body class="bg-white text-gray-800 font-sans antialiased">
+    <!-- Navbar -->
+    {% include 'components/_navbar.html' %}
+    <main>
+        <!-- BEGIN: Header Section -->
+        <section class="bg-miskBlue py-16 px-4 text-center" data-purpose="page-header">
+            <div class="max-w-3xl mx-auto">
+                <h1 class="text-4xl md:text-5xl font-serif text-miskDarkBlue mb-4">Our Menu</h1>
+                <p class="text-gray-600 text-lg mb-8 italic">Experience the authentic flavors of Beirut in every bite.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a class="flex items-center gap-2 bg-white border border-miskDarkBlue/10 px-5 py-2.5 rounded-full text-miskDarkBlue font-medium hover:bg-miskDarkBlue hover:text-white transition"
+                        href="tel:{{ phone_tel if phone_tel else '+9611234567' }}">
+                        <svg class="w-5 h-5" fill="currentColor" viewbox="0 0 20 20">
+                            <path
+                                d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z">
+                            </path>
+                        </svg>
+                        Call Us
+                    </a>
+                    <a class="flex items-center gap-2 bg-white border border-miskDarkBlue/10 px-5 py-2.5 rounded-full text-miskDarkBlue font-medium hover:bg-miskDarkBlue hover:text-white transition"
+                        href="https://wa.me/{{ whatsapp_digits if whatsapp_digits else '9611234567' }}">
+                        <svg class="w-5 h-5" fill="currentColor" viewbox="0 0 448 512">
+                            <path
+                                d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.4-8.6-44.6-27.5-16.4-14.7-27.5-32.8-30.7-38.4-3.2-5.5-.3-8.6 2.5-11.3 2.5-2.5 5.5-6.5 8.3-9.8 2.8-3.3 3.7-5.5 5.5-9.3 1.9-3.7.9-6.9-.5-9.8-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.2 5.8 23.5 9.2 31.5 11.8 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z">
+                            </path>
+                        </svg>
+                        WhatsApp
+                    </a>
+                    <a class="flex items-center gap-2 bg-white border border-miskDarkBlue/10 px-5 py-2.5 rounded-full text-miskDarkBlue font-medium hover:bg-miskDarkBlue hover:text-white transition"
+                        href="{{ maps_url if maps_url else '#' }}" {% if maps_url %}target="_blank" {% endif %}>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2"></path>
+                        </svg>
+                        Directions
+                    </a>
+                    <a class="flex items-center gap-2 bg-white border border-miskDarkBlue/10 px-5 py-2.5 rounded-full text-miskDarkBlue font-medium hover:bg-miskDarkBlue hover:text-white transition"
+                        href="{{ instagram_url if instagram_url else '#' }}" {% if instagram_url %}target="_blank" {%
+                        endif %}>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
+                            <path
+                                d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12.2 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z" />
+                        </svg>
+                        Instagram
+                    </a>
+                </div>
+            </div>
+        </section>
+        <!-- END: Header Section -->
+        <!-- BEGIN: Search & Filter -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12" data-purpose="search-filters">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-100 pb-8">
+                <!-- Search -->
+                <div class="relative w-full md:max-w-md mx-auto md:mx-0">
+                    <input id="searchInput"
+                        class="w-full pl-12 pr-4 py-3 rounded-xl border-gray-200 focus:ring-miskAccent focus:border-miskAccent text-gray-700"
+                        placeholder="Search for dishes..." type="text" />
+                    <div class="absolute left-4 top-3.5 text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round"
+                                stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- END: Search & Filter -->
+        <!-- BEGIN: Category Navigation -->
+        <section
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sticky top-20 bg-white z-40 border-b border-gray-100"
+            data-purpose="category-tabs">
+            <div class="flex items-center gap-3 overflow-x-auto hide-scrollbar">
+                {% for category in categories %}
+                {% if category['items'] %}
+                <a class="whitespace-nowrap px-6 py-2 rounded-full border border-miskBlue bg-miskBlue/30 text-miskDarkBlue font-medium hover:bg-miskBlue transition-colors"
+                    href="#cat-{{ category.id }}">
+                    {{ category.name }}
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+        <!-- END: Category Navigation -->
+        <!-- BEGIN: Menu Items Content -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" data-purpose="menu-grid">
+
+            {% set ns = namespace(has_items=false) %}
+            {% for category in categories %}
+            {% if category['items'] %}
+            {% set ns.has_items = true %}
+            {% endif %}
+            {% endfor %}
+
+            {% if categories|length > 0 and ns.has_items %}
+            {% for category in categories %}
+            {% if category['items'] %}
+            <div class="mb-20 scroll-mt-32" id="cat-{{ category.id }}">
+                <div class="flex items-center gap-4 mb-8">
+                    <h2 class="text-2xl font-serif text-miskDarkBlue">{{ category.name }}</h2>
+                    <div class="h-px flex-grow bg-miskBlue"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {% for item in category['items'] %}
+                    <!-- Menu Item Card -->
+                    <div class="menu-card bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm flex flex-col"
+                        data-purpose="menu-item" data-name="{{ item.name|lower }}"
+                        data-available="{{ 'true' if item.is_available else 'false' }}">
+                        <!-- Item Image -->
+                        <div class="aspect-video overflow-hidden bg-gray-100 relative">
+                            <img alt="{{ item.name }}" class="w-full h-full object-cover"
+                                src="{{ item.image_url if item.image_url else 'https://lh3.googleusercontent.com/aida-public/AB6AXuAEtCK8DL0gJewSfUR3ClcXz4jItGX0Ayx7whDU9z7ta6FO60biwd7y2lZ_HuCDn_FaPgC30a6gU4MHIWR0KDvotsQ1aIQd0b35O9bVvg6NNdQrp-FP2RbpEQBdtqJrDq2_5ZN6B6gXuJSXu2vZx0bTX6XSBwpVG25Tm1fjXTsFg4j9GQ6wnuwIp9oV-JZikHZuIZZUhztRRCBGxA_owdKxBfNAXHHsPxXWPw8h8Lhw3jVMpL5j8a2mqs8_Fdc_y_dW7DZRLE704NM' }}" />
+                            <!-- Status Badge -->
+                            <div class="absolute top-4 right-4">
+                                {% if item.is_available %}
+                                <span
+                                    class="bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border border-green-200">AVAILABLE</span>
+                                {% else %}
+                                <span
+                                    class="bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md border border-gray-200">SOLD
+                                    OUT</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <!-- Item Details -->
+                        <div class="p-6 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-gray-900 leading-tight">{{ item.name }}</h3>
+                                <span class="text-miskAccent font-bold">${{ '%.2f' % item.price }}</span>
+                            </div>
+                            <p class="text-gray-500 text-sm leading-relaxed mb-4 flex-grow">
+                                {{ item.description if item.description else '' }}
+                            </p>
+                            <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                                <span class="text-xs text-gray-400"></span>
+                                <button class="text-miskDarkBlue hover:text-miskAccent">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                                        <path
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            <!-- BEGIN: Empty State -->
+            <div class="text-center py-24 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200"
+                data-purpose="empty-menu-state">
+                <div class="mb-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+                        <path
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="1"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-serif text-gray-900 mb-2">Menu coming soon</h3>
+                <p class="text-gray-500 max-w-sm mx-auto mb-8">We're currently updating our seasonal selections. Check
+                    back shortly for new flavors!</p>
+
+                {% if user_is_admin %}
+                <a class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-miskDarkBlue hover:bg-miskAccent transition"
+                    href="/admin/menu">
+                    Add Your First Item
+                </a>
+                {% endif %}
+            </div>
+            <!-- END: Empty State -->
+            {% endif %}
+
+        </section>
+        <!-- END: Menu Items Content -->
+    </main>
+    <!-- BEGIN: Footer Component -->
+    {% include 'components/_footer.html' %}
+    <!-- END: Footer Component -->
+    <!-- BEGIN: Scripts -->
+    <script data-purpose="interaction-logic">
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                if (this.getAttribute('href') === '#') return;
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu Toggle
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    const expanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                    mobileMenuBtn.setAttribute('aria-expanded', !expanded);
+                });
+            }
+
+            // Client-side Filtering
+            const searchInput = document.getElementById('searchInput');
+
+            const filterItems = (searchTerm) => {
+                document.querySelectorAll('[data-purpose="menu-item"]').forEach(item => {
+                    const itemName = item.getAttribute('data-name') || '';
+
+                    if (itemName.includes(searchTerm)) {
+                        item.parentElement.style.display = '';
+                    } else {
+                        item.parentElement.style.display = 'none';
+                    }
+                });
+
+                // Hide category headings if empty
+                document.querySelectorAll('.scroll-mt-32').forEach(cat => {
+                    const visibleItems = Array.from(cat.querySelectorAll('[data-purpose="menu-item"]'))
+                        .filter(item => item.parentElement.style.display !== 'none');
+                    if (visibleItems.length === 0) {
+                        cat.style.display = 'none';
+                    } else {
+                        cat.style.display = 'block';
+                    }
+                });
+            };
+
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    filterItems(e.target.value.toLowerCase());
+                });
+            }
+        });
+    </script>
+    <!-- END: Scripts -->
+</body>
+
+</html>

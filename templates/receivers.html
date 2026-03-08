@@ -9,6 +9,37 @@
         <p class="text-slate-500 dark:text-slate-400 mt-1">Manage and view all payment recipients.</p>
     </div>
     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto pb-2">
+        <!-- Filter Form -->
+        <form id="filterForm" class="flex flex-wrap items-center gap-2" method="GET"
+            action="{{ url_for('receivers_view') }}">
+            <select name="month"
+                class="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2"
+                onchange="this.form.submit()">
+                <option value="">All Months</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if current_month==m %}selected{% endif %}>
+                    {{ [None, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
+                    'October', 'November', 'December'][m] }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="year"
+                class="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2"
+                onchange="this.form.submit()">
+                <option value="">All Years</option>
+                {% set current_year_val = current_year or 2024 %}
+                {% for y in range(2023, 2031) %}
+                <option value="{{ y }}" {% if current_year==y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+
+            <a href="{{ url_for('export_receivers_stats', month=current_month, year=current_year) }}"
+                class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm w-full sm:w-auto">
+                <span class="material-symbols-outlined text-sm">download</span>
+                Export CSV
+            </a>
+        </form>
+
         <button type="button" data-bs-toggle="modal" data-bs-target="#addReceiverModal"
             class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30 w-full sm:w-auto">
             <span class="material-symbols-outlined text-sm">person_add</span>
@@ -27,7 +58,16 @@
                 <tr>
                     <th class="px-6 py-4 font-semibold w-24">ID</th>
                     <th class="px-6 py-4 font-semibold">Name</th>
-                    <th class="px-6 py-4 font-semibold text-right">Total Paid Amount</th>
+                    <th class="px-6 py-4 font-semibold text-right">
+                        Total Paid Amount
+                        {% if current_month and current_year %}
+                        <span class="block text-xs text-slate-400 font-normal">({{ current_month }}/{{ current_year
+                            }})</span>
+                        {% elif current_year %}
+                        <span class="block text-xs text-slate-400 font-normal">({{ current_year }})</span>
+                        {% endif %}
+                    </th>
+                    <th class="px-6 py-4 font-semibold text-right">All-Time Record</th>
                     <th class="px-6 py-4 font-semibold text-center w-28">Actions</th>
                 </tr>
             </thead>
@@ -46,6 +86,12 @@
                     <td class="px-6 py-4 text-right">
                         <span
                             class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
+                            <span class="text-slate-400">$</span>{{ "%.2f"|format(receiver.period_total) }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-transparent font-mono text-xs">
                             <span class="text-slate-400">$</span>{{ "%.2f"|format(receiver.paid_amount or 0) }}
                         </span>
                     </td>
@@ -66,7 +112,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4"
+                    <td colspan="5"
                         class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
                         <div class="flex flex-col items-center justify-center">
                             <span
