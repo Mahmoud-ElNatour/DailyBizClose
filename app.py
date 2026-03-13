@@ -1624,6 +1624,132 @@ def get_receivers():
         app.logger.error(f"Error fetching receivers: {e}")
         return jsonify({'error': 'Failed to fetch receivers'}), 500
 
+@app.route('/api/customers/list')
+@login_required
+def get_customers_list():
+    """Get all customers for dropdowns"""
+    try:
+        from models import Customers
+        customers = Customers.query.order_by(Customers.username).all()
+        return jsonify([{'id': c.id, 'name': c.username} for c in customers])
+    except Exception as e:
+        app.logger.error(f"Error fetching customers list: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/receivers/list')
+@login_required
+def get_receivers_list():
+    """Get all general receivers for dropdowns"""
+    try:
+        from models import Receivers
+        receivers = Receivers.query.order_by(Receivers.name).all()
+        return jsonify([{'id': r.id, 'name': r.name} for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching receivers list: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/samer-receivers/list')
+@login_required
+def get_samer_receivers_list():
+    """Get all Samer receivers for dropdowns"""
+    try:
+        from models import SamerExpenseReceivers
+        receivers = SamerExpenseReceivers.query.order_by(SamerExpenseReceivers.name).all()
+        return jsonify([{'id': r.id, 'name': r.name} for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching Samer receivers list: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/ahmad-receivers/list')
+@login_required
+def get_ahmad_receivers_list():
+    """Get all Ahmad receivers for dropdowns"""
+    try:
+        from models import AhmadExpenseReceivers
+        receivers = AhmadExpenseReceivers.query.order_by(AhmadExpenseReceivers.name).all()
+        return jsonify([{'id': r.id, 'name': r.name} for r in receivers])
+    except Exception as e:
+        app.logger.error(f"Error fetching Ahmad receivers list: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/customers', methods=['POST'])
+@login_required
+def create_customer():
+    """Create a new customer"""
+    try:
+        from models import Customers
+        data = request.get_json()
+        username = data.get('username')
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        
+        existing = Customers.query.filter_by(username=username).first()
+        if existing:
+            return jsonify({'error': f'Customer "{username}" already exists'}), 400
+            
+        customer = Customers(
+            username=username,
+            phone_number=data.get('phone_number'),
+            balance=safe_decimal(data.get('balance', 0))
+        )
+        db.session.add(customer)
+        db.session.commit()
+        return jsonify({'status': 'success', 'id': customer.id, 'name': customer.username})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating customer: {e}")
+        return jsonify({'error': 'Failed to create customer'}), 500
+
+@app.route('/api/receivers', methods=['POST'])
+@login_required
+def create_receiver():
+    """Create a new generacreate_receiverl receiver"""
+    return _create_receiver_generic('general', request.get_json())
+
+@app.route('/api/samer-receivers', methods=['POST'])
+@login_required
+def create_samer_receiver():
+    """Create a new Samer receiver"""
+    return _create_receiver_generic('samer', request.get_json())
+
+@app.route('/api/ahmad-receivers', methods=['POST'])
+@login_required
+def create_ahmad_receiver():
+    """Create a new Ahmad receiver"""
+    return _create_receiver_generic('ahmad', request.get_json())
+
+def _create_receiver_generic(receiver_type, data):
+    try:
+        from models import Receivers, SamerExpenseReceivers, AhmadExpenseReceivers
+        
+        name = data.get('name')
+        if not name:
+            return jsonify({'error': 'Name is required'}), 400
+            
+        ModelClass = None
+        if receiver_type == 'general':
+            ModelClass = Receivers
+        elif receiver_type == 'samer':
+            ModelClass = SamerExpenseReceivers
+        elif receiver_type == 'ahmad':
+            ModelClass = AhmadExpenseReceivers
+            
+        existing = ModelClass.query.filter_by(name=name).first()
+        if existing:
+            return jsonify({'error': f'Receiver "{name}" already exists'}), 400
+            
+        receiver = ModelClass(
+            name=name,
+            paid_amount=safe_decimal(data.get('paid_amount', 0))
+        )
+        db.session.add(receiver)
+        db.session.commit()
+        return jsonify({'status': 'success', 'id': receiver.id, 'name': receiver.name})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating {receiver_type} receiver: {e}")
+        return jsonify({'error': 'Failed to create receiver'}), 500
+
 @app.route('/api/daily-closing', methods=['POST'])
 @login_required
 def daily_closing_api():
@@ -1667,20 +1793,19 @@ def daily_closing_api():
         
         # Process Expenses
         for exp_data in data.get('expenses', []):
-            receiver_name = exp_data.get('receiver_name')
-            if receiver_name:
-                receiver = Receivers.query.filter_by(name=receiver_name).first()
+            receiver_id = exp_data.get('receiver_id')
+            if receiver_id:
+                receiver = Receivers.query.get(receiver_id)
                 if not receiver:
-                    receiver = Receivers(name=receiver_name, paid_amount=safe_decimal(exp_data.get('amount', 0)))
-                    db.session.add(receiver)
-                    db.session.flush()
-                else:
-                    receiver.paid_amount += safe_decimal(exp_data.get('amount', 0))
-                    db.session.add(receiver)
-                    db.session.flush()
+                    return jsonify({'error': 'Invalid receiver selected for general expense'}), 400
+                    
+                amount = safe_decimal(exp_data.get('amount', 0))
+                receiver.paid_amount = safe_decimal(receiver.paid_amount or 0) + amount
+                db.session.add(receiver)
+                
                 expense = Expenses(
                     date=close_date,
-                    amount=safe_decimal(exp_data.get('amount', 0)),
+                    amount=amount,
                     note=exp_data.get('note', ''),
                     daily_closing_id=daily_close.id,
                     receiver_id=receiver.id
@@ -1769,13 +1894,11 @@ def daily_closing_api():
         
         # Process Credits
         for cr_data in data.get('credits', []):
-            customer_name = cr_data.get('customer_name')
-            if customer_name:
-                customer = Customers.query.filter_by(username=customer_name).first()
+            customer_id = cr_data.get('customer_id')
+            if customer_id:
+                customer = Customers.query.get(customer_id)
                 if not customer:
-                    customer = Customers(username=customer_name, balance=0.0)
-                    db.session.add(customer)
-                    db.session.flush()
+                    return jsonify({'error': 'Invalid customer selected for credit sale'}), 400
                 
                 amount = safe_decimal(cr_data.get('amount', 0))
                 credit = Credits(
@@ -1790,13 +1913,11 @@ def daily_closing_api():
         
         # Process Cashbacks
         for cb_data in data.get('cashbacks', []):
-            customer_name = cb_data.get('customer_name')
-            if customer_name:
-                customer = Customers.query.filter_by(username=customer_name).first()
+            customer_id = cb_data.get('customer_id')
+            if customer_id:
+                customer = Customers.query.get(customer_id)
                 if not customer:
-                    customer = Customers(username=customer_name, balance=0.0)
-                    db.session.add(customer)
-                    db.session.flush()
+                    return jsonify({'error': 'Invalid customer selected for cashback'}), 400
                 
                 amount = safe_decimal(cb_data.get('amount', 0))
                 cashback = Cashbacks(
@@ -1809,47 +1930,45 @@ def daily_closing_api():
                 db.session.add(cashback)
                 customer.balance = safe_decimal(customer.balance or 0) + amount
                 
-        # Process Ahmad's Expenses (Single field from Daily Close)
-        ahmad_amount = safe_decimal(data.get('ahmad_expenses', 0))
-        if ahmad_amount > 0:
-            # Check for a default receiver if none specified, for now just creating the expense
-            ahmad_exp = AhmadMistrahExpenses(
-                date=close_date,
-                amount=ahmad_amount,
-                note="From Daily Close",
-                daily_closing_id=daily_close.id
-            )
-            db.session.add(ahmad_exp)
+        # Process Ahmad's Expenses (List from Daily Close)
+        for ahmad_exp_data in data.get('ahmad_expenses', []):
+            receiver_id = ahmad_exp_data.get('receiver_id')
+            if receiver_id:
+                rc = AhmadExpenseReceivers.query.get(receiver_id)
+                if not rc:
+                    return jsonify({'error': 'Invalid receiver selected for Ahmad expense'}), 400
+                
+                amount = safe_decimal(ahmad_exp_data.get('amount', 0))
+                rc.paid_amount = safe_decimal(rc.paid_amount or 0) + amount
+                
+                a_expense = AhmadMistrahExpenses(
+                    date=close_date,
+                    amount=amount,
+                    note=ahmad_exp_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    receiver_id=rc.id
+                )
+                db.session.add(a_expense)
 
         # Process Samer's Expenses (List from Daily Close)
         for samer_exp_data in data.get('samer_expenses', []):
-            # Extract receiver name from available fields
-            rc_name = (samer_exp_data.get('receiver_name') or 
-                       samer_exp_data.get('note') or 
-                       samer_exp_data.get('description') or 
-                       samer_exp_data.get('samer-expense-description'))
-            
-            if not rc_name:
-                continue # Skip if no name provided
-
-            rc = SamerExpenseReceivers.query.filter_by(name=rc_name).first()
-            if not rc:
-                rc = SamerExpenseReceivers(name=rc_name, paid_amount=0)
-                db.session.add(rc)
-                db.session.flush()
-            
-            # Update paid amount for both new and existing receivers
-            amount = safe_decimal(samer_exp_data.get('amount', 0))
-            rc.paid_amount = safe_decimal(rc.paid_amount or 0) + amount
-            
-            s_expense = SamerExpenses(
-                date=close_date,
-                amount=amount,
-                note=samer_exp_data.get('note', '') or samer_exp_data.get('description', ''),
-                daily_closing_id=daily_close.id,
-                receiver_id=rc.id
-            )
-            db.session.add(s_expense)
+            receiver_id = samer_exp_data.get('receiver_id')
+            if receiver_id:
+                rc = SamerExpenseReceivers.query.get(receiver_id)
+                if not rc:
+                    return jsonify({'error': 'Invalid receiver selected for Samer expense'}), 400
+                
+                amount = safe_decimal(samer_exp_data.get('amount', 0))
+                rc.paid_amount = safe_decimal(rc.paid_amount or 0) + amount
+                
+                s_expense = SamerExpenses(
+                    date=close_date,
+                    amount=amount,
+                    note=samer_exp_data.get('note', ''),
+                    daily_closing_id=daily_close.id,
+                    receiver_id=rc.id
+                )
+                db.session.add(s_expense)
             
         db.session.commit()
         log_event(
@@ -1859,39 +1978,12 @@ def daily_closing_api():
             status_code=200,
             details={'date': close_date_str, 'total_cashout': float(daily_close.total_cashout)}
         )
-        return jsonify({'status': 'success', 'message': 'Daily close processed successfully'})
+        return jsonify({'status': 'success', 'message': 'Daily close processed successfully', 'id': daily_close.id})
         
     except Exception as e:
         app.logger.error(f"Error processing daily close: {e}")
         db.session.rollback()
         return jsonify({'error': f'Failed to process daily close: {str(e)}'}), 500
-
-@app.route('/api/receivers', methods=['POST'])
-@login_required
-def create_receiver():
-    """Create new receiver"""
-    try:
-        from models import Receivers
-        data = request.get_json()
-        
-        receiver = Receivers(
-            name=data.get('name'),
-            paid_amount=safe_decimal(data.get('paid_amount', 0.0))
-        )
-        
-        db.session.add(receiver)
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'id': receiver.id,
-            'name': receiver.name,
-            'paid_amount': receiver.paid_amount
-        })
-    except Exception as e:
-        app.logger.error(f"Error creating receiver: {e}")
-        db.session.rollback()
-        return jsonify({'error': 'Failed to create receiver'}), 500
 
 @app.route('/api/receivers/<int:receiver_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
@@ -1971,33 +2063,6 @@ def get_customers():
     except Exception as e:
         app.logger.error(f"Error fetching customers: {e}")
         return jsonify({'error': 'Failed to fetch customers'}), 500
-
-@app.route('/api/customers', methods=['POST'])
-@login_required
-def create_customer():
-    """Create new customer"""
-    try:
-        from models import Customers
-        data = request.get_json()
-        
-        customer = Customers(
-            username=data.get('username'),
-            balance=safe_decimal(data.get('balance', 0)),
-            phone_number=data.get('phone_number')
-        )
-        
-        db.session.add(customer)
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Customer created successfully',
-            'id': customer.id
-        })
-    except Exception as e:
-        app.logger.error(f"Error creating customer: {e}")
-        db.session.rollback()
-        return jsonify({'error': 'Failed to create customer'}), 500
 
 @app.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required

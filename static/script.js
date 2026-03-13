@@ -94,8 +94,12 @@ const DailyCloseApp = {
         'samer-expense': []
     },
 
-    // Employee list cache for dropdowns
+    // List caches for dropdowns
     employees: [],
+    customers: [],
+    receivers: [],
+    samerReceivers: [],
+    ahmadReceivers: [],
 
     // Initialize the application
     init() {
@@ -104,39 +108,47 @@ const DailyCloseApp = {
         this.initializeModuleCards();
         this.initializeFormHandlers();
 
-        // Fetch employees first, then initialize sections that depend on them
-        this.fetchEmployeesList().then(() => {
+        // Fetch all identity lists first, then initialize sections
+        this.fetchAllLists().then(() => {
             this.initializeSimpleExpenseSections();
         });
 
         this.initializeDateHandling();
-        this.fetchAutocompleteSuggestions();
         this.checkAdminValidation();
     },
 
-    // Fetch active employees for selects
-    async fetchEmployeesList() {
+    // Fetch all active entities for selects
+    async fetchAllLists() {
         try {
-            const response = await fetch('/api/employees/list');
-            if (response.ok) {
-                this.employees = await response.json();
-            }
+            const [emps, custs, recs, samer, ahmad] = await Promise.all([
+                fetch('/api/employees/list').then(response => response.ok ? response.json() : []),
+                fetch('/api/customers/list').then(response => response.ok ? response.json() : []),
+                fetch('/api/receivers/list').then(response => response.ok ? response.json() : []),
+                fetch('/api/samer-receivers/list').then(response => response.ok ? response.json() : []),
+                fetch('/api/ahmad-receivers/list').then(response => response.ok ? response.json() : [])
+            ]);
+
+            this.employees = emps;
+            this.customers = custs;
+            this.receivers = recs;
+            this.samerReceivers = samer;
+            this.ahmadReceivers = ahmad;
         } catch (error) {
-            console.error('Error fetching employees list:', error);
+            console.error('Error fetching list data:', error);
         }
     },
 
-    // Initialize a TomSelect dropdown
-    initializeEmployeeSelect(element, selectedId = null) {
+    // Initialize a TomSelect dropdown generically
+    initializeGenericSelect(element, dataList, placeholder, selectedId = null) {
         if (!element || element.tomselect) return;
 
         const ts = new TomSelect(element, {
             valueField: 'id',
             labelField: 'name',
             searchField: 'name',
-            options: this.employees,
+            options: dataList,
             create: false,
-            placeholder: 'Select Employee...',
+            placeholder: placeholder,
             maxItems: 1,
             render: {
                 option: function (data, escape) {
@@ -211,8 +223,7 @@ const DailyCloseApp = {
         // Get all input fields
         const inputs = {
             mainReading: document.getElementById('mainReading'),
-            drSmashed: document.getElementById('drSmashed'),
-            ahmadExpenses: document.getElementById('ahmadExpenses')
+            drSmashed: document.getElementById('drSmashed')
         };
 
         // Get calculated field displays
@@ -240,7 +251,6 @@ const DailyCloseApp = {
             // Get basic input values
             const mainReading = parseFloat(document.getElementById('mainReading')?.value) || 0;
             const drSmashed = parseFloat(document.getElementById('drSmashed')?.value) || 0;
-            const ahmadExpenses = parseFloat(document.getElementById('ahmadExpenses')?.value) || 0;
 
             // Calculate totals from sections
             const totalExpenses = this.calculateSectionTotal('.expense-amount');
@@ -249,6 +259,7 @@ const DailyCloseApp = {
             const totalCredits = this.calculateSectionTotal('.credit-amount');
             const totalCashback = this.calculateSectionTotal('.cashback-amount');
             const totalSamerExpenses = this.calculateSectionTotal('.samer-expense-amount');
+            const totalAhmadExpenses = this.calculateSectionTotal('.ahmad-expense-amount');
 
             // Update section totals
             this.updateSectionTotal('#totalExpenses', totalExpenses);
@@ -257,6 +268,7 @@ const DailyCloseApp = {
             this.updateSectionTotal('#totalCredits', totalCredits);
             this.updateSectionTotal('#totalCashback', totalCashback);
             this.updateSectionTotal('#totalSamerExpenses', totalSamerExpenses);
+            this.updateSectionTotal('#totalAhmadExpenses', totalAhmadExpenses);
 
             // Calculate Adjusted Reading: Main Reading - Dr Smashed - Total Credits + Total Cashback
             const adjustedReading = mainReading - drSmashed;
@@ -264,8 +276,8 @@ const DailyCloseApp = {
             // Calculate 5% of Adjusted Reading
             const fivePercent = adjustedReading * 0.05;
 
-            // Calculate Actual Cash: Adjusted Reading - Ahmad Mistrah - Total Expenses - Total Advances - Total Samer Expenses
-            const actualCash = adjustedReading - ahmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalCredits + totalCashback;
+            // Calculate Actual Cash: Adjusted Reading - Total Ahmad Expenses - Total Expenses - Total Advances - Total Samer Expenses - Total Credits + Total Cashback
+            const actualCash = adjustedReading - totalAhmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalCredits + totalCashback;
 
             // Update calculated field displays
             const displays = {
@@ -479,8 +491,7 @@ const DailyCloseApp = {
             const basicInputs = {
                 close_date: closeDate,
                 main_reading: parseFloat(document.getElementById('mainReading')?.value) || 0,
-                dr_smashed: parseFloat(document.getElementById('drSmashed')?.value) || 0,
-                ahmad_expenses: parseFloat(document.getElementById('ahmadExpenses')?.value) || 0
+                dr_smashed: parseFloat(document.getElementById('drSmashed')?.value) || 0
             };
 
             // Collect expense data with proper types for automatic creation
@@ -489,6 +500,7 @@ const DailyCloseApp = {
             const credits = this.collectSectionData('.credit-item', '.credit-description', '.credit-amount', 'credit');
             const cashbacks = this.collectSectionData('.cashback-item', '.cashback-description', '.cashback-amount', 'cashback');
             const samer_expenses = this.collectSectionData('.samer-expense-item', '.samer-expense-description', '.samer-expense-amount', 'samer-expense');
+            const ahmad_expenses = this.collectSectionData('.ahmad-expense-item', '.ahmad-expense-description', '.ahmad-expense-amount', 'ahmad-expense');
 
             // Calculate totals and calculated fields
             const calculations = {
@@ -526,7 +538,7 @@ const DailyCloseApp = {
                 credits: credits,
                 cashbacks: cashbacks,
                 samer_expenses: samer_expenses,
-                ahmad_expenses: basicInputs.ahmad_expenses
+                ahmad_expenses: ahmad_expenses
             };
 
             // Validation: Ensure main reading is provided
@@ -542,7 +554,7 @@ const DailyCloseApp = {
                 formData.deductions.length > 0 ||
                 formData.credits.length > 0 ||
                 formData.cashbacks.length > 0 ||
-                formData.ahmad_expenses > 0 ||
+                formData.ahmad_expenses.length > 0 ||
                 formData.samer_expenses.length > 0;
 
             if (!hasData) {
@@ -567,8 +579,13 @@ const DailyCloseApp = {
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                this.showStatusMessage('Daily close saved successfully!', 'success');
+                this.showStatusMessage('Daily close saved successfully! Redirecting to print view...', 'success');
                 this.clearDailyCloseForm();
+
+                // Keep toast visible shortly before redirecting
+                setTimeout(() => {
+                    window.location.href = `/control-panel/daily-close/${data.id}/print`;
+                }, 1000);
             } else {
                 this.showStatusMessage('Error saving daily close: ' + (data.message || data.error || 'Unknown error'), 'danger');
             }
@@ -603,10 +620,10 @@ const DailyCloseApp = {
                 };
 
                 // Add type-specific data
-                if (type === 'expense' || type === 'samer-expense') {
-                    baseData.receiver_name = descValue;
+                if (type === 'expense' || type === 'samer-expense' || type === 'ahmad-expense') {
+                    baseData.receiver_id = descValue;
                 } else if (type === 'credit' || type === 'cashback') {
-                    baseData.customer_name = descValue;
+                    baseData.customer_id = descValue;
                 } else if (type === 'advance' || type === 'deduction') {
                     baseData.employee_id = descValue;
                 }
@@ -751,9 +768,21 @@ const DailyCloseApp = {
         this.updateRemoveButtons('#cashbacksSection');
         this.updateRemoveButtons('#samerExpensesSection');
 
-        // Initialize employee selects
+        // Initialize all select elements
         document.querySelectorAll('.employee-select').forEach(select => {
-            this.initializeEmployeeSelect(select);
+            this.initializeGenericSelect(select, this.employees, 'Select Employee...');
+        });
+        document.querySelectorAll('.receiver-select').forEach(select => {
+            this.initializeGenericSelect(select, this.receivers, 'Select Receiver...');
+        });
+        document.querySelectorAll('.samer-receiver-select').forEach(select => {
+            this.initializeGenericSelect(select, this.samerReceivers, 'Select Samer Receiver...');
+        });
+        document.querySelectorAll('.ahmad-receiver-select').forEach(select => {
+            this.initializeGenericSelect(select, this.ahmadReceivers, 'Select Ahmad Receiver...');
+        });
+        document.querySelectorAll('.customer-select').forEach(select => {
+            this.initializeGenericSelect(select, this.customers, 'Select Customer...');
         });
 
         // Add event listeners for calculations
@@ -788,11 +817,18 @@ const DailyCloseApp = {
             this.updateCategoryDropdowns(type);
             this.updateRemoveButtons(sectionSelector);
 
-            // Initialize TomSelect if it's an employee select
+            // Initialize TomSelect if it's a dropdown
             const newItem = section.lastElementChild;
-            const select = newItem.querySelector('.employee-select');
-            if (select) {
-                this.initializeEmployeeSelect(select);
+            if (newItem.querySelector('.employee-select')) {
+                this.initializeGenericSelect(newItem.querySelector('.employee-select'), this.employees, 'Select Employee...');
+            } else if (newItem.querySelector('.receiver-select')) {
+                this.initializeGenericSelect(newItem.querySelector('.receiver-select'), this.receivers, 'Select Receiver...');
+            } else if (newItem.querySelector('.samer-receiver-select')) {
+                this.initializeGenericSelect(newItem.querySelector('.samer-receiver-select'), this.samerReceivers, 'Select Samer Receiver...');
+            } else if (newItem.querySelector('.ahmad-receiver-select')) {
+                this.initializeGenericSelect(newItem.querySelector('.ahmad-receiver-select'), this.ahmadReceivers, 'Select Ahmad Receiver...');
+            } else if (newItem.querySelector('.customer-select')) {
+                this.initializeGenericSelect(newItem.querySelector('.customer-select'), this.customers, 'Select Customer...');
             }
         }, 10);
     },
@@ -830,26 +866,26 @@ const DailyCloseApp = {
         const templates = {
             'expense': `
                 <div class="expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-description"
-                        placeholder="Receiver Name" list="receiversList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full receiver-select expense-description" data-placeholder="Select Receiver..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'general')">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-note"
                         placeholder="Note/Details" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right expense-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-expense"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-expense" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
@@ -866,19 +902,16 @@ const DailyCloseApp = {
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-note"
                         placeholder="Note/Reason" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-advance"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-advance" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
@@ -895,97 +928,120 @@ const DailyCloseApp = {
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-note"
                         placeholder="Note/Reason" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
                 </div>`,
             'credit': `
                 <div class="credit-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-description"
-                        placeholder="Customer Name" list="customersList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full customer-select credit-description" data-placeholder="Select Customer..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Customer" onclick="DailyCloseApp.openNewCustomerModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-note"
                         placeholder="Note/Reference" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-credit"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-credit" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
                 </div>`,
             'cashback': `
                 <div class="cashback-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-description"
-                        placeholder="Customer Name" list="customersList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full customer-select cashback-description" data-placeholder="Select Customer..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Customer" onclick="DailyCloseApp.openNewCustomerModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-note"
                         placeholder="Note/Reference" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
                 </div>`,
             'samer-expense': `
                 <div class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-description"
-                        placeholder="Receiver Name" list="samerReceiversList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full samer-receiver-select samer-expense-description" data-placeholder="Select Samer Receiver..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'samer')">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
                         placeholder="Note/Details" />
                     <div class="relative w-32 shrink-0">
-                        <span
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
                         <input type="number"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
                             placeholder="0.00" />
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense"
-                            title="Add Item">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense" title="Add Item">
                             <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense"
-                            title="Remove Item">
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense" title="Remove Item">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+                </div>`,
+            'ahmad-expense': `
+                <div class="ahmad-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full ahmad-receiver-select ahmad-expense-description" data-placeholder="Select Ahmad Receiver..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'ahmad')">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary ahmad-expense-note"
+                        placeholder="Note/Details" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right ahmad-expense-amount"
+                            placeholder="0.00" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-ahmad-expense" title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-slate-300 hover:text-red-500 remove-ahmad-expense" title="Remove Item">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
@@ -1173,7 +1229,8 @@ const DailyCloseApp = {
         document.getElementById('newEmployeeForm').reset();
         document.getElementById('newEmployeeError').classList.add('hidden');
 
-        const modal = new bootstrap.Modal(document.getElementById('newEmployeeModal'));
+        const modalEl = document.getElementById('newEmployeeModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
         modal.show();
     },
 
@@ -1245,10 +1302,186 @@ const DailyCloseApp = {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
+    },
+
+    // Handle new customer modal opening
+    openNewCustomerModal(btnElement) {
+        this.currentCustomerSelect = btnElement.parentElement.querySelector('.customer-select');
+
+        document.getElementById('newCustomerForm').reset();
+        document.getElementById('newCustomerError').classList.add('hidden');
+
+        const modalEl = document.getElementById('newCustomerModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    },
+
+    // Handle new customer submission
+    async submitNewCustomer() {
+        const username = document.getElementById('newCustomerUsername').value.trim();
+        const phone = document.getElementById('newCustomerPhone').value.trim();
+
+        if (!username) return;
+
+        const submitBtn = document.getElementById('btnSubmitNewCustomer');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        try {
+            const response = await fetch('/api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: username,
+                    phone_number: phone
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                const newId = data.customer_id;
+                const newName = data.customer_name;
+
+                // Add to list cache
+                this.customers.push({ id: newId, name: newName });
+
+                // Update all existing TomSelect instances for customers
+                document.querySelectorAll('.customer-select').forEach(select => {
+                    if (select.tomselect) {
+                        select.tomselect.addOption({ id: newId, name: newName });
+                    }
+                });
+
+                // Auto-select in the dropdown that opened the modal
+                if (this.currentCustomerSelect && this.currentCustomerSelect.tomselect) {
+                    this.currentCustomerSelect.tomselect.setValue(newId);
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('newCustomerModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                this.showStatusMessage('Customer added successfully', 'success');
+            } else {
+                const errorDiv = document.getElementById('newCustomerError');
+                errorDiv.querySelector('.error-text').textContent = data.error || 'Failed to create customer';
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error creating customer:', error);
+            const errorDiv = document.getElementById('newCustomerError');
+            errorDiv.querySelector('.error-text').textContent = error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    },
+
+    // Handle new receiver modal opening
+    openNewReceiverModal(btnElement, type = 'general') {
+        const selectClass = type === 'general' ? '.receiver-select' : `.${type}-receiver-select`;
+        this.currentReceiverSelect = btnElement.parentElement.querySelector(selectClass);
+        this.currentReceiverType = type;
+
+        document.getElementById('newReceiverForm').reset();
+        document.getElementById('newReceiverType').value = type;
+        document.getElementById('newReceiverError').classList.add('hidden');
+
+        // Update modal title
+        const typeMap = { 'general': 'General Expense', 'samer': 'Samer Expense', 'ahmad': 'Ahmad Expense' };
+        document.getElementById('newReceiverModalLabel').innerHTML = `
+            <span class="material-symbols-outlined text-primary">person_add</span>
+            Add New Receiver (${typeMap[type]})
+        `;
+
+        const modalEl = document.getElementById('newReceiverModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    },
+
+    // Handle new receiver submission
+    async submitNewReceiver() {
+        const name = document.getElementById('newReceiverName').value.trim();
+        const type = document.getElementById('newReceiverType').value;
+
+        if (!name) return;
+
+        const submitBtn = document.getElementById('btnSubmitNewReceiver');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        let endpoint = '/api/receivers';
+        if (type === 'samer') endpoint = '/api/samer-receivers';
+        if (type === 'ahmad') endpoint = '/api/ahmad-receivers';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                const newId = data.receiver_id;
+                const newName = data.receiver_name;
+
+                // Add to list cache based on type
+                let cacheArray = this.receivers;
+                let selectSelector = '.receiver-select';
+
+                if (type === 'samer') {
+                    cacheArray = this.samerReceivers;
+                    selectSelector = '.samer-receiver-select';
+                } else if (type === 'ahmad') {
+                    cacheArray = this.ahmadReceivers;
+                    selectSelector = '.ahmad-receiver-select';
+                }
+
+                cacheArray.push({ id: newId, name: newName });
+
+                // Update all existing TomSelect instances for this type
+                document.querySelectorAll(selectSelector).forEach(select => {
+                    if (select.tomselect) {
+                        select.tomselect.addOption({ id: newId, name: newName });
+                    }
+                });
+
+                // Auto-select in the dropdown that opened the modal
+                if (this.currentReceiverSelect && this.currentReceiverSelect.tomselect) {
+                    this.currentReceiverSelect.tomselect.setValue(newId);
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('newReceiverModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                this.showStatusMessage('Receiver added successfully', 'success');
+            } else {
+                const errorDiv = document.getElementById('newReceiverError');
+                errorDiv.querySelector('.error-text').textContent = data.error || 'Failed to create receiver';
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error creating receiver:', error);
+            const errorDiv = document.getElementById('newReceiverError');
+            errorDiv.querySelector('.error-text').textContent = error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 };
-
-// Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     DailyCloseApp.init();
 });
