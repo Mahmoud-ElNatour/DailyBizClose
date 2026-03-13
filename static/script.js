@@ -94,16 +94,65 @@ const DailyCloseApp = {
         'samer-expense': []
     },
 
+    // Employee list cache for dropdowns
+    employees: [],
+
     // Initialize the application
     init() {
         this.initializeDropdowns();
         this.initializeDailyClose();
         this.initializeModuleCards();
         this.initializeFormHandlers();
-        this.initializeSimpleExpenseSections();
+
+        // Fetch employees first, then initialize sections that depend on them
+        this.fetchEmployeesList().then(() => {
+            this.initializeSimpleExpenseSections();
+        });
+
         this.initializeDateHandling();
         this.fetchAutocompleteSuggestions();
         this.checkAdminValidation();
+    },
+
+    // Fetch active employees for selects
+    async fetchEmployeesList() {
+        try {
+            const response = await fetch('/api/employees/list');
+            if (response.ok) {
+                this.employees = await response.json();
+            }
+        } catch (error) {
+            console.error('Error fetching employees list:', error);
+        }
+    },
+
+    // Initialize a TomSelect dropdown
+    initializeEmployeeSelect(element, selectedId = null) {
+        if (!element || element.tomselect) return;
+
+        const ts = new TomSelect(element, {
+            valueField: 'id',
+            labelField: 'name',
+            searchField: 'name',
+            options: this.employees,
+            create: false,
+            placeholder: 'Select Employee...',
+            maxItems: 1,
+            render: {
+                option: function (data, escape) {
+                    return '<div>' + escape(data.name) + '</div>';
+                },
+                item: function (data, escape) {
+                    return '<div>' + escape(data.name) + '</div>';
+                }
+            }
+        });
+
+        if (selectedId) {
+            ts.setValue(selectedId);
+        }
+
+        return ts;
     },
 
     // Initialize dropdown functionality
@@ -544,7 +593,10 @@ const DailyCloseApp = {
             const noteInput = item.querySelector(`.${type}-note`);
             const amountInput = item.querySelector(amountSelector);
 
-            if (descriptionInput && amountInput && descriptionInput.value.trim() && amountInput.value) {
+            // For selects, value is the ID. For text inputs, value is the string.
+            const descValue = descriptionInput ? descriptionInput.value.trim() : '';
+
+            if (descriptionInput && amountInput && descValue && amountInput.value) {
                 const baseData = {
                     amount: parseFloat(amountInput.value) || 0,
                     note: noteInput ? noteInput.value.trim() : ''
@@ -552,21 +604,11 @@ const DailyCloseApp = {
 
                 // Add type-specific data
                 if (type === 'expense' || type === 'samer-expense') {
-                    baseData.receiver_name = descriptionInput.value.trim();
+                    baseData.receiver_name = descValue;
                 } else if (type === 'credit' || type === 'cashback') {
-                    baseData.customer_name = descriptionInput.value.trim();
-                    baseData.phone_number = '';
+                    baseData.customer_name = descValue;
                 } else if (type === 'advance' || type === 'deduction') {
-                    baseData.employee_name = descriptionInput.value.trim();
-                    baseData.phone_number = '';
-                    baseData.position = '';
-                    baseData.base_salary = 0;
-                    baseData.working_days = 0;
-                    baseData.actual_working_days = 0;
-                    baseData.advance = 0;
-                    baseData.deductions = 0;
-                    baseData.actual_salary = 0;
-                    baseData.total = 0;
+                    baseData.employee_id = descValue;
                 }
 
                 data.push(baseData);
@@ -626,6 +668,11 @@ const DailyCloseApp = {
         // Remove all items except the first one
         items.forEach((item, index) => {
             if (index > 0) {
+                // Destroy TomSelect instance to prevent memory leaks if present
+                const select = item.querySelector('.employee-select');
+                if (select && select.tomselect) {
+                    select.tomselect.destroy();
+                }
                 item.remove();
             }
         });
@@ -635,8 +682,17 @@ const DailyCloseApp = {
         if (firstItem) {
             const select = firstItem.querySelector('select');
             const input = firstItem.querySelector('input[type="number"]');
-            if (select) select.selectedIndex = 0;
+
+            if (select) {
+                if (select.tomselect) {
+                    select.tomselect.clear(true);
+                } else {
+                    select.selectedIndex = 0;
+                }
+            }
             if (input) input.value = '';
+
+            // Note: the master clearDailyCloseForm() already handles traditional input[type="text"]
         }
 
         // Update remove button visibility
@@ -695,6 +751,11 @@ const DailyCloseApp = {
         this.updateRemoveButtons('#cashbacksSection');
         this.updateRemoveButtons('#samerExpensesSection');
 
+        // Initialize employee selects
+        document.querySelectorAll('.employee-select').forEach(select => {
+            this.initializeEmployeeSelect(select);
+        });
+
         // Add event listeners for calculations
         this.initializeSimpleCalculationHandlers();
     },
@@ -726,6 +787,13 @@ const DailyCloseApp = {
         setTimeout(() => {
             this.updateCategoryDropdowns(type);
             this.updateRemoveButtons(sectionSelector);
+
+            // Initialize TomSelect if it's an employee select
+            const newItem = section.lastElementChild;
+            const select = newItem.querySelector('.employee-select');
+            if (select) {
+                this.initializeEmployeeSelect(select);
+            }
         }, 10);
     },
 
@@ -788,9 +856,12 @@ const DailyCloseApp = {
                 </div>`,
             'advance': `
                 <div class="advance-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-description"
-                        placeholder="Employee Name" list="employeesList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full employee-select advance-description" data-placeholder="Select Employee..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Employee" onclick="DailyCloseApp.openNewEmployeeModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-note"
                         placeholder="Note/Reason" />
@@ -814,9 +885,12 @@ const DailyCloseApp = {
                 </div>`,
             'deduction': `
                 <div class="deduction-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <input type="text"
-                        class="flex-1 min-w-[150px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-description"
-                        placeholder="Employee Name" list="employeesList" />
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full employee-select deduction-description" data-placeholder="Select Employee..."></select>
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Employee" onclick="DailyCloseApp.openNewEmployeeModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
                     <input type="text"
                         class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-note"
                         placeholder="Note/Reason" />
@@ -1089,6 +1163,88 @@ const DailyCloseApp = {
             option.value = suggestion;
             datalist.appendChild(option);
         });
+    },
+
+    // Handle new employee modal opening
+    openNewEmployeeModal(btnElement) {
+        // Store the select element that opened the modal so we can auto-select the new employee
+        this.currentEmployeeSelect = btnElement.parentElement.querySelector('.employee-select');
+
+        document.getElementById('newEmployeeForm').reset();
+        document.getElementById('newEmployeeError').classList.add('hidden');
+
+        const modal = new bootstrap.Modal(document.getElementById('newEmployeeModal'));
+        modal.show();
+    },
+
+    // Handle new employee submission
+    async submitNewEmployee() {
+        const name = document.getElementById('newEmpName').value.trim();
+        const phone = document.getElementById('newEmpPhone').value.trim();
+        const position = document.getElementById('newEmpPosition').value.trim();
+        const salary = parseFloat(document.getElementById('newEmpSalary').value) || 0;
+
+        if (!name) return;
+
+        const submitBtn = document.getElementById('btnSubmitNewEmployee');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        try {
+            const response = await fetch('/api/employees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    phone_number: phone,
+                    position,
+                    base_salary: salary,
+                    is_active: true
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === 'success') {
+                const newEmpId = data.employee_id;
+                const newEmpName = data.employee_name;
+
+                // Add to employees list cache
+                this.employees.push({ id: newEmpId, name: newEmpName });
+
+                // Update all existing TomSelect instances
+                document.querySelectorAll('.employee-select').forEach(select => {
+                    if (select.tomselect) {
+                        select.tomselect.addOption({ id: newEmpId, name: newEmpName });
+                    }
+                });
+
+                // Auto-select in the dropdown that opened the modal
+                if (this.currentEmployeeSelect && this.currentEmployeeSelect.tomselect) {
+                    this.currentEmployeeSelect.tomselect.setValue(newEmpId);
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('newEmployeeModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                this.showStatusMessage('Employee added successfully', 'success');
+            } else {
+                const errorDiv = document.getElementById('newEmployeeError');
+                errorDiv.querySelector('.error-text').textContent = data.error || 'Failed to create employee';
+                errorDiv.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error creating employee:', error);
+            const errorDiv = document.getElementById('newEmployeeError');
+            errorDiv.querySelector('.error-text').textContent = error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 };
 

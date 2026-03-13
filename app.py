@@ -1690,14 +1690,12 @@ def daily_closing_api():
         # Process Advances
         from models import EmployeeWorking
         for adv_data in data.get('advances', []):
-            employee_name = adv_data.get('employee_name')
-            if employee_name:
+            employee_id = adv_data.get('employee_id')
+            if employee_id:
                 # Find base employee
-                employee = Employees.query.filter_by(name=employee_name).first()
+                employee = Employees.query.get(employee_id)
                 if not employee:
-                    employee = Employees(name=employee_name, base_salary=0.0)
-                    db.session.add(employee)
-                    db.session.flush()
+                    return jsonify({'error': 'Invalid employee selected for advance'}), 400
                 
                 # Find or create monthly record
                 working_record = EmployeeWorking.query.filter_by(
@@ -1732,14 +1730,12 @@ def daily_closing_api():
         # Process Deductions
         from models import Deductions
         for ded_data in data.get('deductions', []):
-            employee_name = ded_data.get('employee_name')
-            if employee_name:
+            employee_id = ded_data.get('employee_id')
+            if employee_id:
                 # Find base employee
-                employee = Employees.query.filter_by(name=employee_name).first()
+                employee = Employees.query.get(employee_id)
                 if not employee:
-                    employee = Employees(name=employee_name, base_salary=0.0)
-                    db.session.add(employee)
-                    db.session.flush()
+                    return jsonify({'error': 'Invalid employee selected for deduction'}), 400
                 
                 # Find or create monthly record
                 working_record = EmployeeWorking.query.filter_by(
@@ -2119,6 +2115,18 @@ def get_employees():
         app.logger.error(f"Error fetching employees: {e}")
         return jsonify({'error': 'Failed to fetch employees'}), 500
 
+@app.route('/api/employees/list')
+@login_required
+def get_employees_list():
+    """Get all active employees for dropdowns"""
+    try:
+        from models import Employees
+        employees = Employees.query.filter_by(is_active=True).order_by(Employees.name).all()
+        return jsonify([{'id': e.id, 'name': e.name} for e in employees])
+    except Exception as e:
+        app.logger.error(f"Error fetching employees list: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/employees', methods=['POST'])
 @login_required
 def create_employee():
@@ -2176,7 +2184,9 @@ def create_employee():
         return jsonify({
             'status': 'success',
             'message': 'Employee record created successfully',
-            'id': record.id
+            'id': record.id,
+            'employee_id': employee.id,
+            'employee_name': employee.name
         })
     except Exception as e:
         app.logger.error(f"Error creating employee: {e}")
