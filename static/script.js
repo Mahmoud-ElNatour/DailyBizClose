@@ -814,7 +814,6 @@ const DailyCloseApp = {
 
         // Update dropdown for new item
         setTimeout(() => {
-            this.updateCategoryDropdowns(type);
             this.updateRemoveButtons(sectionSelector);
 
             // Initialize TomSelect if it's a dropdown
@@ -1055,7 +1054,7 @@ const DailyCloseApp = {
     initializeSimpleCalculationHandlers() {
         // Handle input events for real-time calculation
         document.addEventListener('input', (e) => {
-            if (e.target.matches('.expense-amount, .advance-amount, .deduction-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
+            if (e.target.matches('.expense-amount, .advance-amount, .deduction-amount, .credit-amount, .cashback-amount, .samer-expense-amount, .ahmad-expense-amount')) {
                 this.calculateValues();
             }
         });
