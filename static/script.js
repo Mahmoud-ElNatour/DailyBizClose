@@ -1263,8 +1263,8 @@ const DailyCloseApp = {
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                const newEmpId = data.employee_id;
-                const newEmpName = data.employee_name;
+                const newEmpId = data.employee_id || data.id;
+                const newEmpName = data.employee_name || data.name;
 
                 // Add to employees list cache
                 this.employees.push({ id: newEmpId, name: newEmpName });
@@ -1272,13 +1272,14 @@ const DailyCloseApp = {
                 // Update all existing TomSelect instances
                 document.querySelectorAll('.employee-select').forEach(select => {
                     if (select.tomselect) {
-                        select.tomselect.addOption({ id: newEmpId, name: newEmpName });
+                        select.tomselect.addOption({ id: String(newEmpId), name: newEmpName });
+                        select.tomselect.refreshOptions(false);
                     }
                 });
 
                 // Auto-select in the dropdown that opened the modal
                 if (this.currentEmployeeSelect && this.currentEmployeeSelect.tomselect) {
-                    this.currentEmployeeSelect.tomselect.setValue(newEmpId);
+                    this.currentEmployeeSelect.tomselect.setValue(String(newEmpId));
                 }
 
                 // Close modal
@@ -1340,8 +1341,8 @@ const DailyCloseApp = {
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                const newId = data.customer_id;
-                const newName = data.customer_name;
+                const newId = data.id;
+                const newName = data.name;
 
                 // Add to list cache
                 this.customers.push({ id: newId, name: newName });
@@ -1349,13 +1350,14 @@ const DailyCloseApp = {
                 // Update all existing TomSelect instances for customers
                 document.querySelectorAll('.customer-select').forEach(select => {
                     if (select.tomselect) {
-                        select.tomselect.addOption({ id: newId, name: newName });
+                        select.tomselect.addOption({ id: String(newId), name: newName });
+                        select.tomselect.refreshOptions(false);
                     }
                 });
 
                 // Auto-select in the dropdown that opened the modal
                 if (this.currentCustomerSelect && this.currentCustomerSelect.tomselect) {
-                    this.currentCustomerSelect.tomselect.setValue(newId);
+                    this.currentCustomerSelect.tomselect.setValue(String(newId));
                 }
 
                 // Close modal
@@ -1430,8 +1432,8 @@ const DailyCloseApp = {
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                const newId = data.receiver_id;
-                const newName = data.receiver_name;
+                const newId = data.id;
+                const newName = data.name;
 
                 // Add to list cache based on type
                 let cacheArray = this.receivers;
@@ -1450,13 +1452,14 @@ const DailyCloseApp = {
                 // Update all existing TomSelect instances for this type
                 document.querySelectorAll(selectSelector).forEach(select => {
                     if (select.tomselect) {
-                        select.tomselect.addOption({ id: newId, name: newName });
+                        select.tomselect.addOption({ id: String(newId), name: newName });
+                        select.tomselect.refreshOptions(false);
                     }
                 });
 
                 // Auto-select in the dropdown that opened the modal
                 if (this.currentReceiverSelect && this.currentReceiverSelect.tomselect) {
-                    this.currentReceiverSelect.tomselect.setValue(newId);
+                    this.currentReceiverSelect.tomselect.setValue(String(newId));
                 }
 
                 // Close modal
