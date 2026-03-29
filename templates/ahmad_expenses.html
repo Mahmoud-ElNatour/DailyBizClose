@@ -421,10 +421,48 @@
 
         // Set default date in modal to today
         const today = currentDate.toISOString().split('T')[0];
-        const dateInput = document.querySelector('input[name="date"]');
-        if (dateInput && !dateInput.value) {
-            dateInput.value = today;
+        const dateInputs = document.querySelectorAll('input[name="date"]');
+        dateInputs.forEach(input => {
+            if (!input.value) input.value = today;
+        });
+
+        // Initialize TomSelect
+        if (document.getElementById('receiver_select')) {
+            window.addTomSelect = new TomSelect('#receiver_select', {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+        }
+        if (document.getElementById('editReceiverId')) {
+            window.editTomSelect = new TomSelect('#editReceiverId', {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
         }
     });
+
+    // Update edit function to handle TomSelect
+    const originalEditExpense = editExpense;
+    editExpense = function (btn) {
+        const data = btn.dataset;
+        document.getElementById('editExpenseId').value = data.id;
+        document.getElementById('editDate').value = data.date;
+        document.getElementById('editAmount').value = data.amount;
+        document.getElementById('editNote').value = data.note;
+
+        if (window.editTomSelect) {
+            window.editTomSelect.setValue(data.receiverId);
+        } else {
+            document.getElementById('editReceiverId').value = data.receiverId;
+        }
+
+        if (typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(document.getElementById('editAhmadExpenseModal'));
+            modal.show();
+        } else {
+            const modal = new window.bootstrap.Modal(document.getElementById('editAhmadExpenseModal'));
+            modal.show();
+        }
+    };
 </script>
 {% endblock %}

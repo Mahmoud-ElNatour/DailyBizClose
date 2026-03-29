@@ -130,6 +130,23 @@
                     </div>
                 </a>
 
+                <!-- Samer Receivers -->
+                <a href="{{ url_for('samer_receivers_view') }}"
+                    class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"
+                    data-module="samer-receivers">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="bg-red-500/10 text-red-500 p-3 rounded-full group-hover:bg-red-500 group-hover:text-white transition-colors duration-300">
+                            <span class="material-symbols-outlined text-2xl">person</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Samer Receivers</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Manage dedicated
+                                receivers for Samer's expenses.</p>
+                        </div>
+                    </div>
+                </a>
+
                 <!-- Deductions & Advances -->
                 <a href="{{ url_for('deductions_advances_view') }}"
                     class="module-card group bg-white dark:bg-slate-900/50 p-6 rounded-lg border border-slate-200 dark:border-slate-800 transition-all cursor-pointer block"

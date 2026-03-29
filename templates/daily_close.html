@@ -1,883 +1,611 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Daily Close - DailyBizClose</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400;500;600;700&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#1e3fae",
-                        "background-light": "#f6f6f8",
-                        "background-dark": "#121520",
-                    },
-                    fontFamily: {
-                        "display": ["Inter", "sans-serif"]
-                    },
-                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
-                },
-            },
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+{% block title %}Daily Close - DailyBizClose{% endblock %}
 
-        .sticky-sidebar {
-            height: calc(100vh - 120px);
-            top: 100px;
-        }
+{% block extra_head %}
+<style>
+    .sticky-sidebar {
+        height: calc(100vh - 120px);
+        top: 100px;
+    }
 
-        /* Minimal Bootstrap Modal support for Tailwind */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1055;
-            overflow-x: hidden;
-            overflow-y: auto;
-            outline: 0;
-        }
+    /* Minimal Bootstrap Modal support for Tailwind */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1055;
+        overflow-x: hidden;
+        overflow-y: auto;
+        outline: 0;
+    }
 
-        .modal.show {
-            display: block;
-            background-color: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-        }
+    .modal.show {
+        display: block;
+        background-color: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+    }
 
-        .fade {
-            transition: opacity .15s linear;
-        }
+    .fade {
+        transition: opacity .15s linear;
+    }
 
-        .fade:not(.show) {
-            opacity: 0;
-        }
+    .fade:not(.show) {
+        opacity: 0;
+    }
 
-        .d-none {
-            display: none !important;
-        }
-    </style>
-</head>
+    .d-none {
+        display: none !important;
+    }
+</style>
+{% endblock %}
 
-<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
-    <!-- Navbar -->
-    {% include 'components/_navbar.html' %}
+{% block content %}
+<header class="mb-8">
+    <h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Daily Close</h2>
+    <p class="text-slate-500 dark:text-slate-400 mt-1">Process daily transactions with real-time calculations
+    </p>
+</header>
 
-    <!-- Main Content Area -->
-    <main class="max-w-7xl mx-auto px-6 py-8">
+<form id="dailyCloseForm" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Left Column: Main Form -->
+    <div class="lg:col-span-8 space-y-6 pb-20">
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="mb-8 space-y-4">
-            {% for category, message in messages %}
-            {% set border_color = 'border-red-500 text-red-700 bg-red-50' if category == 'error' else 'border-green-500
-            text-green-700 bg-green-50' %}
-            <div class="flex items-center p-4 border-l-4 {{ border_color }} shadow-sm rounded-r-lg" role="alert">
-                <span class="material-symbols-outlined mr-2">{{ 'error' if category == 'error' else 'info' }}</span>
-                <p class="font-medium">{{ message }}</p>
+        <!-- Date Section (Read-only) -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+                <label class="text-sm font-bold text-slate-500 uppercase tracking-wider">Transaction
+                    Date</label>
             </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-
-        <header class="mb-8">
-            <h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Daily Close</h2>
-            <p class="text-slate-500 dark:text-slate-400 mt-1">Process daily transactions with real-time calculations
-            </p>
-        </header>
-
-        <form id="dailyCloseForm" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <!-- Left Column: Main Form -->
-            <div class="lg:col-span-8 space-y-6 pb-20">
-
-                <!-- Date Section (Read-only) -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-sm font-bold text-slate-500 uppercase tracking-wider">Transaction
-                            Date</label>
-                    </div>
-                    <div
-                        class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
-                        <span class="material-symbols-outlined text-slate-400">lock</span>
-                        <input type="date" id="closeDate"
-                            class="bg-transparent border-none focus:ring-0 p-0 text-lg font-semibold flex-1 text-slate-700 dark:text-slate-300"
-                            readonly>
-                        <button type="button" id="editDateBtn"
-                            class="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium rounded-md hover:bg-slate-50 transition-colors">
-                            Edit
-                        </button>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-2">Date is locked for accuracy. Click Edit to modify (requires
-                        admin password).</p>
-                </section>
-
-                <!-- Basic Values Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Main Reading -->
-                        <div>
-                            <label for="mainReading"
-                                class="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Main
-                                Reading</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number" id="mainReading"
-                                    class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
-                                    placeholder="0.00" />
-                            </div>
-                        </div>
-                        <!-- Ahmad Moghrabi -->
-                        <div
-                            class="col-span-1 border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/80 rounded-xl p-4 transition-all focus-within:ring-2 focus-within:ring-primary focus-within:border-primary shadow-sm">
-                            <label for="drSmashed"
-                                class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ahmad
-                                Moghrabi</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number" id="drSmashed"
-                                    class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
-                                    placeholder="0.00" />
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Daily Expenses Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-yellow-500">receipt_long</span>
-                            Daily General Expenses
-                        </h3>
-                    </div>
-                    <div id="expensesSection" class="space-y-3">
-                        <div
-                            class="expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full receiver-select expense-description"
-                                    data-placeholder="Select Receiver..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Receiver"
-                                    onclick="DailyCloseApp.openNewReceiverModal(this, 'general')">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-note"
-                                placeholder="Note/Details" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right expense-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-expense"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalExpenses" class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Advance Salaries Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-info text-blue-500">money_bill</span>
-                            Advance Salaries
-                        </h3>
-                    </div>
-                    <div id="advancesSection" class="space-y-3">
-                        <div
-                            class="advance-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full employee-select advance-description"
-                                    data-placeholder="Select Employee..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Employee" onclick="DailyCloseApp.openNewEmployeeModal(this)">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-note"
-                                placeholder="Note/Reason" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-advance"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalAdvances" class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Deductions Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-danger text-red-500">remove_circle</span>
-                            Deductions
-                        </h3>
-                    </div>
-                    <div id="deductionsSection" class="space-y-3">
-                        <div
-                            class="deduction-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full employee-select deduction-description"
-                                    data-placeholder="Select Employee..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Employee" onclick="DailyCloseApp.openNewEmployeeModal(this)">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-note"
-                                placeholder="Note/Reason" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-deduction"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalDeductions" class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Credit Sales Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-slate-500 text-secondary">credit_card</span>
-                            Credit Sales
-                        </h3>
-                    </div>
-                    <div id="creditsSection" class="space-y-3">
-                        <div
-                            class="credit-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full customer-select credit-description"
-                                    data-placeholder="Select Customer..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Customer" onclick="DailyCloseApp.openNewCustomerModal(this)">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-note"
-                                placeholder="Note/Reference" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-credit"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalCredits" class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Cashback Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-success text-emerald-500">payments</span>
-                            Cashback
-                        </h3>
-                    </div>
-                    <div id="cashbacksSection" class="space-y-3">
-                        <div
-                            class="cashback-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full customer-select cashback-description"
-                                    data-placeholder="Select Customer..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Customer" onclick="DailyCloseApp.openNewCustomerModal(this)">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-note"
-                                placeholder="Note/Reference" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-cashback"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalCashback" class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Samer's Expenses Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold flex items-center gap-2">
-                            <span class="material-symbols-outlined text-danger text-red-500">person</span>
-                            Samer's Expenses
-                        </h3>
-                    </div>
-                    <div id="samerExpensesSection" class="space-y-3">
-                        <div
-                            class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full samer-receiver-select samer-expense-description"
-                                    data-placeholder="Select Samer Receiver..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Receiver"
-                                    onclick="DailyCloseApp.openNewReceiverModal(this, 'samer')">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
-                                placeholder="Note/Details" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-samer-expense"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-samer-expense"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalSamerExpenses"
-                                class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
-
-                <!-- Ahmad's Expenses Section -->
-                <section
-                    class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="material-symbols-outlined text-primary">person_outline</span>
-                        <h3 class="text-lg font-bold">Ahmad Mistrah's Expenses</h3>
-                    </div>
-                    <div id="ahmadExpensesSection" class="space-y-3">
-                        <div
-                            class="ahmad-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                            <div class="flex-1 min-w-[200px] flex gap-2">
-                                <select class="w-full ahmad-receiver-select ahmad-expense-description"
-                                    data-placeholder="Select Ahmad Receiver..."></select>
-                                <button type="button"
-                                    class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
-                                    title="Add New Receiver"
-                                    onclick="DailyCloseApp.openNewReceiverModal(this, 'ahmad')">
-                                    <span class="material-symbols-outlined text-sm">person_add</span>
-                                </button>
-                            </div>
-                            <input type="text"
-                                class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary ahmad-expense-note"
-                                placeholder="Note/Details" />
-                            <div class="relative w-32 shrink-0">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number"
-                                    class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right ahmad-expense-amount"
-                                    placeholder="0.00" />
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="button" class="text-emerald-500 hover:text-emerald-600 add-ahmad-expense"
-                                    title="Add Item">
-                                    <span class="material-symbols-outlined">add_circle</span>
-                                </button>
-                                <button type="button" class="text-slate-300 hover:text-red-500 remove-ahmad-expense"
-                                    style="display: none;" title="Remove Item">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-right">
-                        <strong>Total: <span id="totalAhmadExpenses"
-                                class="text-primary font-bold">$0.00</span></strong>
-                    </div>
-                </section>
+            <div
+                class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
+                <span class="material-symbols-outlined text-slate-400">lock</span>
+                <input type="date" id="closeDate"
+                    class="bg-transparent border-none focus:ring-0 p-0 text-lg font-semibold flex-1 text-slate-700 dark:text-slate-300"
+                    readonly>
+                <button type="button" id="editDateBtn"
+                    class="px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium rounded-md hover:bg-slate-50 transition-colors">
+                    Edit
+                </button>
             </div>
+            <p class="text-xs text-slate-400 mt-2">Date is locked for accuracy. Click Edit to modify (requires
+                admin password).</p>
+        </section>
 
-            <!-- Right Column: Sticky Sidebar -->
-            <aside class="lg:col-span-4 lg:sticky sticky-sidebar">
-                <div class="bg-primary text-white rounded-xl shadow-lg p-8 flex flex-col h-full overflow-y-auto">
-                    <h3 class="text-sm font-black uppercase tracking-[0.2em] mb-8 opacity-70">Calculation Summary</h3>
-                    <div class="space-y-6 flex-1">
-                        <!-- Adjusted Reading -->
-                        <div class="flex justify-between items-end border-b border-white/10 pb-4">
-                            <div>
-                                <p class="text-xs font-medium text-white/60 mb-1">Adjusted Reading</p>
-                                <p class="text-xl font-bold" id="adjustedReading">$0.00</p>
-                                <p class="text-[10px] text-white/40 mt-1 italic">Calculated: Main - Ahmad Moghrabi -
-                                    Credits +
-                                    Cashback</p>
-                            </div>
-                            <span class="material-symbols-outlined text-white/30">calculate</span>
-                        </div>
-                        <!-- 5% Fee -->
-                        <div class="flex justify-between items-end border-b border-white/10 pb-4">
-                            <div>
-                                <p class="text-xs font-medium text-white/60 mb-1">Service Fee (5%)</p>
-                                <p class="text-xl font-bold" id="fivePercent">$0.00</p>
-                            </div>
-                            <span class="material-symbols-outlined text-white/30">percent</span>
-                        </div>
-                        <!-- Final Actual Cash -->
-                        <div class="pt-6 bg-white/5 rounded-lg p-4 -mx-4">
-                            <p class="text-xs font-black uppercase tracking-[0.2em] text-white/60 mb-2">Final Actual
-                                Cash</p>
-                            <div class="flex items-center gap-3">
-                                <span class="text-4xl font-black text-emerald-400" id="actualCash">$0.00</span>
-                                <span class="material-symbols-outlined text-emerald-400 text-3xl">check_circle</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sidebar Actions -->
-                    <div class="mt-12 space-y-3">
-                        <button type="button" id="submitCloseBtn" onclick="DailyCloseApp.submitDailyClose()"
-                            class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined">save</span>
-                            Save Daily Close
-                        </button>
-                        <button type="button" onclick="DailyCloseApp.clearDailyCloseForm()"
-                            class="w-full py-3 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined">refresh</span>
-                            Clear Form
-                        </button>
-                    </div>
-
-                    <!-- Auxiliary Helper Card -->
-                    <div class="mt-6 p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-4 items-center">
-                        <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <span class="material-symbols-outlined">info</span>
-                        </div>
-                        <p class="text-xs text-white/70 leading-relaxed">
-                            Data is autosaved every 30 seconds. Finalize entries to generate the report.
-                        </p>
+        <!-- Basic Values Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Main Reading -->
+                <div>
+                    <label for="mainReading"
+                        class="block text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Main
+                        Reading</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number" id="mainReading"
+                            class="w-full pl-8 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-lg font-semibold focus:border-primary focus:ring-primary"
+                            placeholder="0.00" />
                     </div>
                 </div>
-            </aside>
-        </form>
+            </div>
+        </section>
 
-        <!-- Status Message -->
-        <div id="statusMessage" class="mt-3" style="display: none;"></div>
-
-        <!-- Dynamic Datalists for Autocomplete -->
-        <datalist id="receiversList"></datalist>
-        <datalist id="employeesList"></datalist>
-        <datalist id="customersList"></datalist>
-        <datalist id="samerReceiversList"></datalist>
-
-        <!-- Admin Password Modal (Styled via Tailwind + Bootstrap minimal CSS) -->
-        <div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-labelledby="adminPasswordModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog relative w-auto mx-auto max-w-lg mt-10 px-4">
+        <!-- Daily Expenses Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-yellow-500">receipt_long</span>
+                    Daily General Expenses
+                </h3>
+            </div>
+            <div id="expensesSection" class="space-y-3">
                 <div
-                    class="modal-content relative flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl outline-none text-slate-800 dark:text-slate-200">
-                    <div
-                        class="modal-header flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 rounded-t-xl">
-                        <h5 class="modal-title text-xl font-bold flex items-center gap-2" id="adminPasswordModalLabel">
-                            <span class="material-symbols-outlined text-primary">key</span>
-                            Admin Authentication
-                        </h5>
+                    class="expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full receiver-select expense-description"
+                            data-placeholder="Select Receiver..."></select>
                         <button type="button"
-                            class="btn-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-0"
-                            data-bs-dismiss="modal" aria-label="Close">
-                            <span class="material-symbols-outlined">close</span>
+                            class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
+                            title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'general')">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
                         </button>
                     </div>
-                    <div class="modal-body p-6">
-                        <form id="adminPasswordForm" method="POST" action="{{ url_for('validate_admin_password') }}">
-                            <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">Please enter the admin password
-                                to unlock and edit the daily close date:</p>
-                            <div class="mb-4">
-                                <label for="adminPassword"
-                                    class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Admin
-                                    Password</label>
-                                <input type="password"
-                                    class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                    id="adminPassword" name="admin_password" placeholder="Enter admin password"
-                                    required>
-                            </div>
-                            <div id="passwordError"
-                                class="d-none bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-sm flex items-center justify-start gap-2">
-                                <span class="material-symbols-outlined">warning</span>
-                                Incorrect password. Please try again.
-                            </div>
-                        </form>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary expense-note"
+                        placeholder="Note/Details" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right expense-amount"
+                            placeholder="0.00" />
                     </div>
-                    <div
-                        class="modal-footer flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-800 gap-3">
-                        <button type="button"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition-colors"
-                            data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" form="adminPasswordForm"
-                            class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-primary/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">lock_open</span>
-                            Unlock Date
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-expense"
+                            title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-expense"
+                            title="Remove Item">
+                            <span class="material-symbols-outlined">remove_circle</span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-500 uppercase">General Expenses Total</span>
+                <span id="totalExpenses" class="text-lg font-black text-primary">$0.00</span>
+            </div>
+        </section>
 
-        <!-- Add New Employee Modal -->
-        <div class="modal fade" id="newEmployeeModal" tabindex="-1" aria-labelledby="newEmployeeModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog relative w-auto mx-auto max-w-lg mt-10 px-4">
+        <!-- Samer Expenses Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-orange-500">payments</span>
+                    Samer Expenses
+                </h3>
+            </div>
+            <div id="samerExpensesSection" class="space-y-3">
                 <div
-                    class="modal-content relative flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl outline-none text-slate-800 dark:text-slate-200">
-                    <div
-                        class="modal-header flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 rounded-t-xl">
-                        <h5 class="modal-title text-xl font-bold flex items-center gap-2" id="newEmployeeModalLabel">
-                            <span class="material-symbols-outlined text-primary">person_add</span>
-                            Add New Employee
-                        </h5>
+                    class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-orange-50/30 dark:bg-orange-900/10 rounded-lg border border-orange-100/50 dark:border-orange-900/20">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full samer-receiver-select samer-expense-description"
+                            data-placeholder="Select Samer Receiver..."></select>
                         <button type="button"
-                            class="btn-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-0"
-                            data-bs-dismiss="modal" aria-label="Close">
-                            <span class="material-symbols-outlined">close</span>
+                            class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
+                            title="Add New Samer Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'samer')">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
                         </button>
                     </div>
-                    <div class="modal-body p-6">
-                        <form id="newEmployeeForm"
-                            onsubmit="event.preventDefault(); DailyCloseApp.submitNewEmployee();">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Name
-                                        *</label>
-                                    <input type="text" id="newEmpName" required
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Full Name">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Phone
-                                        Number</label>
-                                    <input type="text" id="newEmpPhone"
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Phone">
-                                </div>
-                                <div>
-                                    <label
-                                        class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Position</label>
-                                    <input type="text" id="newEmpPosition"
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Job Title">
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Base
-                                        Salary</label>
-                                    <div class="relative">
-                                        <span
-                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                        <input type="number" id="newEmpSalary"
-                                            class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                            placeholder="0.00">
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                        <div id="newEmployeeError"
-                            class="mt-4 hidden bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-sm flex items-center justify-start gap-2">
-                            <span class="material-symbols-outlined">warning</span>
-                            <span class="error-text">Failed to create employee.</span>
-                        </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary samer-expense-note"
+                        placeholder="Samer Payment Note" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
+                            placeholder="0.00" />
                     </div>
-                    <div
-                        class="modal-footer flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-800 gap-3">
-                        <button type="button"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition-colors"
-                            data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" form="newEmployeeForm" id="btnSubmitNewEmployee"
-                            class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-primary/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">save</span>
-                            Save Employee
+                    <div class="flex gap-2">
+                        <button type="button" class="text-orange-500 hover:text-orange-600 add-samer-expense">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-samer-expense">
+                            <span class="material-symbols-outlined">remove_circle</span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-orange-600/70 dark:text-orange-400 uppercase">Samer
+                    Expenses Total</span>
+                <span id="totalSamerExpenses" class="text-lg font-black text-orange-600">$0.00</span>
+            </div>
+        </section>
 
-        <!-- Add New Customer Modal -->
-        <div class="modal fade" id="newCustomerModal" tabindex="-1" aria-labelledby="newCustomerModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog relative w-auto mx-auto max-w-lg mt-10 px-4">
+
+        <!-- Advances Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500">account_balance_wallet</span>
+                    Employee Advances
+                </h3>
+            </div>
+            <div id="advancesSection" class="space-y-3">
                 <div
-                    class="modal-content relative flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl outline-none text-slate-800 dark:text-slate-200">
-                    <div
-                        class="modal-header flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 rounded-t-xl">
-                        <h5 class="modal-title text-xl font-bold flex items-center gap-2" id="newCustomerModalLabel">
-                            <span class="material-symbols-outlined text-primary">person_add</span>
-                            Add New Customer
-                        </h5>
+                    class="advance-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full employee-select advance-description"
+                            data-placeholder="Select Employee..."></select>
                         <button type="button"
-                            class="btn-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-0"
-                            data-bs-dismiss="modal" aria-label="Close">
-                            <span class="material-symbols-outlined">close</span>
+                            class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
+                            title="Add New Employee" onclick="DailyCloseApp.openNewEmployeeModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
                         </button>
                     </div>
-                    <div class="modal-body p-6">
-                        <form id="newCustomerForm"
-                            onsubmit="event.preventDefault(); DailyCloseApp.submitNewCustomer();">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="col-span-2">
-                                    <label
-                                        class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Username
-                                        / Name
-                                        *</label>
-                                    <input type="text" id="newCustomerUsername" required
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Ali Hassan">
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Phone
-                                        Number</label>
-                                    <input type="text" id="newCustomerPhone"
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Phone">
-                                </div>
-                            </div>
-                        </form>
-                        <div id="newCustomerError"
-                            class="mt-4 hidden bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-sm flex items-center justify-start gap-2">
-                            <span class="material-symbols-outlined">warning</span>
-                            <span class="error-text">Failed to create customer.</span>
-                        </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary advance-note"
+                        placeholder="Advance Reason" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
+                            placeholder="0.00" />
                     </div>
-                    <div
-                        class="modal-footer flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-800 gap-3">
-                        <button type="button"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition-colors"
-                            data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" form="newCustomerForm" id="btnSubmitNewCustomer"
-                            class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-primary/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">save</span>
-                            Save Customer
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-advance"
+                            title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-advance"
+                            title="Remove Item">
+                            <span class="material-symbols-outlined">remove_circle</span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-500 uppercase">Advances Total</span>
+                <span id="totalAdvances" class="text-lg font-black text-primary">$0.00</span>
+            </div>
+        </section>
 
-        <!-- Add New Receiver Modal -->
-        <div class="modal fade" id="newReceiverModal" tabindex="-1" aria-labelledby="newReceiverModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog relative w-auto mx-auto max-w-lg mt-10 px-4">
+        <!-- Deductions Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-rose-500">money_off</span>
+                    Other Deductions
+                </h3>
+            </div>
+            <div id="deductionsSection" class="space-y-3">
                 <div
-                    class="modal-content relative flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl outline-none text-slate-800 dark:text-slate-200">
-                    <div
-                        class="modal-header flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 rounded-t-xl">
-                        <h5 class="modal-title text-xl font-bold flex items-center gap-2" id="newReceiverModalLabel">
-                            <span class="material-symbols-outlined text-primary">person_add</span>
-                            Add New Receiver
-                        </h5>
-                        <button type="button"
-                            class="btn-close text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-transparent border-0"
-                            data-bs-dismiss="modal" aria-label="Close">
-                            <span class="material-symbols-outlined">close</span>
+                    class="deduction-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full employee-select deduction-description"
+                            data-placeholder="Select Employee..."></select>
+                    </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary deduction-note"
+                        placeholder="Deduction Reason" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
+                            placeholder="0.00" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-deduction"
+                            title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
                         </button>
-                    </div>
-                    <div class="modal-body p-6">
-                        <form id="newReceiverForm"
-                            onsubmit="event.preventDefault(); DailyCloseApp.submitNewReceiver();">
-                            <input type="hidden" id="newReceiverType" value="general">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="col-span-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Name
-                                        *</label>
-                                    <input type="text" id="newReceiverName" required
-                                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary shadow-sm"
-                                        placeholder="Electricity Bill">
-                                </div>
-                            </div>
-                        </form>
-                        <div id="newReceiverError"
-                            class="mt-4 hidden bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-sm flex items-center justify-start gap-2">
-                            <span class="material-symbols-outlined">warning</span>
-                            <span class="error-text">Failed to create receiver.</span>
-                        </div>
-                    </div>
-                    <div
-                        class="modal-footer flex items-center justify-end p-5 border-t border-slate-200 dark:border-slate-800 gap-3">
-                        <button type="button"
-                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition-colors"
-                            data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" form="newReceiverForm" id="btnSubmitNewReceiver"
-                            class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-primary/20 transition-all flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm">save</span>
-                            Save Receiver
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-deduction"
+                            title="Remove Item">
+                            <span class="material-symbols-outlined">remove_circle</span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-500 uppercase">Deductions Total</span>
+                <span id="totalDeductions" class="text-lg font-black text-primary">$0.00</span>
+            </div>
+        </section>
 
-    </main>
+        <!-- Credits Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-slate-500">credit_card</span>
+                    Credit / Debt
+                </h3>
+            </div>
+            <div id="creditsSection" class="space-y-3">
+                <div
+                    class="credit-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full customer-select credit-description"
+                            data-placeholder="Select Customer..."></select>
+                        <button type="button"
+                            class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip"
+                            title="Add New Customer" onclick="DailyCloseApp.openNewCustomerModal(this)">
+                            <span class="material-symbols-outlined text-sm">person_add</span>
+                        </button>
+                    </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary credit-note"
+                        placeholder="Reason" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
+                            placeholder="0.00" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-credit"
+                            title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-credit"
+                            title="Remove Item">
+                            <span class="material-symbols-outlined">remove_circle</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-500 uppercase">Credits Total</span>
+                <span id="totalCredits" class="text-lg font-black text-primary">$0.00</span>
+            </div>
+        </section>
 
-    <!-- Footer for mobile view buttons (Fixed) -->
-    <div
-        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 grid grid-cols-2 gap-3 z-50">
-        <button type="button" onclick="DailyCloseApp.clearDailyCloseForm()"
-            class="py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg border border-slate-200 dark:border-slate-700">
-            Clear
-        </button>
-        <button type="button" onclick="DailyCloseApp.submitDailyClose()" id="submitCloseBtnMobile"
-            class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20">
-            Save Close
-        </button>
+        <!-- Cashback Section -->
+        <section
+            class="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-500">payments</span>
+                    Cash Back / Pay Off Credit
+                </h3>
+            </div>
+            <div id="cashbacksSection" class="space-y-3">
+                <div
+                    class="cashback-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                    <div class="flex-1 min-w-[200px] flex gap-2">
+                        <select class="w-full customer-select cashback-description"
+                            data-placeholder="Select Customer..."></select>
+                    </div>
+                    <input type="text"
+                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary cashback-note"
+                        placeholder="Reason" />
+                    <div class="relative w-32 shrink-0">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                        <input type="number"
+                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
+                            placeholder="0.00" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-cashback"
+                            title="Add Item">
+                            <span class="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <button type="button" class="text-rose-500 hover:text-rose-600 remove-cashback"
+                            title="Remove Item">
+                            <span class="material-symbols-outlined">remove_circle</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Display -->
+            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex justify-between items-center">
+                <span class="text-sm font-bold text-slate-500 uppercase">Cashback Total</span>
+                <span id="totalCashback" class="text-lg font-black text-primary">$0.00</span>
+            </div>
+        </section>
+
     </div>
 
-    <!-- Script Includes -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        // Ensure buttons sync
-        document.getElementById('submitCloseBtnMobile')?.addEventListener('click', function () {
-            // It calls DailyCloseApp.submitDailyClose() securely onclick
-        });
+    <!-- Right Column: Results & Summary -->
+    <div class="lg:col-span-4 lg:sticky lg:top-8 space-y-6">
 
-        // Dropdown functionality for Tailwind Profile Menu
-        document.addEventListener('DOMContentLoaded', function () {
-            const dropdownButton = document.getElementById('profileDropdown');
-            const dropdownMenu = document.getElementById('profileDropdownMenu');
+        <!-- Calculated Values -->
+        <section id="resultsSection"
+            class="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border-2 border-primary/20 dark:border-slate-800">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3">
+                <span class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">calculate</span>
+                </span>
+                Calculations Result
+            </h3>
 
-            if (dropdownButton && dropdownMenu) {
-                // Toggle via click
-                dropdownButton.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const isExpanded = dropdownButton.getAttribute('aria-expanded') === 'true';
+            <div class="space-y-6">
+                <!-- Adjusted Reading -->
+                <div
+                    class="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Adjusted
+                        Reading</span>
+                    <span id="adjustedReading" class="text-3xl font-black text-slate-900 dark:text-white">$0.00</span>
+                    <p class="text-[10px] text-slate-400 mt-2 italic">(Main - Total Credits + Total
+                        Cashback)</p>
+                </div>
 
-                    if (!isExpanded) {
-                        dropdownMenu.classList.remove('opacity-0', 'invisible');
-                        dropdownMenu.classList.add('opacity-100', 'visible');
-                        dropdownButton.setAttribute('aria-expanded', 'true');
-                    } else {
-                        dropdownMenu.classList.add('opacity-0', 'invisible');
-                        dropdownMenu.classList.remove('opacity-100', 'visible');
-                        dropdownButton.setAttribute('aria-expanded', 'false');
-                    }
-                });
+                <!-- 5% Commission -->
+                <div
+                    class="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <span class="block text-xs font-bold text-slate-500 uppercase tracking-widest">5%
+                            Commission</span>
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">AUTO</span>
+                    </div>
+                    <span id="fivePercent" class="text-3xl font-black text-slate-900 dark:text-white">$0.00</span>
+                </div>
 
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function (e) {
-                    if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                        dropdownMenu.classList.add('opacity-0', 'invisible');
-                        dropdownMenu.classList.remove('opacity-100', 'visible');
-                        dropdownButton.setAttribute('aria-expanded', 'false');
-                    }
-                });
-            }
-        });
-    </script>
-</body>
+                <!-- Actual Cash -->
+                <div
+                    class="p-6 bg-gradient-to-br from-primary to-blue-700 text-white rounded-xl shadow-lg shadow-primary/30 transform transition-all hover:scale-[1.02]">
+                    <span class="block text-xs font-bold text-blue-100 uppercase tracking-widest mb-1">Actual Cash
+                        Required</span>
+                    <span id="actualCash" class="text-4xl font-black tracking-tight">$0.00</span>
+                    <p class="text-[10px] text-blue-200 mt-3">(Adjusted - All Expenses - Samer - Advances)</p>
+                </div>
+            </div>
 
-</html>
+            <!-- Submit Buttons -->
+            <div class="mt-10 grid grid-cols-2 gap-4">
+                <button type="button" id="clearForm"
+                    class="py-4 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">restart_alt</span>
+                    Clear
+                </button>
+                <button type="submit"
+                    class="py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">save</span>
+                    Save Close
+                </button>
+            </div>
+        </section>
+
+        <!-- Help Tooltip -->
+        <section
+            class="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20">
+            <h4 class="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">info</span>
+                Quick Help
+            </h4>
+            <p class="text-xs text-indigo-600/80 dark:text-indigo-300 leading-relaxed italic">
+                All calculations are automated. Samer expenses are deducted from the adjusted reading along
+                with general expenses and employee advances to calculate final cash.
+            </p>
+        </section>
+
+    </div>
+</form>
+
+<!-- Footer for mobile view buttons (Fixed) -->
+<div
+    class="lg:hidden fixed bottom-16 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 grid grid-cols-2 gap-3 z-40">
+    <button type="button" onclick="DailyCloseApp.clearDailyCloseForm()"
+        class="py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg border border-slate-200 dark:border-slate-700">
+        Clear
+    </button>
+    <button type="button" onclick="DailyCloseApp.submitDailyClose()" id="submitCloseBtnMobile"
+        class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20">
+        Save Close
+    </button>
+</div>
+
+<!-- Modal: New Receiver -->
+<div class="modal fade" id="newReceiverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content overflow-hidden border-none shadow-2xl">
+            <div class="modal-header bg-slate-50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 id="newReceiverModalLabel"
+                    class="modal-title flex items-center gap-2 text-slate-900 dark:text-white">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Add New Receiver
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-6">
+                <form id="newReceiverForm" onsubmit="event.preventDefault(); DailyCloseApp.submitNewReceiver();">
+                    <input type="hidden" id="newReceiverType" value="general">
+                    <div class="mb-4">
+                        <label for="newReceiverName"
+                            class="block text-sm font-bold text-slate-500 uppercase mb-2">Receiver Name</label>
+                        <input type="text" id="newReceiverName" required
+                            class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:border-primary focus:ring-primary h-12"
+                            placeholder="Enter full name...">
+                    </div>
+                </form>
+                <div id="newReceiverError"
+                    class="mt-4 hidden bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-sm flex items-center justify-start gap-2">
+                    <span class="material-symbols-outlined">warning</span>
+                    <span class="error-text">Failed to create receiver.</span>
+                </div>
+            </div>
+            <div
+                class="modal-footer bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-t border-slate-100 dark:border-slate-800 gap-3">
+                <button type="button"
+                    class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all font-display"
+                    data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="newReceiverForm" id="btnSubmitNewReceiver"
+                    class="px-6 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 font-display">
+                    <span class="material-symbols-outlined text-xs">save</span>
+                    Save Receiver
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Employee -->
+<div class="modal fade" id="newEmployeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content overflow-hidden border-none shadow-2xl">
+            <div class="modal-header bg-slate-50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title flex items-center gap-2 text-slate-900 dark:text-white">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Add New Employee
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-6">
+                <form id="newEmployeeForm" onsubmit="event.preventDefault(); DailyCloseApp.submitNewEmployee();">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label for="newEmpName"
+                                class="block text-sm font-bold text-slate-500 uppercase mb-2">Name</label>
+                            <input type="text" id="newEmpName" required class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                        <div>
+                            <label for="newEmpPhone"
+                                class="block text-sm font-bold text-slate-500 uppercase mb-2">Phone</label>
+                            <input type="text" id="newEmpPhone" class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                        <div>
+                            <label for="newEmpPosition"
+                                class="block text-sm font-bold text-slate-500 uppercase mb-2">Position</label>
+                            <input type="text" id="newEmpPosition" class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                        <div class="col-span-2">
+                            <label for="newEmpSalary" class="block text-sm font-bold text-slate-500 uppercase mb-2">Base
+                                Salary</label>
+                            <input type="number" id="newEmpSalary" class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                    </div>
+                </form>
+                <div id="newEmployeeError" class="mt-4 hidden bg-red-50 text-red-700 p-3 rounded-lg text-sm">
+                    <span class="error-text"></span>
+                </div>
+            </div>
+            <div class="modal-footer bg-slate-50 px-6 py-4 gap-3">
+                <button type="button" class="px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="newEmployeeForm" id="btnSubmitNewEmployee"
+                    class="px-6 py-2 bg-primary text-white rounded-lg font-bold">Save Employee</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Customer -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content overflow-hidden border-none shadow-2xl">
+            <div class="modal-header bg-slate-50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title flex items-center gap-2 text-slate-900 dark:text-white">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Add New Customer
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-6">
+                <form id="newCustomerForm" onsubmit="event.preventDefault(); DailyCloseApp.submitNewCustomer();">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="newCustomerUsername"
+                                class="block text-sm font-bold text-slate-500 uppercase mb-2">Username</label>
+                            <input type="text" id="newCustomerUsername" required
+                                class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                        <div>
+                            <label for="newCustomerPhone"
+                                class="block text-sm font-bold text-slate-500 uppercase mb-2">Phone</label>
+                            <input type="text" id="newCustomerPhone" class="w-full rounded-lg border-slate-200 h-10">
+                        </div>
+                    </div>
+                </form>
+                <div id="newCustomerError" class="mt-4 hidden bg-red-50 text-red-700 p-3 rounded-lg text-sm">
+                    <span class="error-text"></span>
+                </div>
+            </div>
+            <div class="modal-footer bg-slate-50 px-6 py-4 gap-3">
+                <button type="button" class="px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="newCustomerForm" id="btnSubmitNewCustomer"
+                    class="px-6 py-2 bg-primary text-white rounded-lg font-bold">Save Customer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Specific daily close page initialization if needed
+</script>
+{% endblock %}

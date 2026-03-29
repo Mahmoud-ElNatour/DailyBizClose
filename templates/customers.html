@@ -186,6 +186,12 @@
                 <input type="hidden" name="id" id="edit-customer-id">
                 <div class="modal-body p-6 space-y-4">
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date (for
+                            Sync)</label>
+                        <input type="date" name="date" id="edit-customer-date" required
+                            class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                    </div>
+                    <div>
                         <label
                             class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
                         <input type="text" name="username" id="edit-customer-username" required
@@ -274,6 +280,8 @@
                 document.getElementById('edit-customer-username').value = data.username;
                 document.getElementById('edit-customer-phone').value = data.phone_number || '';
                 document.getElementById('edit-customer-balance').value = data.balance || 0;
+                document.getElementById('edit-customer-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('edit-customer-date').value = new Date().toISOString().split('T')[0];
                 const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
                 modal.show();
             })

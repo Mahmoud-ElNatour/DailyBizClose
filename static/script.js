@@ -99,7 +99,10 @@ const DailyCloseApp = {
     customers: [],
     receivers: [],
     samerReceivers: [],
-    ahmadReceivers: [],
+
+    // Edit mode state
+    editMode: false,
+    currentClosingDate: null,
 
     // Initialize the application
     init() {
@@ -115,6 +118,20 @@ const DailyCloseApp = {
 
         this.initializeDateHandling();
         this.checkAdminValidation();
+
+        // Check for specific date in URL or use today
+        const urlParams = new URLSearchParams(window.location.search);
+        let urlDate = urlParams.get('date');
+
+        if (!urlDate) {
+            urlDate = new Date().toISOString().split('T')[0];
+        }
+
+        const dateInput = document.getElementById('closeDate');
+        if (dateInput) {
+            dateInput.value = urlDate;
+            this.fetchDailyClosingData(urlDate);
+        }
     },
 
     // Fetch all active entities for selects
@@ -248,9 +265,7 @@ const DailyCloseApp = {
     // Calculate all values in real-time
     calculateValues() {
         try {
-            // Get basic input values
             const mainReading = parseFloat(document.getElementById('mainReading')?.value) || 0;
-            const drSmashed = parseFloat(document.getElementById('drSmashed')?.value) || 0;
 
             // Calculate totals from sections
             const totalExpenses = this.calculateSectionTotal('.expense-amount');
@@ -259,7 +274,6 @@ const DailyCloseApp = {
             const totalCredits = this.calculateSectionTotal('.credit-amount');
             const totalCashback = this.calculateSectionTotal('.cashback-amount');
             const totalSamerExpenses = this.calculateSectionTotal('.samer-expense-amount');
-            const totalAhmadExpenses = this.calculateSectionTotal('.ahmad-expense-amount');
 
             // Update section totals
             this.updateSectionTotal('#totalExpenses', totalExpenses);
@@ -268,16 +282,15 @@ const DailyCloseApp = {
             this.updateSectionTotal('#totalCredits', totalCredits);
             this.updateSectionTotal('#totalCashback', totalCashback);
             this.updateSectionTotal('#totalSamerExpenses', totalSamerExpenses);
-            this.updateSectionTotal('#totalAhmadExpenses', totalAhmadExpenses);
 
-            // Calculate Adjusted Reading: Main Reading - Dr Smashed - Total Credits + Total Cashback
-            const adjustedReading = mainReading - drSmashed;
+            // Calculate Adjusted Reading: Main Reading - Total Credits + Total Cashback
+            const adjustedReading = mainReading - totalCredits + totalCashback;
 
             // Calculate 5% of Adjusted Reading
             const fivePercent = adjustedReading * 0.05;
 
-            // Calculate Actual Cash: Adjusted Reading - Total Ahmad Expenses - Total Expenses - Total Advances - Total Samer Expenses - Total Credits + Total Cashback
-            const actualCash = adjustedReading - totalAhmadExpenses - totalExpenses - totalAdvances - totalSamerExpenses - totalCredits + totalCashback;
+            // Calculate Actual Cash: Adjusted Reading - Total Expenses - Total Advances - Total Samer Expenses
+            const actualCash = adjustedReading - totalExpenses - totalAdvances - totalSamerExpenses;
 
             // Update calculated field displays
             const displays = {
@@ -444,7 +457,7 @@ const DailyCloseApp = {
     // Collect form data
     collectFormData() {
         const inputs = [
-            'mainReading', 'drSmashed', 'ahmadExpenses', 'dailyExpenses',
+            'mainReading', 'drSmashed', 'dailyExpenses',
             'dailyAdvances', 'creditSales', 'cashback'
         ];
 
@@ -463,7 +476,7 @@ const DailyCloseApp = {
         const adjustedReading = data.inputs.mainReading - data.inputs.drSmashed - data.inputs.creditSales + data.inputs.cashback;
         const fivePercent = adjustedReading * 0.05;
         const totalDeductions = this.calculateSectionTotal('.deduction-amount');
-        const actualCash = adjustedReading - data.inputs.ahmadExpenses - data.inputs.dailyExpenses - data.inputs.dailyAdvances;
+        const actualCash = adjustedReading - data.inputs.dailyExpenses - data.inputs.dailyAdvances;
 
         data.calculations = {
             adjustedReading,
@@ -490,8 +503,7 @@ const DailyCloseApp = {
             // Collect basic inputs
             const basicInputs = {
                 close_date: closeDate,
-                main_reading: parseFloat(document.getElementById('mainReading')?.value) || 0,
-                dr_smashed: parseFloat(document.getElementById('drSmashed')?.value) || 0
+                main_reading: parseFloat(document.getElementById('mainReading')?.value) || 0
             };
 
             // Collect expense data with proper types for automatic creation
@@ -500,7 +512,6 @@ const DailyCloseApp = {
             const credits = this.collectSectionData('.credit-item', '.credit-description', '.credit-amount', 'credit');
             const cashbacks = this.collectSectionData('.cashback-item', '.cashback-description', '.cashback-amount', 'cashback');
             const samer_expenses = this.collectSectionData('.samer-expense-item', '.samer-expense-description', '.samer-expense-amount', 'samer-expense');
-            const ahmad_expenses = this.collectSectionData('.ahmad-expense-item', '.ahmad-expense-description', '.ahmad-expense-amount', 'ahmad-expense');
 
             // Calculate totals and calculated fields
             const calculations = {
@@ -510,11 +521,14 @@ const DailyCloseApp = {
             };
 
             // Calculate totals from individual sections
-            const totalExpenses = this.calculateSectionTotal('.expense-amount');
+            const totalGenExpenses = this.calculateSectionTotal('.expense-amount');
             const totalAdvance = this.calculateSectionTotal('.advance-amount');
             const totalDeductions = this.calculateSectionTotal('.deduction-amount');
             const totalCredit = this.calculateSectionTotal('.credit-amount');
             const totalCashback = this.calculateSectionTotal('.cashback-amount');
+            const totalSamerExpenses = this.calculateSectionTotal('.samer-expense-amount');
+
+            const totalTotalExpenses = totalGenExpenses + totalSamerExpenses;
 
             // Collect deductions data
             const deductions = this.collectSectionData('.deduction-item', '.deduction-description', '.deduction-amount', 'deduction');
@@ -522,23 +536,22 @@ const DailyCloseApp = {
             const formData = {
                 date: closeDate,
                 main_reading: basicInputs.main_reading,
-                dr_smashed: basicInputs.dr_smashed,
+                dr_smashed: 0,
                 adjusted_reading: calculations.adjusted_reading,
-                total_expenses: totalExpenses,
+                total_expenses: totalTotalExpenses,
                 total_advance: totalAdvance,
                 total_deductions: totalDeductions,
                 total_credit: totalCredit,
                 total_cashback: totalCashback,
                 five_percent: calculations.five_percent,
-                total_cashout: totalExpenses + totalAdvance + totalDeductions,
+                total_cashout: totalTotalExpenses + totalAdvance + totalDeductions,
                 actual_cash: calculations.actual_cash,
                 expenses: expenses,
                 advances: advances,
                 deductions: deductions,
                 credits: credits,
                 cashbacks: cashbacks,
-                samer_expenses: samer_expenses,
-                ahmad_expenses: ahmad_expenses
+                samer_expenses: samer_expenses
             };
 
             // Validation: Ensure main reading is provided
@@ -554,7 +567,6 @@ const DailyCloseApp = {
                 formData.deductions.length > 0 ||
                 formData.credits.length > 0 ||
                 formData.cashbacks.length > 0 ||
-                formData.ahmad_expenses.length > 0 ||
                 formData.samer_expenses.length > 0;
 
             if (!hasData) {
@@ -570,8 +582,11 @@ const DailyCloseApp = {
 
             this.showStatusMessage('Saving daily close data...', 'info');
 
-            const response = await fetch('/api/daily-closing', {
-                method: 'POST',
+            const method = this.editMode ? 'PUT' : 'POST';
+            const url = this.editMode ? `/api/daily-closing/${this.currentClosingDate}` : '/api/daily-closing';
+
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
@@ -579,12 +594,14 @@ const DailyCloseApp = {
             const data = await response.json();
 
             if (response.ok && data.status === 'success') {
-                this.showStatusMessage('Daily close saved successfully! Redirecting to print view...', 'success');
+                const actionText = this.editMode ? 'updated' : 'saved';
+                this.showStatusMessage(`Daily close ${actionText} successfully! Redirecting to print view...`, 'success');
                 this.clearDailyCloseForm();
 
                 // Keep toast visible shortly before redirecting
+                const redirectId = data.id || data.data?.id;
                 setTimeout(() => {
-                    window.location.href = `/control-panel/daily-close/${data.id}/print`;
+                    window.location.href = `/control-panel/daily-close/${redirectId}/print`;
                 }, 1000);
             } else {
                 this.showStatusMessage('Error saving daily close: ' + (data.message || data.error || 'Unknown error'), 'danger');
@@ -595,7 +612,8 @@ const DailyCloseApp = {
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Daily Close';
+                const originalText = this.editMode ? 'Update Daily Close' : 'Save Daily Close';
+                submitBtn.innerHTML = `<span class="material-symbols-outlined">save</span> ${originalText}`;
             }
         }
     },
@@ -620,7 +638,7 @@ const DailyCloseApp = {
                 };
 
                 // Add type-specific data
-                if (type === 'expense' || type === 'samer-expense' || type === 'ahmad-expense') {
+                if (type === 'expense' || type === 'samer-expense') {
                     baseData.receiver_id = descValue;
                 } else if (type === 'credit' || type === 'cashback') {
                     baseData.customer_id = descValue;
@@ -672,6 +690,13 @@ const DailyCloseApp = {
 
         // Recalculate values
         this.calculateValues();
+
+        // Reset edit mode
+        this.editMode = false;
+        this.currentClosingDate = null;
+        const submitBtn = document.getElementById('submitCloseBtn');
+        if (submitBtn) submitBtn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Daily Close';
+
         this.showStatusMessage('Form cleared', 'info');
     },
 
@@ -778,9 +803,6 @@ const DailyCloseApp = {
         document.querySelectorAll('.samer-receiver-select').forEach(select => {
             this.initializeGenericSelect(select, this.samerReceivers, 'Select Samer Receiver...');
         });
-        document.querySelectorAll('.ahmad-receiver-select').forEach(select => {
-            this.initializeGenericSelect(select, this.ahmadReceivers, 'Select Ahmad Receiver...');
-        });
         document.querySelectorAll('.customer-select').forEach(select => {
             this.initializeGenericSelect(select, this.customers, 'Select Customer...');
         });
@@ -824,8 +846,6 @@ const DailyCloseApp = {
                 this.initializeGenericSelect(newItem.querySelector('.receiver-select'), this.receivers, 'Select Receiver...');
             } else if (newItem.querySelector('.samer-receiver-select')) {
                 this.initializeGenericSelect(newItem.querySelector('.samer-receiver-select'), this.samerReceivers, 'Select Samer Receiver...');
-            } else if (newItem.querySelector('.ahmad-receiver-select')) {
-                this.initializeGenericSelect(newItem.querySelector('.ahmad-receiver-select'), this.ahmadReceivers, 'Select Ahmad Receiver...');
             } else if (newItem.querySelector('.customer-select')) {
                 this.initializeGenericSelect(newItem.querySelector('.customer-select'), this.customers, 'Select Customer...');
             }
@@ -997,7 +1017,7 @@ const DailyCloseApp = {
                 <div class="samer-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                     <div class="flex-1 min-w-[200px] flex gap-2">
                         <select class="w-full samer-receiver-select samer-expense-description" data-placeholder="Select Samer Receiver..."></select>
-                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'samer')">
+                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Samer Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'samer')">
                             <span class="material-symbols-outlined text-sm">person_add</span>
                         </button>
                     </div>
@@ -1018,32 +1038,6 @@ const DailyCloseApp = {
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
-                </div>`,
-            'ahmad-expense': `
-                <div class="ahmad-expense-item flex flex-wrap md:flex-nowrap gap-4 items-center p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                    <div class="flex-1 min-w-[200px] flex gap-2">
-                        <select class="w-full ahmad-receiver-select ahmad-expense-description" data-placeholder="Select Ahmad Receiver..."></select>
-                        <button type="button" class="px-2 py-1 bg-primary text-white rounded-md hover:bg-blue-600 transition-colors tooltip" title="Add New Receiver" onclick="DailyCloseApp.openNewReceiverModal(this, 'ahmad')">
-                            <span class="material-symbols-outlined text-sm">person_add</span>
-                        </button>
-                    </div>
-                    <input type="text"
-                        class="flex-[1.5] min-w-[200px] rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary ahmad-expense-note"
-                        placeholder="Note/Details" />
-                    <div class="relative w-32 shrink-0">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
-                            class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right ahmad-expense-amount"
-                            placeholder="0.00" />
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="button" class="text-emerald-500 hover:text-emerald-600 add-ahmad-expense" title="Add Item">
-                            <span class="material-symbols-outlined">add_circle</span>
-                        </button>
-                        <button type="button" class="text-slate-300 hover:text-red-500 remove-ahmad-expense" title="Remove Item">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    </div>
                 </div>`
         };
 
@@ -1054,10 +1048,149 @@ const DailyCloseApp = {
     initializeSimpleCalculationHandlers() {
         // Handle input events for real-time calculation
         document.addEventListener('input', (e) => {
-            if (e.target.matches('.expense-amount, .advance-amount, .deduction-amount, .credit-amount, .cashback-amount, .samer-expense-amount, .ahmad-expense-amount')) {
+            if (e.target.matches('.expense-amount, .advance-amount, .deduction-amount, .credit-amount, .cashback-amount, .samer-expense-amount')) {
                 this.calculateValues();
             }
         });
+    },
+
+    // Fetch daily closing data by date
+    async fetchDailyClosingData(dateStr) {
+        if (!dateStr) return;
+
+        this.showStatusMessage(`Checking for existing record on ${dateStr}...`, 'info');
+
+        try {
+            const response = await fetch(`/api/daily-closing/${dateStr}`);
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                this.populateForm(result.data);
+                this.editMode = true;
+                this.currentClosingDate = dateStr;
+
+                const submitBtn = document.getElementById('submitCloseBtn');
+                if (submitBtn) {
+                    submitBtn.classList.remove('bg-emerald-500', 'hover:bg-emerald-600');
+                    submitBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    submitBtn.innerHTML = '<span class="material-symbols-outlined">update</span> Update Daily Close';
+                }
+
+                this.showStatusMessage(`Record found for ${dateStr}. You are now in EDIT mode.`, 'success');
+            } else {
+                // No record found, reset to add mode
+                this.editMode = false;
+                this.currentClosingDate = null;
+
+                const submitBtn = document.getElementById('submitCloseBtn');
+                if (submitBtn) {
+                    submitBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-600');
+                    submitBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    submitBtn.innerHTML = '<span class="material-symbols-outlined">save</span> Save Daily Close';
+                }
+
+                // Keep the date but clear other fields if they were populated
+                this.clearFormKeepDate(dateStr);
+                this.showStatusMessage(`No record found for ${dateStr}. Ready for new entry.`, 'info');
+            }
+        } catch (error) {
+            console.error('Error fetching daily closing data:', error);
+            this.showStatusMessage('Error fetching data for this date.', 'danger');
+        }
+    },
+
+    // Clear form but keep the selected date
+    clearFormKeepDate(dateStr) {
+        // Reset number inputs
+        const inputs = document.querySelectorAll('#dailyCloseForm input[type="number"]');
+        inputs.forEach(input => input.value = '');
+
+        // Clear sections
+        this.resetExpenseSection('#expensesSection', 'expense');
+        this.resetExpenseSection('#advancesSection', 'advance');
+        this.resetExpenseSection('#deductionsSection', 'deduction');
+        this.resetExpenseSection('#creditsSection', 'credit');
+        this.resetExpenseSection('#cashbacksSection', 'cashback');
+        this.resetExpenseSection('#samerExpensesSection', 'samer-expense');
+
+        this.calculateValues();
+    },
+
+    // Populate form with fetched data
+    populateForm(data) {
+        if (!data) return;
+
+        // Set basic readings
+        const mainReadingEl = document.getElementById('mainReading');
+        if (mainReadingEl) {
+            mainReadingEl.value = data.main_reading || '';
+        }
+
+        // Populate sections
+        this.fillSection('#expensesSection', 'expense', data.expenses, 'receiver_id');
+        this.fillSection('#advancesSection', 'advance', data.advances, 'employee_id');
+        this.fillSection('#deductionsSection', 'deduction', data.deductions, 'employee_id');
+        this.fillSection('#creditsSection', 'credit', data.credits, 'customer_id');
+        this.fillSection('#cashbacksSection', 'cashback', data.cashbacks, 'customer_id');
+        this.fillSection('#samerExpensesSection', 'samer-expense', data.samer_expenses, 'receiver_id');
+
+        // Give time for TomSelect and DOM updates
+        setTimeout(() => this.calculateValues(), 500);
+    },
+
+    // Helper to fill sections with items
+    fillSection(sectionSelector, type, items, idField) {
+        const section = document.querySelector(sectionSelector);
+        if (!section || !items) return;
+
+        // Clear current items first
+        const existingItems = section.querySelectorAll('[class*="item"]');
+        existingItems.forEach((item, index) => {
+            // Destroy TomSelect instance to prevent memory leaks
+            const selects = item.querySelectorAll('select');
+            selects.forEach(select => {
+                if (select.tomselect) select.tomselect.destroy();
+            });
+            item.remove();
+        });
+
+        if (items.length === 0) {
+            // If no items, add one empty item
+            this.addSectionItem(sectionSelector, type);
+            return;
+        }
+
+        items.forEach((itemData, index) => {
+            // Append the item template
+            const template = this.getSectionTemplate(type);
+            section.insertAdjacentHTML('beforeend', template);
+            const newItem = section.lastElementChild;
+
+            // Populate fields
+            const noteInput = newItem.querySelector(`.${type}-note`);
+            const amountInput = newItem.querySelector(`.${type}-amount`);
+            if (noteInput) noteInput.value = itemData.note || '';
+            if (amountInput) amountInput.value = itemData.amount || '';
+
+            // Initialize TomSelect with the saved value
+            const select = newItem.querySelector('select');
+            if (select) {
+                let options = [];
+                let placeholder = '';
+
+                if (type === 'expense') { options = this.receivers; placeholder = 'Select Receiver...'; }
+                else if (type === 'advance' || type === 'deduction') { options = this.employees; placeholder = 'Select Employee...'; }
+                else if (type === 'credit' || type === 'cashback') { options = this.customers; placeholder = 'Select Customer...'; }
+                else if (type === 'samer-expense') { options = this.samerReceivers; placeholder = 'Select Samer Receiver...'; }
+
+                // Small delay to ensure initialization order
+                setTimeout(() => {
+                    this.initializeGenericSelect(select, options, placeholder, String(itemData[idField]));
+                }, 0);
+            }
+        });
+
+        this.updateRemoveButtons(sectionSelector);
     },
 
     // Initialize date handling
@@ -1393,7 +1526,7 @@ const DailyCloseApp = {
         document.getElementById('newReceiverError').classList.add('hidden');
 
         // Update modal title
-        const typeMap = { 'general': 'General Expense', 'samer': 'Samer Expense', 'ahmad': 'Ahmad Expense' };
+        const typeMap = { 'general': 'General Expense', 'samer': 'Samer Expense' };
         document.getElementById('newReceiverModalLabel').innerHTML = `
             <span class="material-symbols-outlined text-primary">person_add</span>
             Add New Receiver (${typeMap[type]})

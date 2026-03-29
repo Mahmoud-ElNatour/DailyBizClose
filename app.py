@@ -25,6 +25,32 @@ def safe_decimal(value, default=None):
     except (ValueError, TypeError, decimal.InvalidOperation):
         return default
 
+def sync_daily_closing_total(close_date, field_name, amount_diff):
+    """Update DailyClosing total for a specific date and field"""
+    from models import DailyClosing, db
+    import decimal
+    
+    # close_date can be a date object or a string 'YYYY-MM-DD'
+    if isinstance(close_date, str):
+        date_only = datetime.strptime(close_date, '%Y-%m-%d').date()
+    elif hasattr(close_date, 'date'):
+        date_only = close_date.date()
+    else:
+        date_only = close_date
+    
+    closing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == date_only).first()
+    if closing:
+        current_val = getattr(closing, field_name) or 0
+        new_val = decimal.Decimal(str(current_val)) + decimal.Decimal(str(amount_diff))
+        setattr(closing, field_name, new_val)
+        
+        # update total_cashout if it's one of the components
+        if field_name in ['total_expenses', 'total_advance', 'total_deductions', 'total_credit', 'total_cashback']:
+            closing.total_cashout = (closing.total_expenses or 0) + (closing.total_advance or 0) + \
+                                    (closing.total_deductions or 0) + (closing.total_credit or 0) + \
+                                    (closing.total_cashback or 0)
+        db.session.add(closing)
+
 def safe_int(value, default=0):
     try:
         if value is None or str(value).strip() == '':
@@ -1005,11 +1031,15 @@ def reports():
         total_customers = Customers.query.count()
         total_employees = Employees.query.count()
         
+        # Fetch customers for Misk Vouchers selection
+        customers = Customers.query.order_by(Customers.username).all()
+        
         return render_template('reports.html', 
                             total_daily_closings=total_daily_closings,
                             total_expenses=total_expenses,
                             total_customers=total_customers,
-                            total_employees=total_employees)
+                            total_employees=total_employees,
+                            customers=customers)
     except Exception as e:
         app.logger.error(f"Error loading reports: {e}")
         flash('Error loading reports data', 'error')
@@ -1097,11 +1127,11 @@ def sales():
         )
         closings = query.order_by(DailyClosing.date.desc()).all()
         
-        # Calculate sums for cards
-        total_expenses_sum = sum(c.total_expenses for c in closings)
-        total_actual_cash_sum = sum(c.actual_cash for c in closings)
-        total_credit_sum = sum(c.total_credit for c in closings)
-        total_five_percent_sum = sum(c.five_percent for c in closings)
+        # Calculate sums for cards with safe handling for None
+        total_expenses_sum = sum(safe_decimal(c.total_expenses, decimal.Decimal('0.00')) for c in closings)
+        total_actual_cash_sum = sum(safe_decimal(c.actual_cash, decimal.Decimal('0.00')) for c in closings)
+        total_credit_sum = sum(safe_decimal(c.total_credit, decimal.Decimal('0.00')) for c in closings)
+        total_five_percent_sum = sum(safe_decimal(c.five_percent, decimal.Decimal('0.00')) for c in closings)
         
         month_name = datetime(2000, month, 1).strftime('%B')
         
@@ -1117,7 +1147,20 @@ def sales():
     except Exception as e:
         app.logger.error(f"Error loading sales: {e}")
         flash('Error loading sales data', 'error')
-        return render_template('sales.html', closings=[], total_expenses_sum=0, total_actual_cash_sum=0, total_credit_sum=0, total_five_percent_sum=0)
+        # Ensure fallback variables for the template
+        now = datetime.now(UTC)
+        f_month = now.month
+        f_year = now.year
+        f_month_name = datetime(2000, f_month, 1).strftime('%B')
+        return render_template('sales.html', 
+                             closings=[], 
+                             month=f_month,
+                             year=f_year,
+                             month_name=f_month_name,
+                             total_expenses_sum=0, 
+                             total_actual_cash_sum=0, 
+                             total_credit_sum=0, 
+                             total_five_percent_sum=0)
 
 @app.route('/control-panel/payroll')
 @login_required
@@ -1255,6 +1298,50 @@ def receivers_view():
         flash('Error loading receivers page', 'error')
         return redirect(url_for('control_panel'))
 
+@app.route('/control-panel/samer-receivers')
+@login_required
+@admin_required
+def samer_receivers_view():
+    """Samer Receivers list page"""
+    try:
+        from models import SamerExpenseReceivers, SamerExpenses
+        from sqlalchemy import func
+        from datetime import datetime
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        # Base query to sum expenses
+        expense_query = db.session.query(
+            SamerExpenses.receiver_id, 
+            func.sum(SamerExpenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', SamerExpenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', SamerExpenses.date) == month)
+            
+        expense_query = expense_query.group_by(SamerExpenses.receiver_id).subquery()
+        
+        # Join with receivers
+        results = db.session.query(
+            SamerExpenseReceivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, SamerExpenseReceivers.id == expense_query.c.receiver_id
+        ).order_by(SamerExpenseReceivers.name).all()
+        
+        # Set dynamic attribute for frontend
+        for receiver, total in results:
+            receiver.period_total = float(total)
+            
+        return render_template('samer_receivers.html', receivers=[r[0] for r in results], current_month=month, current_year=year)
+    except Exception as e:
+        app.logger.error(f"Error loading samer receivers: {e}")
+        flash('Error loading samer receivers page', 'error')
+        return redirect(url_for('control_panel'))
+
 @app.route('/control-panel/receivers/export')
 @login_required
 @admin_required
@@ -1324,6 +1411,67 @@ def export_receivers_stats():
         app.logger.error(f"Error exporting receivers stats: {e}")
         flash('Error exporting data', 'error')
         return redirect(url_for('receivers_view'))
+
+@app.route('/control-panel/samer-receivers/export')
+@login_required
+@admin_required
+def export_samer_receivers_stats():
+    """Export Samer receivers and their aggregated expenses as CSV"""
+    try:
+        from models import SamerExpenseReceivers, SamerExpenses
+        import csv
+        from sqlalchemy import func
+        from io import StringIO
+        from flask import Response
+        from datetime import datetime
+        
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        expense_query = db.session.query(
+            SamerExpenses.receiver_id, 
+            func.sum(SamerExpenses.amount).label('total_amount')
+        )
+        
+        if year:
+            expense_query = expense_query.filter(db.extract('year', SamerExpenses.date) == year)
+        if month:
+            expense_query = expense_query.filter(db.extract('month', SamerExpenses.date) == month)
+            
+        expense_query = expense_query.group_by(SamerExpenses.receiver_id).subquery()
+        
+        results = db.session.query(
+            SamerExpenseReceivers, 
+            func.coalesce(expense_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            expense_query, SamerExpenseReceivers.id == expense_query.c.receiver_id
+        ).order_by(SamerExpenseReceivers.name).all()
+        
+        si = StringIO()
+        cw = csv.writer(si)
+        
+        period_str = ""
+        if month and year: period_str = f" ({month}/{year})"
+        elif year: period_str = f" ({year})"
+            
+        cw.writerow(['ID', 'Name', f'Total Paid Amount{period_str}', 'All-Time Total'])
+        
+        for receiver, total in results:
+            cw.writerow([
+                f"#{receiver.id:04d}",
+                receiver.name,
+                f"{float(total):.2f}",
+                f"{float(receiver.paid_amount or 0):.2f}"
+            ])
+            
+        output = si.getvalue()
+        filename = f"samer_receivers_{year or 'all'}_{month or 'all'}.csv"
+        
+        return Response(output, mimetype="text/csv", headers={"Content-disposition": f"attachment; filename={filename}"})
+    except Exception as e:
+        app.logger.error(f"Error exporting samer stats: {e}")
+        flash('Export failed', 'error')
+        return redirect(url_for('samer_receivers_view'))
 
 @app.route('/control-panel/ahmad-expenses')
 @login_required
@@ -1706,12 +1854,6 @@ def create_receiver():
     """Create a new generacreate_receiverl receiver"""
     return _create_receiver_generic('general', request.get_json())
 
-@app.route('/api/samer-receivers', methods=['POST'])
-@login_required
-def create_samer_receiver():
-    """Create a new Samer receiver"""
-    return _create_receiver_generic('samer', request.get_json())
-
 @app.route('/api/ahmad-receivers', methods=['POST'])
 @login_required
 def create_ahmad_receiver():
@@ -1750,6 +1892,263 @@ def _create_receiver_generic(receiver_type, data):
         app.logger.error(f"Error creating {receiver_type} receiver: {e}")
         return jsonify({'error': 'Failed to create receiver'}), 500
 
+@app.route('/api/daily-closing/<date_str>', methods=['GET'])
+@login_required
+def get_daily_closing(date_str):
+    """Fetch daily closing record by date"""
+    try:
+        from models import DailyClosing, Expenses, AhmadMistrahExpenses, SamerExpenses, Advances, Credits, Cashbacks, Deductions
+        from datetime import datetime
+        
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        closing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == target_date).first()
+        
+        if not closing:
+            return jsonify({'error': 'No record found for this date'}), 404
+            
+        # Get associated records
+        expenses = Expenses.query.filter_by(daily_closing_id=closing.id).all()
+        advances = Advances.query.filter_by(daily_closing_id=closing.id).all()
+        credits = Credits.query.filter_by(daily_closing_id=closing.id).all()
+        cashbacks = Cashbacks.query.filter_by(daily_closing_id=closing.id).all()
+        deductions = Deductions.query.filter_by(daily_closing_id=closing.id).all()
+        samer_expenses = SamerExpenses.query.filter_by(daily_closing_id=closing.id).all()
+
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'id': closing.id,
+                'date': closing.date.strftime('%Y-%m-%d'),
+                'main_reading': float(closing.main_reading or 0),
+                'dr_smashed': float(closing.dr_smashed or 0),
+                'adjusted_reading': float(closing.adjusted_reading or 0),
+                'total_expenses': float(closing.total_expenses or 0),
+                'total_advance': float(closing.total_advance or 0),
+                'total_credit': float(closing.total_credit or 0),
+                'total_cashback': float(closing.total_cashback or 0),
+                'total_deductions': float(closing.total_deductions or 0),
+                'five_percent': float(closing.five_percent or 0),
+                'total_cashout': float(closing.total_cashout or 0),
+                'actual_cash': float(closing.actual_cash or 0),
+                'note': closing.note if hasattr(closing, 'note') else '',
+                'expenses': [{'receiver_id': e.receiver_id, 'amount': float(e.amount), 'note': e.note} for e in expenses],
+                'advances': [{'employee_id': a.employee_id, 'amount': float(a.amount), 'note': a.note} for a in advances],
+                'credits': [{'customer_id': c.customer_id, 'amount': float(c.amount), 'note': c.note} for c in credits],
+                'cashbacks': [{'customer_id': c.customer_id, 'amount': float(c.amount), 'note': c.note} for c in cashbacks],
+                'deductions': [{'employee_id': d.employee_id, 'amount': float(d.amount), 'note': d.note} for d in deductions],
+                'samer_expenses': [{'receiver_id': s.receiver_id, 'amount': float(s.amount), 'note': s.note} for s in samer_expenses]
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching daily closing: {e}")
+        return jsonify({'error': str(e)}), 500
+
+def delete_daily_closing_items(closing):
+    """Helper to clear associated records and adjust balances before re-processing or deletion"""
+    from models import EmployeeWorking, db
+    
+    # 1. Clear Expenses and adjust Receiver balances
+    for exp in closing.expenses:
+        if exp.receiver:
+            exp.receiver.paid_amount = (exp.receiver.paid_amount or 0) - exp.amount
+            db.session.add(exp.receiver)
+        db.session.delete(exp)
+        
+    # 2. Clear Ahmad Expenses and adjust Ahmad Receiver balances
+    for ae in closing.ahmad_mistrah_expenses:
+        if ae.receiver:
+            ae.receiver.paid_amount = (ae.receiver.paid_amount or 0) - ae.amount
+            db.session.add(ae.receiver)
+        db.session.delete(ae)
+        
+    # 3. Clear Samer Expenses and adjust Samer Receiver balances
+    for se in closing.samer_expenses:
+        if se.receiver:
+            se.receiver.paid_amount = (se.receiver.paid_amount or 0) - se.amount
+            db.session.add(se.receiver)
+        db.session.delete(se)
+        
+    # 4. Clear Advances and adjust EmployeeWorking
+    for adv in closing.advances:
+        working_record = EmployeeWorking.query.filter_by(
+            employee_id=adv.employee_id, 
+            month=adv.date.month, 
+            year=adv.date.year
+        ).first()
+        if working_record:
+            working_record.advance_total = (working_record.advance_total or 0) - adv.amount
+            working_record.calculate_salary()
+            db.session.add(working_record)
+        db.session.delete(adv)
+        
+    # 5. Clear Deductions and adjust EmployeeWorking
+    for ded in closing.deductions_rel:
+        working_record = EmployeeWorking.query.filter_by(
+            employee_id=ded.employee_id, 
+            month=ded.date.month, 
+            year=ded.date.year
+        ).first()
+        if working_record:
+            working_record.deductions_total = (working_record.deductions_total or 0) - ded.amount
+            working_record.calculate_salary()
+            db.session.add(working_record)
+        db.session.delete(ded)
+        
+    # 6. Clear Credits and adjust Customer balances
+    for cred in closing.credits:
+        if cred.customer:
+            cred.customer.balance = (cred.customer.balance or 0) + cred.amount
+            db.session.add(cred.customer)
+        db.session.delete(cred)
+        
+    # 7. Clear Cashbacks and adjust Customer balances
+    for cb in closing.cashbacks:
+        if cb.customer:
+            cb.customer.balance = (cb.customer.balance or 0) - cb.amount
+            db.session.add(cb.customer)
+        db.session.delete(cb)
+
+@app.route('/api/daily-closing/<date_str>', methods=['PUT', 'DELETE'])
+@login_required
+def daily_closing_detail(date_str):
+    """Update or delete an existing daily closing record"""
+    from models import DailyClosing, Expenses, AhmadMistrahExpenses, SamerExpenses, Receivers, AhmadExpenseReceivers, SamerExpenseReceivers, Employees, Customers, Advances, Credits, Cashbacks, Deductions, EmployeeWorking
+    from datetime import datetime
+    
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        closing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == target_date).first()
+        
+        if not closing:
+            return jsonify({'error': 'No record found for this date'}), 404
+            
+        if request.method == 'DELETE':
+            delete_daily_closing_items(closing)
+            db.session.delete(closing)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Daily closing deleted successfully'})
+            
+        # PUT - Update logic
+        data = request.get_json()
+        
+        # 1. Clear existing associated records and balances
+        delete_daily_closing_items(closing)
+        db.session.flush() # Ensure deletions are processed before adding new ones
+        
+        # Calculate aggregate total_expenses (General + Samer)
+        total_gen = sum(safe_decimal(e.get('amount', 0)) for e in data.get('expenses', []))
+        total_samer = sum(safe_decimal(e.get('amount', 0)) for e in data.get('samer_expenses', []))
+        aggregated_expenses = total_gen + total_samer
+
+        # 2. Update basic fields
+        closing.main_reading = safe_decimal(data.get('main_reading', closing.main_reading))
+        closing.dr_smashed = safe_decimal(data.get('dr_smashed', closing.dr_smashed))
+        closing.adjusted_reading = safe_decimal(data.get('adjusted_reading', closing.adjusted_reading))
+        closing.total_expenses = aggregated_expenses
+        closing.total_advance = safe_decimal(data.get('total_advance', closing.total_advance))
+        closing.total_credit = safe_decimal(data.get('total_credit', closing.total_credit))
+        closing.total_cashback = safe_decimal(data.get('total_cashback', closing.total_cashback))
+        closing.total_deductions = safe_decimal(data.get('total_deductions', closing.total_deductions))
+        closing.five_percent = safe_decimal(data.get('five_percent', closing.five_percent))
+        closing.total_cashout = aggregated_expenses + safe_decimal(data.get('total_advance', closing.total_advance)) + safe_decimal(data.get('total_deductions', closing.total_deductions))
+        closing.actual_cash = safe_decimal(data.get('actual_cash', closing.actual_cash))
+        
+        # 3. Process new lists (Re-using logic from POST but adapted for existing closing)
+        close_date = closing.date # Use original date
+        
+        # Process Expenses
+        for exp_data in data.get('expenses', []):
+            receiver_id = exp_data.get('receiver_id')
+            if receiver_id:
+                receiver = Receivers.query.get(receiver_id)
+                if receiver:
+                    amount = safe_decimal(exp_data.get('amount', 0))
+                    receiver.paid_amount = (receiver.paid_amount or 0) + amount
+                    db.session.add(receiver)
+                    expense = Expenses(date=close_date, amount=amount, note=exp_data.get('note', ''), daily_closing_id=closing.id, receiver_id=receiver.id)
+                    db.session.add(expense)
+        
+        # Process Advances
+        for adv_data in data.get('advances', []):
+            employee_id = adv_data.get('employee_id')
+            if employee_id:
+                employee = Employees.query.get(employee_id)
+                if employee:
+                    working_record = EmployeeWorking.query.filter_by(employee_id=employee.id, month=close_date.month, year=close_date.year).first()
+                    if not working_record:
+                        from app import apply_carryover_debt
+                        carryover_debt = apply_carryover_debt(employee.id, close_date.year, close_date.month)
+                        working_record = EmployeeWorking(employee_id=employee.id, month=close_date.month, year=close_date.year, deductions_total=carryover_debt, actual_salary=-carryover_debt)
+                        db.session.add(working_record)
+                        db.session.flush()
+                    amount = safe_decimal(adv_data.get('amount', 0))
+                    advance_rec = Advances(date=close_date, amount=amount, note=adv_data.get('note', ''), daily_closing_id=closing.id, employee_id=employee.id)
+                    db.session.add(advance_rec)
+                    working_record.advance_total = (working_record.advance_total or 0) + amount
+                    working_record.calculate_salary()
+        
+        # Process Deductions
+        for ded_data in data.get('deductions', []):
+            employee_id = ded_data.get('employee_id')
+            if employee_id:
+                employee = Employees.query.get(employee_id)
+                if employee:
+                    working_record = EmployeeWorking.query.filter_by(employee_id=employee.id, month=close_date.month, year=close_date.year).first()
+                    if not working_record:
+                        from app import apply_carryover_debt
+                        carryover_debt = apply_carryover_debt(employee.id, close_date.year, close_date.month)
+                        working_record = EmployeeWorking(employee_id=employee.id, month=close_date.month, year=close_date.year, deductions_total=carryover_debt, actual_salary=-carryover_debt)
+                        db.session.add(working_record)
+                        db.session.flush()
+                    amount = safe_decimal(ded_data.get('amount', 0))
+                    deduction_rec = Deductions(date=close_date, amount=amount, note=ded_data.get('note', ''), daily_closing_id=closing.id, employee_id=employee.id)
+                    db.session.add(deduction_rec)
+                    working_record.deductions_total = (working_record.deductions_total or 0) + amount
+                    working_record.calculate_salary()
+
+        # Process Credits
+        for cr_data in data.get('credits', []):
+            customer_id = cr_data.get('customer_id')
+            if customer_id:
+                customer = Customers.query.get(customer_id)
+                if customer:
+                    amount = safe_decimal(cr_data.get('amount', 0))
+                    credit = Credits(date=close_date, amount=amount, note=cr_data.get('note', ''), daily_closing_id=closing.id, customer_id=customer.id)
+                    db.session.add(credit)
+                    customer.balance = (customer.balance or 0) - amount
+        
+        # Process Cashbacks
+        for cb_data in data.get('cashbacks', []):
+            customer_id = cb_data.get('customer_id')
+            if customer_id:
+                customer = Customers.query.get(customer_id)
+                if customer:
+                    amount = safe_decimal(cb_data.get('amount', 0))
+                    cashback = Cashbacks(date=close_date, amount=amount, note=cb_data.get('note', ''), daily_closing_id=closing.id, customer_id=customer.id)
+                    db.session.add(cashback)
+                    customer.balance = (customer.balance or 0) + amount
+                    
+                    
+        # Process Samer Expenses
+        for s_exp in data.get('samer_expenses', []):
+            receiver_id = s_exp.get('receiver_id')
+            if receiver_id:
+                receiver = SamerExpenseReceivers.query.get(receiver_id)
+                if receiver:
+                    amount = safe_decimal(s_exp.get('amount', 0))
+                    receiver.paid_amount = (receiver.paid_amount or 0) + amount
+                    db.session.add(receiver)
+                    se = SamerExpenses(date=close_date, amount=amount, note=s_exp.get('note', ''), daily_closing_id=closing.id, receiver_id=receiver.id)
+                    db.session.add(se)
+
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Daily closing updated successfully', 'id': closing.id})
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in daily closing detail API: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/daily-closing', methods=['POST'])
 @login_required
 def daily_closing_api():
@@ -1774,18 +2173,23 @@ def daily_closing_api():
         if existing:
             return jsonify({'error': f'A daily closing record already exists for {close_date_str}. Please edit the existing record or choose another date.'}), 400
         
+        # Calculate aggregate total_expenses (General + Samer)
+        total_gen = sum(safe_decimal(e.get('amount', 0)) for e in data.get('expenses', []))
+        total_samer = sum(safe_decimal(e.get('amount', 0)) for e in data.get('samer_expenses', []))
+        aggregated_expenses = total_gen + total_samer
+
         daily_close = DailyClosing(
             date=close_date,
             main_reading=safe_decimal(data.get('main_reading', 0)),
             dr_smashed=safe_decimal(data.get('dr_smashed', 0)),
             adjusted_reading=safe_decimal(data.get('adjusted_reading', 0)),
-            total_expenses=safe_decimal(data.get('total_expenses', 0)),
+            total_expenses=aggregated_expenses,
             total_advance=safe_decimal(data.get('total_advance', 0)),
             total_credit=safe_decimal(data.get('total_credit', 0)),
             total_cashback=safe_decimal(data.get('total_cashback', 0)),
             total_deductions=safe_decimal(data.get('total_deductions', 0)),
             five_percent=safe_decimal(data.get('five_percent', 0)),
-            total_cashout=safe_decimal(data.get('total_cashout', 0)),
+            total_cashout=aggregated_expenses + safe_decimal(data.get('total_advance', 0)) + safe_decimal(data.get('total_deductions', 0)),
             actual_cash=safe_decimal(data.get('actual_cash', 0))
         )
         db.session.add(daily_close)
@@ -1930,25 +2334,6 @@ def daily_closing_api():
                 db.session.add(cashback)
                 customer.balance = safe_decimal(customer.balance or 0) + amount
                 
-        # Process Ahmad's Expenses (List from Daily Close)
-        for ahmad_exp_data in data.get('ahmad_expenses', []):
-            receiver_id = ahmad_exp_data.get('receiver_id')
-            if receiver_id:
-                rc = AhmadExpenseReceivers.query.get(receiver_id)
-                if not rc:
-                    return jsonify({'error': 'Invalid receiver selected for Ahmad expense'}), 400
-                
-                amount = safe_decimal(ahmad_exp_data.get('amount', 0))
-                rc.paid_amount = safe_decimal(rc.paid_amount or 0) + amount
-                
-                a_expense = AhmadMistrahExpenses(
-                    date=close_date,
-                    amount=amount,
-                    note=ahmad_exp_data.get('note', ''),
-                    daily_closing_id=daily_close.id,
-                    receiver_id=rc.id
-                )
-                db.session.add(a_expense)
 
         # Process Samer's Expenses (List from Daily Close)
         for samer_exp_data in data.get('samer_expenses', []):
@@ -2045,6 +2430,46 @@ def receiver_detail(receiver_id):
         db.session.rollback()
         return jsonify({'error': f'Failed to manage receiver: {str(e)}'}), 500
 
+@app.route('/api/samer-receivers', methods=['POST'])
+@login_required
+def create_samer_receiver():
+    """Create a new Samer receiver using generic helper"""
+    return _create_receiver_generic('samer', request.get_json())
+
+@app.route('/api/samer-receivers/<int:receiver_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
+def samer_receiver_detail_api(receiver_id):
+    """Get, update, or delete a Samer receiver"""
+    try:
+        from models import SamerExpenseReceivers, SamerExpenses
+        receiver = SamerExpenseReceivers.query.get_or_404(receiver_id)
+        
+        if request.method == 'GET':
+            return jsonify({'id': receiver.id, 'name': receiver.name, 'paid_amount': float(receiver.paid_amount)})
+            
+        if request.method == 'PUT':
+            data = request.get_json()
+            receiver.name = data.get('name', receiver.name)
+            receiver.paid_amount = safe_decimal(data.get('paid_amount', receiver.paid_amount))
+            db.session.commit()
+            return jsonify({'status': 'success'})
+            
+        if request.method == 'DELETE':
+            # Check for Samer Expenses
+            expense_count = SamerExpenses.query.filter_by(receiver_id=receiver.id).count()
+            if expense_count > 0:
+                return jsonify({
+                    'error': 'Cannot delete receiver with existing expenses',
+                    'toast': {'title': 'Blocked', 'message': f'This receiver has {expense_count} expenses.', 'type': 'warning'}
+                }), 409
+            db.session.delete(receiver)
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Receiver deleted'})
+    except Exception as e:
+        app.logger.error(f"Error managing samer receiver: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to manage receiver'}), 500
+
 @app.route('/api/customers')
 @login_required
 def get_customers():
@@ -2089,17 +2514,22 @@ def customer_detail(customer_id):
                 new_balance = safe_decimal(data['balance'], customer.balance)
                 if new_balance != customer.balance:
                     diff = new_balance - (customer.balance or 0)
+                    sync_date = data.get('date') # Provided by the edit modal
                     
                     if diff > 0:
                         # Balance increased (more positive): means they gave us money/paid debt, so auto Cashback
                         from models import Cashbacks
                         auto_cashback = Cashbacks(amount=diff, customer_id=customer.id, note="Added via Customer Edit")
                         db.session.add(auto_cashback)
+                        if sync_date:
+                            sync_daily_closing_total(sync_date, 'total_cashback', diff)
                     elif diff < 0:
                         # Balance decreased (more negative): means they accrued debt, so auto Credit
                         from models import Credits
                         auto_credit = Credits(amount=abs(diff), customer_id=customer.id, note="Added via Customer Edit")
                         db.session.add(auto_credit)
+                        if sync_date:
+                            sync_daily_closing_total(sync_date, 'total_credit', abs(diff))
 
                 customer.balance = new_balance
                 
@@ -2390,18 +2820,44 @@ def update_payroll_record(record_id):
             new_deductions = safe_decimal(data['deductions_total'], record.deductions_total or 0)
             if new_deductions != (record.deductions_total or 0):
                 diff = new_deductions - (record.deductions_total or 0)
-                if diff > 0:
-                    new_deduction = Deductions(amount=diff, employee_id=record.employee_id, note=f"Added via Payroll Edit for {record.month}/{record.year}")
-                    db.session.add(new_deduction)
+                sync_date_str = data.get('date') # Provided by the edit modal
+                if sync_date_str:
+                    from models import DailyClosing
+                    sync_date = datetime.strptime(sync_date_str, '%Y-%m-%d').date()
+                    closing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == sync_date).first()
+                    
+                    if diff != 0:
+                        new_deduction = Deductions(
+                            amount=diff, 
+                            employee_id=record.employee_id, 
+                            note=f"Payroll Adjustment for {record.month}/{record.year}",
+                            daily_closing_id=closing.id if closing else None,
+                            date=sync_date
+                        )
+                        db.session.add(new_deduction)
+                        sync_daily_closing_total(sync_date, 'total_deductions', diff)
             record.deductions_total = new_deductions
 
         if 'advance_total' in data:
             new_advance = safe_decimal(data['advance_total'], record.advance_total or 0)
             if new_advance != (record.advance_total or 0):
                 diff = new_advance - (record.advance_total or 0)
-                if diff > 0:
-                    new_advance_rec = Advances(amount=diff, employee_id=record.employee_id, note=f"Added via Payroll Edit for {record.month}/{record.year}")
-                    db.session.add(new_advance_rec)
+                sync_date_str = data.get('date') # Provided by the edit modal
+                if sync_date_str:
+                    from models import DailyClosing
+                    sync_date = datetime.strptime(sync_date_str, '%Y-%m-%d').date()
+                    closing = DailyClosing.query.filter(db.func.date(DailyClosing.date) == sync_date).first()
+                    
+                    if diff != 0:
+                        new_advance_rec = Advances(
+                            amount=diff, 
+                            employee_id=record.employee_id, 
+                            note=f"Payroll Adjustment for {record.month}/{record.year}",
+                            daily_closing_id=closing.id if closing else None,
+                            date=sync_date
+                        )
+                        db.session.add(new_advance_rec)
+                        sync_daily_closing_total(sync_date, 'total_advance', diff)
             record.advance_total = new_advance
 
         record.calculate_salary()
@@ -2553,6 +3009,7 @@ def create_expense():
         )
         
         db.session.add(expense)
+        sync_daily_closing_total(expense.date, 'total_expenses', expense.amount)
         db.session.commit()
         
         return jsonify({
@@ -2565,37 +3022,79 @@ def create_expense():
         db.session.rollback()
         return jsonify({'error': 'Failed to create expense'}), 500
 
-@app.route('/api/expenses/<int:expense_id>', methods=['DELETE'])
+@app.route('/api/expenses/<int:expense_id>', methods=['PUT', 'DELETE'])
 @login_required
-def delete_expense(expense_id):
-    """Delete expense"""
-    try:
-        from models import Expenses
-        expense = Expenses.query.get_or_404(expense_id)
-        db.session.delete(expense)
-        db.session.commit()
-        
-        log_event(
-            level='SUCCESS',
-            action='expense_delete',
-            message=f'Expense of {expense.amount} deleted successfully',
-            details={'id': expense.id, 'amount': str(expense.amount)}
-        )
-        
-        return jsonify({
-            'status': 'success',
-            'ok': True,
-            'message': 'Expense deleted successfully',
-            'toast': {
-                'type': 'success',
-                'title': 'Success',
-                'message': 'Expense deleted successfully.'
-            }
-        })
-    except Exception as e:
-        app.logger.error(f"Error deleting expense: {e}")
-        db.session.rollback()
-        return jsonify({'error': 'Failed to delete expense'}), 500
+def expense_detail(expense_id):
+    """Update or delete general expense"""
+    from models import Expenses, Receivers
+    expense = Expenses.query.get_or_404(expense_id)
+    
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            receiver_name = data.get('receiver_name')
+            old_amount = expense.amount
+            old_date = expense.date
+            
+            if receiver_name:
+                receiver = Receivers.query.filter_by(name=receiver_name).first()
+                if not receiver:
+                    receiver = Receivers(name=receiver_name, paid_amount=0.0)
+                    db.session.add(receiver)
+                    db.session.flush()
+                expense.receiver_id = receiver.id
+            
+            new_amount = safe_decimal(data.get('amount', float(expense.amount)))
+            new_date = datetime.strptime(data['date'], '%Y-%m-%d') if 'date' in data else expense.date
+            
+            # Sync daily closing
+            if old_date == new_date:
+                diff = new_amount - old_amount
+                if diff != 0:
+                    sync_daily_closing_total(old_date, 'total_expenses', diff)
+            else:
+                # Different dates, remove from old and add to new
+                sync_daily_closing_total(old_date, 'total_expenses', -old_amount)
+                sync_daily_closing_total(new_date, 'total_expenses', new_amount)
+            
+            expense.amount = new_amount
+            expense.date = new_date
+            expense.note = data.get('note', expense.note)
+            
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Expense updated successfully'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'DELETE':
+        try:
+            amount = expense.amount
+            sync_daily_closing_total(expense.date, 'total_expenses', -amount)
+            db.session.delete(expense)
+            db.session.commit()
+            
+            log_event(
+                level='SUCCESS',
+                action='expense_delete',
+                message=f'Expense of {amount} deleted successfully',
+                details={'id': expense.id, 'amount': str(amount)}
+            )
+            
+            return jsonify({
+                'status': 'success',
+                'ok': True,
+                'message': 'Expense deleted successfully',
+                'toast': {
+                    'type': 'success',
+                    'title': 'Success',
+                    'message': 'Expense deleted successfully.'
+                }
+            })
+        except Exception as e:
+            app.logger.error(f"Error deleting expense: {e}")
+            db.session.rollback()
+            return jsonify({'error': 'Failed to delete expense'}), 500
 
 # Ahmad Expenses API
 @app.route('/api/ahmad-expenses', methods=['GET', 'POST'])
@@ -2647,6 +3146,7 @@ def ahmad_expenses_api():
                 receiver_id=receiver.id
             )
             db.session.add(expense)
+            sync_daily_closing_total(expense.date, 'total_expenses', expense.amount)
             db.session.commit()
             return jsonify({'status': 'success', 'message': 'Expense added'})
         except Exception as e:
@@ -2929,10 +3429,25 @@ def ahmad_expense_detail(expense_id):
                     return jsonify({'error': 'Invalid receiver ID'}), 400
                 expense.receiver_id = receiver.id
             
+            old_amount = expense.amount
+            old_date = expense.date
+            
             expense.amount = safe_decimal(data.get('amount', float(expense.amount)))
             expense.note = data.get('note', expense.note)
+            new_date = old_date
             if 'date' in data:
-                expense.date = datetime.strptime(data['date'], '%Y-%m-%d')
+                new_date = datetime.strptime(data['date'], '%Y-%m-%d')
+                expense.date = new_date
+            
+            # Sync daily closing
+            if old_date == new_date:
+                diff = expense.amount - old_amount
+                if diff != 0:
+                    sync_daily_closing_total(old_date, 'total_expenses', diff)
+            else:
+                sync_daily_closing_total(old_date, 'total_expenses', -old_amount)
+                sync_daily_closing_total(new_date, 'total_expenses', expense.amount)
+                
             db.session.commit()
             return jsonify({'status': 'success'})
         except Exception as e:
@@ -2941,15 +3456,16 @@ def ahmad_expense_detail(expense_id):
 
     if request.method == 'DELETE':
         try:
-            amount = str(expense.amount)
+            amount = expense.amount
+            sync_daily_closing_total(expense.date, 'total_expenses', -amount)
             db.session.delete(expense)
             db.session.commit()
             
             log_event(
                 level='SUCCESS',
-                action='samer_expense_delete',
-                message=f"Samer's expense of {amount} deleted successfully",
-                details={'id': expense.id, 'amount': amount}
+                action='ahmad_expense_delete',
+                message=f"Ahmad's expense of {amount} deleted successfully",
+                details={'id': expense.id, 'amount': str(amount)}
             )
             
             return jsonify({
@@ -3016,6 +3532,7 @@ def samer_expenses_api():
                 receiver_id=receiver.id
             )
             db.session.add(expense)
+            sync_daily_closing_total(expense.date, 'total_expenses', expense.amount)
             db.session.commit()
             return jsonify({'status': 'success', 'message': 'Expense added'})
         except Exception as e:
@@ -3038,10 +3555,25 @@ def samer_expense_detail(expense_id):
                     return jsonify({'error': 'Invalid receiver ID'}), 400
                 expense.receiver_id = receiver.id
             
+            old_amount = expense.amount
+            old_date = expense.date
+            
             expense.amount = safe_decimal(data.get('amount', float(expense.amount)))
             expense.note = data.get('note', expense.note)
+            new_date = old_date
             if 'date' in data:
-                expense.date = datetime.strptime(data['date'], '%Y-%m-%d')
+                new_date = datetime.strptime(data['date'], '%Y-%m-%d')
+                expense.date = new_date
+            
+            # Sync daily closing
+            if old_date == new_date:
+                diff = expense.amount - old_amount
+                if diff != 0:
+                    sync_daily_closing_total(old_date, 'total_expenses', diff)
+            else:
+                sync_daily_closing_total(old_date, 'total_expenses', -old_amount)
+                sync_daily_closing_total(new_date, 'total_expenses', expense.amount)
+                
             db.session.commit()
             return jsonify({'status': 'success'})
         except Exception as e:
@@ -3050,15 +3582,16 @@ def samer_expense_detail(expense_id):
 
     if request.method == 'DELETE':
         try:
-            amount = str(expense.amount)
+            amount = expense.amount
+            sync_daily_closing_total(expense.date, 'total_expenses', -amount)
             db.session.delete(expense)
             db.session.commit()
             
             log_event(
                 level='SUCCESS',
-                action='ahmad_expense_delete',
-                message=f"Ahmad's expense of {amount} deleted successfully",
-                details={'id': expense.id, 'amount': amount}
+                action='samer_expense_delete',
+                message=f"Samer's expense of {amount} deleted successfully",
+                details={'id': expense.id, 'amount': str(amount)}
             )
             
             return jsonify({
@@ -3185,10 +3718,11 @@ def expenses_report():
     """Generate expenses report for month/year"""
     try:
         from datetime import datetime
-        from models import Expenses, Receivers
+        from models import Expenses, Receivers, SamerExpenses, AhmadMistrahExpenses, Customers
         data = request.get_json()
         month = int(data.get('month'))
         year = int(data.get('year'))
+        customer_id = data.get('customer_id')
         
         # Extract and format expenses
         general_expenses = Expenses.query.filter(
@@ -3196,7 +3730,15 @@ def expenses_report():
             db.extract('month', Expenses.date) == month
         ).all()
         
-        total_expenses = sum(safe_decimal(e.amount, decimal.Decimal('0.00')) for e in general_expenses)
+        samer_expenses = SamerExpenses.query.filter(
+            db.extract('year', SamerExpenses.date) == year,
+            db.extract('month', SamerExpenses.date) == month
+        ).all()
+
+        total_gen_expenses = sum(safe_decimal(e.amount, decimal.Decimal('0.00')) for e in general_expenses)
+        total_samer_expenses = sum(safe_decimal(e.amount, decimal.Decimal('0.00')) for e in samer_expenses)
+        
+        total_expenses = total_gen_expenses + total_samer_expenses
         
         # Calculate breakdown by receiver
         receiver_breakdown = {}
@@ -3215,12 +3757,27 @@ def expenses_report():
                 'note': exp.note or ''
             })
             
+        # Group Samer Expenses by receiver
+        samer_receiver_breakdown = {}
+        for exp in samer_expenses:
+            name = exp.receiver.name if exp.receiver else 'Unassigned'
+            samer_receiver_breakdown[name] = samer_receiver_breakdown.get(name, 0) + float(exp.amount or 0)
+            all_expenses_list.append({
+                'type': 'Samer',
+                'date': exp.date.strftime('%Y-%m-%d') if exp.date else 'N/A',
+                'receiver': name,
+                'amount': float(exp.amount or 0),
+                'note': exp.note or ''
+            })
+
+
         report_data = {
             'month': month,
             'year': year,
             'total_expenses': total_expenses,
             'total_receivers': len(unique_receivers),
             'receiver_breakdown': receiver_breakdown,
+            'samer_receiver_breakdown': samer_receiver_breakdown,
             'expenses': all_expenses_list
         }
         
@@ -3243,6 +3800,7 @@ def build_daily_close_payload(closing_id):
         general_expenses.append({
             'amount': e.amount,
             'note': e.note,
+            'receiver_id': e.receiver_id,
             'receiver': e.receiver.name if e.receiver else 'Unassigned'
         })
         
@@ -3252,6 +3810,7 @@ def build_daily_close_payload(closing_id):
         ahmad_expenses.append({
             'amount': e.amount,
             'note': e.note,
+            'receiver_id': e.receiver_id,
             'receiver': e.receiver.name if e.receiver else 'Unassigned'
         })
         
@@ -3261,6 +3820,7 @@ def build_daily_close_payload(closing_id):
         samer_expenses.append({
             'amount': e.amount,
             'note': e.note,
+            'receiver_id': e.receiver_id,
             'receiver': e.receiver.name if e.receiver else 'Unassigned'
         })
         
@@ -3270,6 +3830,7 @@ def build_daily_close_payload(closing_id):
         advances.append({
             'amount': a.amount,
             'note': a.note,
+            'employee_id': a.employee_id,
             'employee': a.employee.name if a.employee else 'Unassigned'
         })
         
@@ -3279,6 +3840,7 @@ def build_daily_close_payload(closing_id):
         deductions.append({
             'amount': d.amount,
             'note': d.note,
+            'employee_id': d.employee_id,
             'employee': d.employee.name if d.employee else 'Unassigned'
         })
         
@@ -3288,6 +3850,7 @@ def build_daily_close_payload(closing_id):
         credits.append({
             'amount': c.amount,
             'note': c.note,
+            'customer_id': c.customer_id,
             'customer': c.customer.username if c.customer else 'Unassigned'
         })
         
@@ -3297,6 +3860,7 @@ def build_daily_close_payload(closing_id):
         cashbacks.append({
             'amount': c.amount,
             'note': c.note,
+            'customer_id': c.customer_id,
             'customer': c.customer.username if c.customer else 'Unassigned'
         })
 
@@ -3470,71 +4034,78 @@ def export_payroll_csv():
 @login_required
 def export_reports_csv():
     try:
-        from models import Receivers, Expenses, AhmadMistrahExpenses, SamerExpenses
+        from models import Receivers, Expenses, SamerExpenses, SamerExpenseReceivers, AhmadMistrahExpenses, AhmadExpenseReceivers, Customers
         from datetime import datetime
         import csv
         from sqlalchemy import func
         from io import StringIO
         from flask import make_response
         
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        customer_id = request.args.get('customer_id')
         
-        # Base query to sum expenses
+        # Get General Receivers Breakdown
         expense_query = db.session.query(
             Expenses.receiver_id, 
             func.sum(Expenses.amount).label('total_amount')
-        )
-        
-        if start_date:
-            expense_query = expense_query.filter(Expenses.date >= start_date)
-        if end_date:
-            end_date_time = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-            expense_query = expense_query.filter(Expenses.date <= end_date_time)
-        if year:
-            expense_query = expense_query.filter(db.extract('year', Expenses.date) == year)
-        if month:
-            expense_query = expense_query.filter(db.extract('month', Expenses.date) == month)
-            
+        ).filter(db.extract('year', Expenses.date) == year, db.extract('month', Expenses.date) == month)
         expense_query = expense_query.group_by(Expenses.receiver_id).subquery()
         
-        # Join with receivers
-        results = db.session.query(
+        general_results = db.session.query(
             Receivers, 
             func.coalesce(expense_query.c.total_amount, 0).label('period_total')
         ).outerjoin(
             expense_query, Receivers.id == expense_query.c.receiver_id
         ).order_by(Receivers.name).all()
 
+        # Get Samer Receivers Breakdown
+        samer_query = db.session.query(
+            SamerExpenses.receiver_id, 
+            func.sum(SamerExpenses.amount).label('total_amount')
+        ).filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
+        samer_query = samer_query.group_by(SamerExpenses.receiver_id).subquery()
+        
+        samer_results = db.session.query(
+            SamerExpenseReceivers, 
+            func.coalesce(samer_query.c.total_amount, 0).label('period_total')
+        ).outerjoin(
+            samer_query, SamerExpenseReceivers.id == samer_query.c.receiver_id
+        ).order_by(SamerExpenseReceivers.name).all()
+        
+
+        # Calculate Totals
+        total_general = sum(total for _, total in general_results)
+        total_samer = sum(total for _, total in samer_results)
+
         si = StringIO()
         cw = csv.writer(si)
         
-        # Write header
-        period_str = ""
-        if month and year:
-            period_str = f" ({month}/{year})"
-        elif year:
-            period_str = f" ({year})"
-        elif start_date and end_date:
-            period_str = f" ({start_date} to {end_date})"
-            
-        cw.writerow(['ID', 'Name', f'Total Expenses Amount{period_str}', 'All-Time Record Amount'])
+        cw.writerow(['Type', 'Name', f'Total Amount ({month}/{year})', 'All-Time Total'])
         
-        # Write rows
-        for receiver, total in results:
-            cw.writerow([
-                f"#{receiver.id:04d}",
-                receiver.name,
-                f"{float(total):.2f}",
-                f"{float(receiver.paid_amount or 0):.2f}"
-            ])
+        # General Expenses
+        cw.writerow(['--- GENERAL EXPENSES ---', '', '', ''])
+        for receiver, total in general_results:
+            if total > 0:
+                cw.writerow(['General', receiver.name, f"{float(total):.2f}", f"{float(receiver.paid_amount or 0):.2f}"])
+            
+        # Samer Expenses
+        cw.writerow([])
+        cw.writerow(['--- SAMER EXPENSES ---', '', '', ''])
+        for receiver, total in samer_results:
+            if total > 0:
+                cw.writerow(['Samer', receiver.name, f"{float(total):.2f}", f"{float(receiver.paid_amount or 0):.2f}"])
+                
+
+        # Summary Totals Section
+        cw.writerow([])
+        cw.writerow(['SUMMARY TOTALS', '', '', ''])
+        cw.writerow(['General Expenses Total', f"{float(total_general):.2f}", '', ''])
+        cw.writerow(['Samer Expenses Total', f"{float(total_samer):.2f}", '', ''])
+        cw.writerow(['GRAND TOTAL', f"{float(total_general + total_samer):.2f}", '', ''])
             
         output = make_response(si.getvalue())
-        
-        filename = f"expenses_report_export_{year or 'all'}_{month or 'all'}.csv"
-        
+        filename = f"expenses_detailed_report_{year}_{month}.csv"
         output.headers["Content-Disposition"] = f"attachment; filename={filename}"
         output.headers["Content-type"] = "text/csv"
         return output

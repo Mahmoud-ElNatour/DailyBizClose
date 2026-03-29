@@ -168,6 +168,12 @@
                 <div class="modal-body p-6">
                     <div class="grid grid-cols-1 gap-5">
                         <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
+                            <input type="date" name="date" id="edit-payroll-date" required
+                                class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Actual
                                 Working Days</label>
                             <input type="number" name="actual_working_days" id="edit-actual-working-days" min="0"
@@ -218,6 +224,11 @@
         document.getElementById('edit-actual-working-days').value = actualWorkingDays;
         document.getElementById('edit-advance-total').value = advances;
         document.getElementById('edit-deductions-total').value = deductions;
+        document.getElementById('edit-payroll-date').value = new Date().toISOString().split('T')[0];
+
+        // Default to today or record date? The record doesn't have a specific date, it's monthly.
+        // But the user wants to sync to a specific Daily Close date.
+        document.getElementById('edit-payroll-date').value = new Date().toISOString().split('T')[0];
 
         const modal = new bootstrap.Modal(document.getElementById('editPayrollModal'));
         modal.show();

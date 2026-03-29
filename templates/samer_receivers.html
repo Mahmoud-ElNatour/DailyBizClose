@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+{% block title %}Samer Receivers Management - DailyBizClose{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Samer Receivers</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Manage receivers specific to Samer's expenses.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto pb-2">
+        <!-- Filter Form -->
+        <form id="filterForm" class="flex flex-wrap items-center gap-2" method="GET"
+            action="{{ url_for('samer_receivers_view') }}">
+            <select name="month"
+                class="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2"
+                onchange="this.form.submit()">
+                <option value="">All Months</option>
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if current_month==m %}selected{% endif %}>
+                    {{ [None, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
+                    'October', 'November', 'December'][m] }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="year"
+                class="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2"
+                onchange="this.form.submit()">
+                <option value="">All Years</option>
+                {% set current_year_val = current_year or 2024 %}
+                {% for y in range(2023, 2031) %}
+                <option value="{{ y }}" {% if current_year==y %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+
+            <a href="{{ url_for('export_samer_receivers_stats', month=current_month, year=current_year) }}"
+                class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm w-full sm:w-auto">
+                <span class="material-symbols-outlined text-sm">download</span>
+                Export CSV
+            </a>
+        </form>
+
+        <button type="button" data-bs-toggle="modal" data-bs-target="#addSamerReceiverModal"
+            class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm shadow-primary/30 w-full sm:w-auto">
+            <span class="material-symbols-outlined text-sm">person_add</span>
+            Add Samer Receiver
+        </button>
+    </div>
+</div>
+
+<!-- Receivers Table -->
+<div
+    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead
+                class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                <tr>
+                    <th class="px-6 py-4 font-semibold w-24">ID</th>
+                    <th class="px-6 py-4 font-semibold">Name</th>
+                    <th class="px-6 py-4 font-semibold text-right">
+                        Total Samer Expenses
+                        {% if current_month and current_year %}
+                        <span class="block text-xs text-slate-400 font-normal">({{ current_month }}/{{ current_year
+                            }})</span>
+                        {% elif current_year %}
+                        <span class="block text-xs text-slate-400 font-normal">({{ current_year }})</span>
+                        {% endif %}
+                    </th>
+                    <th class="px-6 py-4 font-semibold text-right">All-Time Total</th>
+                    <th class="px-6 py-4 font-semibold text-center w-28">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
+                {% for receiver in receivers %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono">#{{ "%04d"|format(receiver.id) }}
+                    </td>
+                    <td class="px-6 py-4 text-slate-900 dark:text-white font-semibold flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
+                            <span class="material-symbols-outlined text-sm">person</span>
+                        </div>
+                        {{ receiver.name }}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">
+                            <span class="text-slate-400">$</span>{{ "%.2f"|format(receiver.period_total) }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span
+                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-transparent font-mono text-xs">
+                            <span class="text-slate-400">$</span>{{ "%.2f"|format(receiver.paid_amount or 0) }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="editSamerReceiver('{{ receiver.id }}')"
+                                class="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                title="Edit">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button onclick="deleteSamerReceiver('{{ receiver.id }}')"
+                                class="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors"
+                                title="Delete">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5"
+                        class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                        <div class="flex flex-col items-center justify-center">
+                            <span
+                                class="material-symbols-outlined text-4xl mb-3 text-slate-300 dark:text-slate-600">group_off</span>
+                            <p class="text-base font-medium">No samer receivers found</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Samer Receiver Modal -->
+<div class="modal fade" id="addSamerReceiverModal" tabindex="-1" aria-labelledby="addSamerReceiverModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white dark:bg-slate-900 border-none rounded-2xl shadow-2xl overflow-hidden">
+            <div
+                class="modal-header border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    id="addSamerReceiverModalLabel">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Add New Samer Receiver
+                </h5>
+                <button type="button"
+                    class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors bg-transparent border-0 p-0"
+                    data-bs-dismiss="modal" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="addSamerReceiverForm">
+                <div class="modal-body px-6 py-6 opacity-100">
+                    <div class="space-y-5">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                </div>
+                                <input type="text" name="name"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    placeholder="Receiver name" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial
+                                All-Time Total</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">attach_money</span>
+                                </div>
+                                <input type="number" name="paid_amount" value="0"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors font-mono">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="modal-footer border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4 flex gap-3">
+                    <button type="button"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-primary/30 transition-colors">
+                        Add Receiver
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Samer Receiver Modal -->
+<div class="modal fade" id="editSamerReceiverModal" tabindex="-1" aria-labelledby="editSamerReceiverModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white dark:bg-slate-900 border-none rounded-2xl shadow-2xl overflow-hidden">
+            <div
+                class="modal-header border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4">
+                <h5 class="modal-title text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"
+                    id="editSamerReceiverModalLabel">
+                    <span class="material-symbols-outlined text-primary">edit</span>
+                    Edit Samer Receiver
+                </h5>
+                <button type="button"
+                    class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors bg-transparent border-0 p-0"
+                    data-bs-dismiss="modal" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="editSamerReceiverForm">
+                <input type="hidden" name="id" id="edit-samer-receiver-id">
+                <div class="modal-body px-6 py-6 opacity-100">
+                    <div class="space-y-5">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">person</span>
+                                </div>
+                                <input type="text" name="name" id="edit-samer-receiver-name"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors"
+                                    required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">All-Time
+                                Total</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
+                                    <span class="material-symbols-outlined text-[18px]">attach_money</span>
+                                </div>
+                                <input type="number" name="paid_amount" id="edit-samer-receiver-paid"
+                                    class="block w-full pl-10 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2.5 transition-colors font-mono">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="modal-footer border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4 flex gap-3">
+                    <button type="button"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit"
+                        class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-primary/30 transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const bootstrapExists = typeof bootstrap !== 'undefined';
+
+    // Add Samer Receiver Form Handler
+    document.getElementById('addSamerReceiverForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Saving...';
+        submitBtn.disabled = true;
+
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        fetch('/api/samer-receivers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error adding receiver: ' + (data.message || data.error), 'error');
+                    else alert('Error adding receiver: ' + (data.message || data.error));
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error adding receiver', 'error');
+                else alert('Error adding receiver');
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            });
+    });
+
+    function editSamerReceiver(id) {
+        fetch(`/api/samer-receivers/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('edit-samer-receiver-id').value = data.id;
+                document.getElementById('edit-samer-receiver-name').value = data.name;
+                document.getElementById('edit-samer-receiver-paid').value = data.paid_amount || 0;
+
+                if (bootstrapExists) {
+                    const modalEl = document.getElementById('editSamerReceiverModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching samer receiver', err);
+                if (typeof showAlert === 'function') showAlert('Error loading receiver data', 'error');
+                else alert('Error loading receiver data');
+            });
+    }
+
+    document.getElementById('editSamerReceiverForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalContent = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Saving...';
+        submitBtn.disabled = true;
+
+        const id = document.getElementById('edit-samer-receiver-id').value;
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        fetch(`/api/samer-receivers/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    if (typeof showAlert === 'function') showAlert('Error updating receiver: ' + (data.message || data.error), 'error');
+                    else alert('Error updating receiver: ' + (data.message || data.error));
+
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') showAlert('Error updating receiver', 'error');
+                else alert('Error updating receiver');
+
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            });
+    });
+
+    async function deleteSamerReceiver(id) {
+        if (confirm('Are you sure you want to delete this samer receiver? This action cannot be undone.')) {
+            try {
+                const response = await fetch(`/api/samer-receivers/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const result = await response.json();
+
+                if (response.status === 409 || result.toast) {
+                    if (typeof showToast === 'function') {
+                        showToast(result.toast?.title || 'Error', result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(result.toast?.message || result.error?.message, result.toast?.type || 'error');
+                    } else {
+                        alert(result.toast?.message || result.error?.message || 'Delete blocked');
+                    }
+                } else if (result.status === 'success' || result.ok) {
+                    if (typeof showToast === 'function') {
+                        showToast('Success', result.message, 'success');
+                    } else if (typeof showAlert === 'function') {
+                        showAlert(result.message, 'success');
+                    }
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    if (typeof showAlert === 'function') {
+                        showAlert(result.error || 'Failed to delete receiver', 'error');
+                    } else {
+                        alert(result.error || 'Failed to delete receiver');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (typeof showAlert === 'function') {
+                    showAlert('An error occurred', 'error');
+                } else {
+                    alert('An error occurred');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

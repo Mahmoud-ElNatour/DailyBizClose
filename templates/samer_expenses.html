@@ -183,7 +183,7 @@
                     <div>
                         <label
                             class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Receiver</label>
-                        <select name="receiver_id" required
+                        <select name="receiver_id" id="receiver_select" required
                             class="w-full rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
                             <option value="">Select Receiver</option>
                             {% for receiver in receivers %}
@@ -422,6 +422,29 @@
         if (dateInput && !dateInput.value) {
             dateInput.value = today;
         }
+
+        // Initialize TomSelect
+        if (document.getElementById('receiver_select')) {
+            new TomSelect('#receiver_select', {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+        }
+        if (document.getElementById('editSamerReceiverId')) {
+            window.editSamerTomSelect = new TomSelect('#editSamerReceiverId', {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+        }
     });
+
+    // Update edit function to handle TomSelect
+    const originalEditSamerExpense = editSamerExpense;
+    editSamerExpense = function (btn) {
+        originalEditSamerExpense(btn);
+        if (window.editSamerTomSelect) {
+            window.editSamerTomSelect.setValue(btn.dataset.receiverId);
+        }
+    };
 </script>
 {% endblock %}
