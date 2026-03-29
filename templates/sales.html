@@ -44,7 +44,18 @@
 </div>
 
 <!-- Sales Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-indigo-600 dark:bg-indigo-700 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
+        <div
+            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
+            <span class="material-symbols-outlined text-8xl">point_of_sale</span>
+        </div>
+        <div class="relative z-10">
+            <h6 class="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-2">Total Sales</h6>
+            <h3 class="text-3xl font-bold">${{ "%.2f"|format(total_sales_sum) }}</h3>
+        </div>
+    </div>
+
     <div class="bg-primary text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
         <div
             class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
@@ -53,28 +64,6 @@
         <div class="relative z-10">
             <h6 class="text-sm font-semibold text-primary-100 uppercase tracking-wider mb-2">Total Expenses</h6>
             <h3 class="text-3xl font-bold">${{ "%.2f"|format(total_expenses_sum) }}</h3>
-        </div>
-    </div>
-
-    <div class="bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
-        <div
-            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
-            <span class="material-symbols-outlined text-8xl">payments</span>
-        </div>
-        <div class="relative z-10">
-            <h6 class="text-sm font-semibold text-emerald-100 uppercase tracking-wider mb-2">Total Actual Cash</h6>
-            <h3 class="text-3xl font-bold">${{ "%.2f"|format(total_actual_cash_sum) }}</h3>
-        </div>
-    </div>
-
-    <div class="bg-indigo-500 dark:bg-indigo-600 text-white rounded-xl shadow-sm p-6 relative overflow-hidden group">
-        <div
-            class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 group-hover:scale-110 transition-transform duration-500">
-            <span class="material-symbols-outlined text-8xl">credit_card</span>
-        </div>
-        <div class="relative z-10">
-            <h6 class="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-2">Total Credits</h6>
-            <h3 class="text-3xl font-bold">${{ "%.2f"|format(total_credit_sum) }}</h3>
         </div>
     </div>
 

@@ -1128,6 +1128,7 @@ def sales():
         closings = query.order_by(DailyClosing.date.desc()).all()
         
         # Calculate sums for cards with safe handling for None
+        total_sales_sum = sum(safe_decimal(c.adjusted_reading, decimal.Decimal('0.00')) for c in closings)
         total_expenses_sum = sum(safe_decimal(c.total_expenses, decimal.Decimal('0.00')) for c in closings)
         total_actual_cash_sum = sum(safe_decimal(c.actual_cash, decimal.Decimal('0.00')) for c in closings)
         total_credit_sum = sum(safe_decimal(c.total_credit, decimal.Decimal('0.00')) for c in closings)
@@ -1140,6 +1141,7 @@ def sales():
                              month=month,
                              year=year,
                              month_name=month_name,
+                             total_sales_sum=total_sales_sum,
                              total_expenses_sum=total_expenses_sum,
                              total_actual_cash_sum=total_actual_cash_sum,
                              total_credit_sum=total_credit_sum,
@@ -1157,6 +1159,7 @@ def sales():
                              month=f_month,
                              year=f_year,
                              month_name=f_month_name,
+                             total_sales_sum=0,
                              total_expenses_sum=0, 
                              total_actual_cash_sum=0, 
                              total_credit_sum=0, 
