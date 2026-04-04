@@ -922,7 +922,7 @@ const DailyCloseApp = {
                         placeholder="Note/Reason" />
                     <div class="relative w-32 shrink-0">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
+                        <input type="number" step="any"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right advance-amount"
                             placeholder="0.00" />
                     </div>
@@ -948,7 +948,7 @@ const DailyCloseApp = {
                         placeholder="Note/Reason" />
                     <div class="relative w-32 shrink-0">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
+                        <input type="number" step="any"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right deduction-amount"
                             placeholder="0.00" />
                     </div>
@@ -974,7 +974,7 @@ const DailyCloseApp = {
                         placeholder="Note/Reference" />
                     <div class="relative w-32 shrink-0">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
+                        <input type="number" step="any"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right credit-amount"
                             placeholder="0.00" />
                     </div>
@@ -1000,7 +1000,7 @@ const DailyCloseApp = {
                         placeholder="Note/Reference" />
                     <div class="relative w-32 shrink-0">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
+                        <input type="number" step="any"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right cashback-amount"
                             placeholder="0.00" />
                     </div>
@@ -1026,7 +1026,7 @@ const DailyCloseApp = {
                         placeholder="Note/Details" />
                     <div class="relative w-32 shrink-0">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                        <input type="number"
+                        <input type="number" step="any"
                             class="w-full pl-7 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm focus:border-primary focus:ring-primary text-right samer-expense-amount"
                             placeholder="0.00" />
                     </div>
