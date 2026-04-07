@@ -81,6 +81,20 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True
 }
+
+@app.context_processor
+def inject_now():
+    now = datetime.now(timezone.utc)
+    # Adjust to local time (Athens/Beirut is UTC+2 or +3)
+    # The system metadata says local time is 03:53 and UTC is likely around 00:53 or 01:53.
+    # Actually, let's just use datetime.now() if it's local time, or better, just datetime.now().
+    # The prompt says local time is 03:52 (UTC+3 likely).
+    # I'll just use datetime.now() because the server is likely in the same timezone as the user.
+    now_local = datetime.now()
+    return {
+        'current_month_default': now_local.month,
+        'current_year_default': now_local.year
+    }
 @login_manager.user_loader
 def load_user(user_id):
     from models import User
@@ -932,8 +946,8 @@ def employees():
 
         return render_template('employees.html', 
                              employees=records, 
-                             year=year, 
-                             month=month, 
+                             current_month=month,
+                             current_year=year,
                              month_name=month_name,
                              view_type=view_type)
     except Exception as e:
@@ -1057,25 +1071,25 @@ def expenses():
         # Get filter parameters
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        receiver_id = request.args.get('receiver_id', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         # Build query
         query = Expenses.query
         
-        if month and year:
-            # Filter by month and year
-            query = query.filter(
-                db.extract('year', Expenses.date) == year,
-                db.extract('month', Expenses.date) == month
-            )
-        elif month:
-            # Filter by month only
+        if month:
             query = query.filter(db.extract('month', Expenses.date) == month)
-        elif year:
-            # Filter by year only
+        if year:
             query = query.filter(db.extract('year', Expenses.date) == year)
+        if receiver_id:
+            query = query.filter(Expenses.receiver_id == receiver_id)
         
-        expenses = query.all()
-        receivers = Receivers.query.all()
+        expenses = query.order_by(Expenses.date.desc()).all()
+        receivers = Receivers.query.order_by(Receivers.name).all()
         
         # Calculate statistics
         total_expenses = sum(exp.amount or 0 for exp in expenses)
@@ -1096,11 +1110,11 @@ def expenses():
             'top_receiver_amount': top_receiver[1]
         }
         
-        return render_template('expenses.html', expenses=expenses, receivers=receivers, stats=stats)
+        return render_template('expenses.html', expenses=expenses, receivers=receivers, stats=stats, current_receiver_id=receiver_id, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading expenses: {e}")
         flash('Error loading expenses data', 'error')
-        return render_template('expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
+        return render_template('expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0}, current_receiver_id=None)
 
 @app.route('/control-panel/sales')
 @login_required
@@ -1138,8 +1152,8 @@ def sales():
         
         return render_template('sales.html', 
                              closings=closings,
-                             month=month,
-                             year=year,
+                             current_month=month,
+                             current_year=year,
                              month_name=month_name,
                              total_sales_sum=total_sales_sum,
                              total_expenses_sum=total_expenses_sum,
@@ -1270,6 +1284,11 @@ def receivers_view():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+        
         # Base query to sum expenses
         expense_query = db.session.query(
             Expenses.receiver_id, 
@@ -1313,6 +1332,11 @@ def samer_receivers_view():
         
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
         
         # Base query to sum expenses
         expense_query = db.session.query(
@@ -1359,6 +1383,12 @@ def export_receivers_stats():
         
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+
         
         expense_query = db.session.query(
             Expenses.receiver_id, 
@@ -1427,9 +1457,13 @@ def export_samer_receivers_stats():
         from io import StringIO
         from flask import Response
         from datetime import datetime
-        
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
         
         expense_query = db.session.query(
             SamerExpenses.receiver_id, 
@@ -1487,13 +1521,19 @@ def ahmad_expenses_view():
         
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        receiver_id = request.args.get('receiver_id', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         query = AhmadMistrahExpenses.query
-        if month and year:
-            query = query.filter(db.extract('year', AhmadMistrahExpenses.date) == year, db.extract('month', AhmadMistrahExpenses.date) == month)
-        elif month:
+        if receiver_id:
+            query = query.filter_by(receiver_id=receiver_id)
+        if month:
             query = query.filter(db.extract('month', AhmadMistrahExpenses.date) == month)
-        elif year:
+        if year:
             query = query.filter(db.extract('year', AhmadMistrahExpenses.date) == year)
             
         expenses = query.all()
@@ -1508,7 +1548,7 @@ def ahmad_expenses_view():
         top_receiver = max(receiver_totals.items(), key=lambda x: x[1], default=('N/A', 0))
         
         stats = {'total': total, 'max': max_val, 'count': len(expenses), 'top_receiver': top_receiver[0], 'top_receiver_amount': top_receiver[1]}
-        return render_template('ahmad_expenses.html', expenses=expenses, receivers=receivers, stats=stats)
+        return render_template('ahmad_expenses.html', expenses=expenses, receivers=receivers, stats=stats, receiver_id=receiver_id, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading Ahmad expenses: {e}")
         return render_template('ahmad_expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
@@ -1524,13 +1564,19 @@ def samer_expenses_view():
         
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        receiver_id = request.args.get('receiver_id', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         query = SamerExpenses.query
-        if month and year:
-            query = query.filter(db.extract('year', SamerExpenses.date) == year, db.extract('month', SamerExpenses.date) == month)
-        elif month:
+        if receiver_id:
+            query = query.filter_by(receiver_id=receiver_id)
+        if month:
             query = query.filter(db.extract('month', SamerExpenses.date) == month)
-        elif year:
+        if year:
             query = query.filter(db.extract('year', SamerExpenses.date) == year)
             
         expenses = query.all()
@@ -1545,7 +1591,7 @@ def samer_expenses_view():
         top_receiver = max(receiver_totals.items(), key=lambda x: x[1], default=('N/A', 0))
         
         stats = {'total': total, 'max': max_val, 'count': len(expenses), 'top_receiver': top_receiver[0], 'top_receiver_amount': top_receiver[1]}
-        return render_template('samer_expenses.html', expenses=expenses, receivers=receivers, stats=stats)
+        return render_template('samer_expenses.html', expenses=expenses, receivers=receivers, stats=stats, receiver_id=receiver_id, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading Samer expenses: {e}")
         return render_template('samer_expenses.html', expenses=[], receivers=[], stats={'total': 0, 'max': 0, 'count': 0, 'top_receiver': 'N/A', 'top_receiver_amount': 0})
@@ -1561,12 +1607,15 @@ def credits_view():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         query = Credits.query
-        if month and year:
-            query = query.filter(db.extract('year', Credits.date) == year, db.extract('month', Credits.date) == month)
-        elif month:
+        if month:
             query = query.filter(db.extract('month', Credits.date) == month)
-        elif year:
+        if year:
             query = query.filter(db.extract('year', Credits.date) == year)
             
         records = query.order_by(Credits.date.desc()).all()
@@ -1578,7 +1627,7 @@ def credits_view():
             'max': max((safe_decimal(r.amount, decimal.Decimal('0.00')) for r in records), default=0)
         }
         
-        return render_template('credits_records.html', records=records, stats=stats)
+        return render_template('credits_records.html', records=records, stats=stats, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading credits records: {e}")
         return render_template('credits_records.html', records=[], stats={'total': 0, 'count': 0, 'max': 0})
@@ -1594,12 +1643,15 @@ def cashbacks_view():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         query = Cashbacks.query
-        if month and year:
-            query = query.filter(db.extract('year', Cashbacks.date) == year, db.extract('month', Cashbacks.date) == month)
-        elif month:
+        if month:
             query = query.filter(db.extract('month', Cashbacks.date) == month)
-        elif year:
+        if year:
             query = query.filter(db.extract('year', Cashbacks.date) == year)
             
         records = query.order_by(Cashbacks.date.desc()).all()
@@ -1611,7 +1663,7 @@ def cashbacks_view():
             'max': max((safe_decimal(r.amount, decimal.Decimal('0.00')) for r in records), default=0)
         }
         
-        return render_template('cashback_records.html', records=records, stats=stats)
+        return render_template('cashback_records.html', records=records, stats=stats, current_month=month, current_year=year)
     except Exception as e:
         app.logger.error(f"Error loading cashback records: {e}")
         return render_template('cashback_records.html', records=[], stats={'total': 0, 'count': 0, 'max': 0})
@@ -1628,6 +1680,11 @@ def deductions_advances_view():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
+            
         advances_query = Advances.query
         deductions_query = Deductions.query
         
@@ -4046,6 +4103,11 @@ def export_reports_csv():
         
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        
+        if month is None or year is None:
+            now = datetime.now(UTC)
+            if month is None: month = now.month
+            if year is None: year = now.year
         customer_id = request.args.get('customer_id')
         
         # Get General Receivers Breakdown

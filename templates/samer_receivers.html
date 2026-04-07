@@ -17,7 +17,7 @@
                 onchange="this.form.submit()">
                 <option value="">All Months</option>
                 {% for m in range(1, 13) %}
-                <option value="{{ m }}" {% if current_month==m %}selected{% endif %}>
+                <option value="{{ m }}" {% if (current_month==m) or (not current_month and m == current_month_default) %}selected{% endif %}>
                     {{ [None, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
                     'October', 'November', 'December'][m] }}
                 </option>
@@ -27,9 +27,8 @@
                 class="rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-900 dark:text-white py-2"
                 onchange="this.form.submit()">
                 <option value="">All Years</option>
-                {% set current_year_val = current_year or 2024 %}
                 {% for y in range(2023, 2031) %}
-                <option value="{{ y }}" {% if current_year==y %}selected{% endif %}>{{ y }}</option>
+                <option value="{{ y }}" {% if (current_year==y) or (not current_year and y == current_year_default) %}selected{% endif %}>{{ y }}</option>
                 {% endfor %}
             </select>
 

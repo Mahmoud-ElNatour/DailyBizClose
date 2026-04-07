@@ -17,27 +17,26 @@
         <select id="expenseMonth"
             class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
             <option value="">All Months</option>
-            <option value="1">January</option>
-            <option value="2">February</option>
-            <option value="3">March</option>
-            <option value="4">April</option>
-            <option value="5">May</option>
-            <option value="6">June</option>
-            <option value="7">July</option>
-            <option value="8">August</option>
-            <option value="9">September</option>
-            <option value="10">October</option>
-            <option value="11">November</option>
-            <option value="12">December</option>
+            {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if (m==current_month) or (not current_month and m == current_month_default) %}selected{% endif %}>
+                {{
+                ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]
+                }}
+            </option>
+            {% endfor %}
         </select>
         <select id="expenseYear"
             class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
             <option value="">All Years</option>
-            <option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
+            {% for y in range(2023, 2031) %}
+            <option value="{{ y }}" {% if (y==current_year) or (not current_year and y == current_year_default) %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+        <select id="expenseReceiver" class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+            <option value="">All Receivers</option>
+            {% for r in receivers %}
+            <option value="{{r.id}}" {% if receiver_id|int == r.id %}selected{% endif %}>{{r.name}}</option>
+            {% endfor %}
         </select>
         <button onclick="filterAhmadExpenses()"
             class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
@@ -140,7 +139,7 @@
                                 title="Edit">
                                 <span class="material-symbols-outlined text-sm">edit</span>
                             </button>
-                            <button onclick="deleteExpense({{ expense.id }})"
+                            <button onclick="deleteExpense('{{ expense.id }}')"
                                 class="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded transition-colors"
                                 title="Delete">
                                 <span class="material-symbols-outlined text-sm">delete</span>
@@ -407,9 +406,11 @@
     function filterAhmadExpenses() {
         const month = document.getElementById('expenseMonth').value;
         const year = document.getElementById('expenseYear').value;
+        const receiverId = document.getElementById('expenseReceiver').value;
         const params = new URLSearchParams();
         if (month) params.append('month', month);
         if (year) params.append('year', year);
+        if (receiverId) params.append('receiver_id', receiverId);
         window.location.href = `/control-panel/ahmad-expenses?${params.toString()}`;
     }
 
@@ -425,6 +426,14 @@
         dateInputs.forEach(input => {
             if (!input.value) input.value = today;
         });
+
+        // Initialize TomSelect for filter
+        if (document.getElementById('expenseReceiver')) {
+            new TomSelect('#expenseReceiver', {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+        }
 
         // Initialize TomSelect
         if (document.getElementById('receiver_select')) {

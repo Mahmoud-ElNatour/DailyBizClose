@@ -714,21 +714,20 @@
 
     // Set current month and year as default for all report forms
     document.addEventListener('DOMContentLoaded', function () {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
-        const currentYear = currentDate.getFullYear();
+        const currentMonth = {{ current_month_default }};
+        const currentYear = {{ current_year_default }};
 
         // Set default values for all report forms
         const forms = ['#payrollReportForm', '#salesReportForm', '#expensesReportForm'];
 
         forms.forEach(formId => {
-            const monthSelect = document.querySelector(`${formId} select[name = "month"]`);
-            const yearSelect = document.querySelector(`${formId} select[name = "year"]`);
+            const monthSelect = document.querySelector(`${formId} select[name="month"]`);
+            const yearSelect = document.querySelector(`${formId} select[name="year"]`);
 
-            if (monthSelect) {
+            if (monthSelect && !monthSelect.value) {
                 monthSelect.value = currentMonth;
             }
-            if (yearSelect) {
+            if (yearSelect && !yearSelect.value) {
                 yearSelect.value = currentYear;
             }
         });
