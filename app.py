@@ -1198,7 +1198,7 @@ def payroll():
         if year is None:
             year = now.year
 
-        query = EmployeeWorking.query.filter_by(year=year, month=month)
+        query = EmployeeWorking.query.filter_by(year=year, month=month, is_working=True)
         records = query.all()
 
         return render_template('payroll.html', employees=records, current_month=month, current_year=year)
@@ -2719,7 +2719,7 @@ def create_employee():
             employee_id=employee.id,
             year=year,
             month=month,
-            working_days=safe_decimal(data.get('working_days', 0)),
+            working_days=safe_decimal(data.get('working_days', 30)),
             actual_working_days=safe_decimal(data.get('actual_working_days', 0)),
             deductions_total=base_deductions + safe_decimal(carryover_debt),
             advance_total=safe_decimal(data.get('advance', 0)),
@@ -4059,7 +4059,7 @@ def export_payroll_csv():
             month = now.month
             year = now.year
             
-        employees_working = EmployeeWorking.query.filter_by(year=year, month=month).all()
+        employees_working = EmployeeWorking.query.filter_by(year=year, month=month, is_working=True).all()
         
         for record in employees_working:
             record.calculate_salary()
@@ -4068,18 +4068,49 @@ def export_payroll_csv():
         cw = csv.writer(si)
         cw.writerow(['Employee', 'Position', 'Base Salary', 'Working Days', 'Actual Working Days', 'Advance', 'Deductions', 'Actual Salary', 'Total'])
         
+        sum_base = 0.0
+        sum_advance = 0.0
+        sum_deductions = 0.0
+        sum_actual_salary = 0.0
+        sum_total = 0.0
+
         for record in employees_working:
+            base_sal = float(record.employee.base_salary or 0)
+            adv = float(record.advance_total or 0)
+            ded = float(record.deductions_total or 0)
+            act = float(record.actual_salary or 0)
+            tot = float(record.total or 0)
+
+            sum_base += base_sal
+            sum_advance += adv
+            sum_deductions += ded
+            sum_actual_salary += act
+            sum_total += tot
+
             cw.writerow([
                 record.employee.name,
                 record.employee.position or 'N/A',
-                f"{(record.employee.base_salary or 0):.2f}",
+                f"{base_sal:.2f}",
                 record.working_days or 0,
                 record.actual_working_days or 0,
-                f"{(record.advance_total or 0):.2f}",
-                f"{(record.deductions_total or 0):.2f}",
-                f"{(record.actual_salary or 0):.2f}",
-                f"{(record.total or 0):.2f}"
+                f"{adv:.2f}",
+                f"{ded:.2f}",
+                f"{act:.2f}",
+                f"{tot:.2f}"
             ])
+
+        cw.writerow([])
+        cw.writerow([
+            'TOTAL', 
+            '', 
+            f"{sum_base:.2f}", 
+            '', 
+            '', 
+            f"{sum_advance:.2f}", 
+            f"{sum_deductions:.2f}", 
+            f"{sum_actual_salary:.2f}", 
+            f"{sum_total:.2f}"
+        ])
             
         output = make_response(si.getvalue())
         output.headers["Content-Disposition"] = f"attachment; filename=payroll_export_{year}_{month}.csv"

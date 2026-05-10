@@ -170,7 +170,7 @@ class EmployeeWorking(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='active')
-    working_days = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
+    working_days = db.Column(db.Numeric(12, 2), nullable=False, default=30.0)
     actual_working_days = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     deductions_total = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)
     advance_total = db.Column(db.Numeric(12, 2), nullable=False, default=0.0)

@@ -18,7 +18,8 @@
             class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
             <option value="">All Months</option>
             {% for m in range(1, 13) %}
-            <option value="{{ m }}" {% if (m==current_month) or (not current_month and m == current_month_default) %}selected{% endif %}>
+            <option value="{{ m }}" {% if (m==current_month) or (not current_month and m==current_month_default)
+                %}selected{% endif %}>
                 {{
                 ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]
                 }}
@@ -29,13 +30,15 @@
             class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
             <option value="">All Years</option>
             {% for y in range(2023, 2031) %}
-            <option value="{{ y }}" {% if (y==current_year) or (not current_year and y == current_year_default) %}selected{% endif %}>{{ y }}</option>
+            <option value="{{ y }}" {% if (y==current_year) or (not current_year and y==current_year_default)
+                %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
         </select>
-        <select id="expenseReceiver" class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
+        <select id="expenseReceiver"
+            class="rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary text-slate-700 dark:text-slate-300">
             <option value="">All Receivers</option>
             {% for r in receivers %}
-            <option value="{{r.id}}" {% if receiver_id|int == r.id %}selected{% endif %}>{{r.name}}</option>
+            <option value="{{r.id}}" {% if receiver_id|int==r.id %}selected{% endif %}>{{r.name}}</option>
             {% endfor %}
         </select>
         <button onclick="filterAhmadExpenses()"
@@ -195,7 +198,8 @@
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                             <input type="number" name="amount" min="0" required
-                                class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
+                                class="w-full pl-7 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary"
+                                step="any">
                         </div>
                     </div>
                     <div>
